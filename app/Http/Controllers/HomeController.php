@@ -3,8 +3,8 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Product;  // Nhớ import Model Product
-use App\Models\Category; // Nhớ import Model Category
+// use App\Models\Product;  
+// use App\Models\Category; 
 
 class HomeController extends Controller
 {
