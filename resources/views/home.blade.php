@@ -163,7 +163,7 @@
                     </div>
                 @empty
                     <div class="col-12 text-center py-5">
-                        <p class="text-muted">Chưa có sản phẩm nào.</p>
+                        <p class="text-muted">Chưa có sản phẩm.</p>
                     </div>
                 @endforelse
             </div>
