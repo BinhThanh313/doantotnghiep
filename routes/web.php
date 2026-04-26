@@ -1,7 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\ShopController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/shop', function () { return "Trang danh sách sản phẩm"; })->name('shop.index');
@@ -18,3 +20,9 @@ Route::post('/logout', function () { return "Xử lý đăng xuất"; })->name('
 // Các route khác cũng xuất hiện trong file app.blade.php của bạn
 Route::get('/profile', function () { return "Trang cá nhân"; })->name('profile');
 Route::get('/wishlist', function () { return "Danh sách yêu thích"; })->name('wishlist');
+Auth::routes();
+
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+
+Route::get('/shop', [ShopController::class, 'index'])->name('shop.index');
+Route::get('/shop/{id}', [ShopController::class, 'show'])->name('shop.show');
