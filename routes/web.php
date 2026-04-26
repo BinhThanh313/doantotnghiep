@@ -26,3 +26,19 @@ Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name
 
 Route::get('/shop', [ShopController::class, 'index'])->name('shop.index');
 Route::get('/shop/{id}', [ShopController::class, 'show'])->name('shop.show');
+
+Route::get('/contact', function () {
+    return view('contact');
+})->name('contact');
+
+Route::get('/cart', function () {
+    return view('shop.cart'); // Nếu bạn lưu trong thư mục shop thì là view('shop.cart')
+})->name('cart.index');
+
+Route::get('/checkout', function () {
+    return view('shop.checkout'); // Đổi thành 'shop.checkout' nếu bạn lưu trong thư mục shop
+})->name('checkout');
+
+Route::get('/bestseller', function () {
+    return view('shop.bestseller'); // Đổi thành 'shop.bestseller' nếu bạn để trong thư mục shop
+})->name('bestseller');

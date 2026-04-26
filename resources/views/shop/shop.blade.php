@@ -68,10 +68,24 @@
                     @endforelse
 
                     <div class="col-12">
-                        <div class="pagination d-flex justify-content-center mt-5">
-                            {{ $products->links() }}
-                        </div>
-                    </div>
+    <div class="d-flex justify-content-center mt-5">
+        <style>
+            /* Ép buộc khối phân trang dàn ngang */
+            .pagination {
+                display: flex !important;
+                flex-direction: row !important;
+                padding-left: 0;
+                list-style: none;
+                gap: 5px;
+            }
+            .pagination .page-item {
+                display: inline-block;
+            }
+        </style>
+        
+        {{ $products->links('pagination::bootstrap-5') }}
+    </div>
+</div>
                 </div>
             </div>
         </div>
