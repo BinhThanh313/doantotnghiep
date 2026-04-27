@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="utf-8">
-    <title>@yield('title', 'Electro Shop')</title>
+    <title>@yield('title', 'Cửa hàng Điện máy Electro')</title>
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
 
     {{-- Google Fonts --}}
@@ -29,7 +29,7 @@
     {{-- Spinner --}}
     <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
         <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
-            <span class="sr-only">Loading...</span>
+            <span class="sr-only">Đang tải...</span>
         </div>
     </div>
 
@@ -38,34 +38,34 @@
         <div class="row gx-0 align-items-center">
             <div class="col-lg-4 text-center text-lg-start mb-lg-0">
                 <div class="d-inline-flex align-items-center" style="height: 45px;">
-                    <a href="#" class="text-muted me-2">Help</a><small> / </small>
-                    <a href="#" class="text-muted mx-2">Support</a><small> / </small>
-                    <a href="#" class="text-muted ms-2">Contact</a>
+                    <a href="#" class="text-muted me-2">Trợ giúp</a><small> / </small>
+                    <a href="#" class="text-muted mx-2">Hỗ trợ</a><small> / </small>
+                    <a href="#" class="text-muted ms-2">Liên hệ</a>
                 </div>
             </div>
             <div class="col-lg-4 text-center d-flex align-items-center justify-content-center">
-                <small class="text-dark">Call Us:</small>
+                <small class="text-dark">Gọi cho chúng tôi:</small>
                 <a href="#" class="text-muted">(+012) 1234 567890</a>
             </div>
             <div class="col-lg-4 text-center text-lg-end">
                 <div class="d-inline-flex align-items-center" style="height: 45px;">
                     <div class="dropdown">
                         <a href="#" class="dropdown-toggle text-muted ms-2" data-bs-toggle="dropdown">
-                            <small><i class="fa fa-home me-2"></i> My Dashboard</small>
+                            <small><i class="fa fa-home me-2"></i> Bảng điều khiển</small>
                         </a>
                         <div class="dropdown-menu rounded">
                             @auth
-                                <a href="{{ route('profile') }}" class="dropdown-item">My Account</a>
+                                <a href="{{ route('profile') }}" class="dropdown-item">Tài khoản của tôi</a>
                                 <form method="POST" action="{{ route('logout') }}">
                                     @csrf
-                                    <button class="dropdown-item" type="submit">Log Out</button>
+                                    <button class="dropdown-item" type="submit">Đăng xuất</button>
                                 </form>
                             @else
-                                <a href="{{ route('login') }}" class="dropdown-item">Login</a>
-                                <a href="{{ route('register') }}" class="dropdown-item">Register</a>
+                                <a href="{{ route('login') }}" class="dropdown-item">Đăng nhập</a>
+                                <a href="{{ route('register') }}" class="dropdown-item">Đăng ký</a>
                             @endauth
-                            <a href="#" class="dropdown-item">Wishlist</a>
-                            <a href="{{ route('cart.index') }}" class="dropdown-item">My Cart</a>
+                            <a href="#" class="dropdown-item">Danh sách yêu thích</a>
+                            <a href="{{ route('cart.index') }}" class="dropdown-item">Giỏ hàng</a>
                         </div>
                     </div>
                 </div>
@@ -88,10 +88,10 @@
                     <div class="position-relative ps-4">
                         <div class="d-flex border rounded-pill">
                             <input class="form-control border-0 rounded-pill w-100 py-3" type="text"
-                                name="search" value="{{ request('search') }}" placeholder="Search Looking For?">
+                                name="search" value="{{ request('search') }}" placeholder="Bạn đang tìm gì?">
                             <select class="form-select text-dark border-0 border-start rounded-0 p-3"
                                 name="category" style="width: 200px;">
-                                <option value="">All Category</option>
+                                <option value="">Tất cả danh mục</option>
                                 @foreach($categories ?? [] as $cat)
                                     <option value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'selected' : '' }}>
                                         {{ $cat->name }}
@@ -128,7 +128,7 @@
                 <nav class="navbar navbar-light position-relative" style="width: 250px;">
                     <button class="navbar-toggler border-0 fs-4 w-100 px-0 text-start" type="button"
                         data-bs-toggle="collapse" data-bs-target="#allCat">
-                        <h4 class="m-0"><i class="fa fa-bars me-2"></i>All Categories</h4>
+                        <h4 class="m-0"><i class="fa fa-bars me-2"></i>Danh mục</h4>
                     </button>
                     <div class="collapse navbar-collapse rounded-bottom" id="allCat">
                         <div class="navbar-nav ms-auto py-0">
@@ -161,9 +161,9 @@
                     </button>
                     <div class="collapse navbar-collapse" id="navbarCollapse">
                         <div class="navbar-nav ms-auto py-0">
-                            <a href="{{ route('home') }}" class="nav-item nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Home</a>
-                            <a href="{{ route('shop.index') }}" class="nav-item nav-link {{ request()->routeIs('shop.*') ? 'active' : '' }}">Shop</a>
-                            <a href="{{ route('contact') }}" class="nav-item nav-link me-2">Contact</a>
+                            <a href="{{ route('home') }}" class="nav-item nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Trang chủ</a>
+                            <a href="{{ route('shop.index') }}" class="nav-item nav-link {{ request()->routeIs('shop.*') ? 'active' : '' }}">Sản phẩm</a>
+                            <a href="{{ route('contact') }}" class="nav-item nav-link me-2">Liên hệ</a>
                         </div>
                         <a href="tel:+01234567890" class="btn btn-secondary rounded-pill py-2 px-4 px-lg-3 mb-3 mb-md-3 mb-lg-0">
                             <i class="fa fa-mobile-alt me-2"></i> +0123 456 7890
@@ -186,8 +186,8 @@
                         <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mb-4" style="width: 70px; height: 70px;">
                             <i class="fas fa-map-marker-alt fa-2x text-primary"></i>
                         </div>
-                        <h4 class="text-white">Address</h4>
-                        <p class="mb-2">123 Street, Hanoi, Vietnam</p>
+                        <h4 class="text-white">Địa chỉ</h4>
+                        <p class="mb-2">123 Đường ABC, Hà Nội, Việt Nam</p>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-6 col-xl-3">
@@ -195,7 +195,7 @@
                         <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mb-4" style="width: 70px; height: 70px;">
                             <i class="fas fa-envelope fa-2x text-primary"></i>
                         </div>
-                        <h4 class="text-white">Mail Us</h4>
+                        <h4 class="text-white">Gửi Email</h4>
                         <p class="mb-2">info@electroshop.com</p>
                     </div>
                 </div>
@@ -204,7 +204,7 @@
                         <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mb-4" style="width: 70px; height: 70px;">
                             <i class="fa fa-phone-alt fa-2x text-primary"></i>
                         </div>
-                        <h4 class="text-white">Telephone</h4>
+                        <h4 class="text-white">Điện thoại</h4>
                         <p class="mb-2">(+012) 3456 7890</p>
                     </div>
                 </div>
@@ -213,43 +213,43 @@
                         <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mb-4" style="width: 70px; height: 70px;">
                             <i class="fab fa-firefox-browser fa-2x text-primary"></i>
                         </div>
-                        <h4 class="text-white">Website</h4>
+                        <h4 class="text-white">Trang web</h4>
                         <p class="mb-2">www.electroshop.com</p>
                     </div>
                 </div>
             </div>
             <div class="row g-5">
                 <div class="col-md-6 col-lg-6 col-xl-3">
-                    <h4 class="text-primary mb-4">Newsletter</h4>
+                    <h4 class="text-primary mb-4">Nhận Bản Tin</h4>
                     <p class="mb-3">Đăng ký nhận thông tin khuyến mãi mới nhất từ chúng tôi.</p>
                     <div class="position-relative mx-auto rounded-pill">
-                        <input class="form-control rounded-pill w-100 py-3 ps-4 pe-5" type="text" placeholder="Enter your email">
-                        <button type="button" class="btn btn-primary rounded-pill position-absolute top-0 end-0 py-2 mt-2 me-2">SignUp</button>
+                        <input class="form-control rounded-pill w-100 py-3 ps-4 pe-5" type="text" placeholder="Nhập email của bạn">
+                        <button type="button" class="btn btn-primary rounded-pill position-absolute top-0 end-0 py-2 mt-2 me-2">Đăng ký</button>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-6 col-xl-3">
-                    <h4 class="text-primary mb-4">Customer Service</h4>
-                    <a href="{{ route('contact') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Contact Us</a>
-                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Returns</a>
-                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Order History</a>
+                    <h4 class="text-primary mb-4">Chăm Sóc Khách Hàng</h4>
+                    <a href="{{ route('contact') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Liên hệ chúng tôi</a>
+                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Chính sách đổi trả</a>
+                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Lịch sử đơn hàng</a>
                     @auth
-                        <a href="{{ route('profile') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> My Account</a>
+                        <a href="{{ route('profile') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Tài khoản của tôi</a>
                     @else
-                        <a href="{{ route('login') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Login</a>
+                        <a href="{{ route('login') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Đăng nhập</a>
                     @endauth
                 </div>
                 <div class="col-md-6 col-lg-6 col-xl-3">
-                    <h4 class="text-primary mb-4">Information</h4>
-                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> About Us</a>
-                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Privacy Policy</a>
-                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Terms & Conditions</a>
-                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> FAQ</a>
+                    <h4 class="text-primary mb-4">Thông Tin</h4>
+                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Về chúng tôi</a>
+                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Chính sách bảo mật</a>
+                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Điều khoản & Điều kiện</a>
+                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Câu hỏi thường gặp</a>
                 </div>
                 <div class="col-md-6 col-lg-6 col-xl-3">
-                    <h4 class="text-primary mb-4">Extras</h4>
-                    <a href="{{ route('shop.index') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> All Products</a>
-                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Wishlist</a>
-                    <a href="{{ route('cart.index') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> My Cart</a>
+                    <h4 class="text-primary mb-4">Tiện Ích Khác</h4>
+                    <a href="{{ route('shop.index') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Tất cả sản phẩm</a>
+                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Danh sách yêu thích</a>
+                    <a href="{{ route('cart.index') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Giỏ hàng</a>
                 </div>
             </div>
         </div>
@@ -261,7 +261,7 @@
             <div class="row g-4 align-items-center">
                 <div class="col-md-6 text-center text-md-start mb-md-0">
                     <span class="text-white">
-                        <i class="fas fa-copyright text-light me-2"></i>Electro Shop, All rights reserved.
+                        <i class="fas fa-copyright text-light me-2"></i>Electro Shop, Đã đăng ký bản quyền.
                     </span>
                 </div>
                 <div class="col-md-6 text-center text-md-end text-white">

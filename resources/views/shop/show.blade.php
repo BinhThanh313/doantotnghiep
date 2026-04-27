@@ -6,11 +6,12 @@
     <div class="container-fluid page-header py-5">
         <h1 class="text-center text-white display-6 wow fadeInUp" data-wow-delay="0.1s">Chi tiết sản phẩm</h1>
         <ol class="breadcrumb justify-content-center mb-0 wow fadeInUp" data-wow-delay="0.3s">
-            <li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li>
-            <li class="breadcrumb-item"><a href="{{ route('shop.index') }}">Shop</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('home') }}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('shop.index') }}">Cửa hàng</a></li>
             <li class="breadcrumb-item active text-white">{{ $product->name }}</li>
         </ol>
     </div>
+    
     <div class="container-fluid shop py-5">
         <div class="container py-5">
             <div class="row g-4">
@@ -42,10 +43,10 @@
                     
                     <a href="#">
                         <div class="position-relative">
-                            <img src="{{ asset('img/product-banner-2.jpg') }}" class="img-fluid w-100 rounded" alt="Image">
+                            <img src="{{ asset('img/product-banner-2.jpg') }}" class="img-fluid w-100 rounded" alt="Khuyến mãi">
                             <div class="text-center position-absolute d-flex flex-column align-items-center justify-content-center rounded p-4"
                                 style="width: 100%; height: 100%; top: 0; right: 0; background: rgba(242, 139, 0, 0.3);">
-                                <h5 class="display-6 text-primary">SALE</h5>
+                                <h5 class="display-6 text-primary">KHUYẾN MÃI</h5>
                                 <h4 class="text-secondary">Giảm giá 50%</h4>
                             </div>
                         </div>
@@ -63,7 +64,9 @@
                         <div class="col-xl-6">
                             <h4 class="fw-bold mb-3">{{ $product->name }}</h4>
                             <p class="mb-3">Danh mục: {{ $product->category->name ?? 'Đang cập nhật' }}</p>
-                            <h5 class="fw-bold mb-3 text-primary">${{ number_format($product->price, 2) }}</h5>
+                            
+                            {{-- Đã sửa định dạng tiền sang VNĐ --}}
+                            <h5 class="fw-bold mb-3 text-primary">{{ number_format($product->price, 0, ',', '.') }}đ</h5>
                             
                             <div class="d-flex mb-4">
                                 <i class="fa fa-star text-secondary"></i>
@@ -116,7 +119,7 @@
                                 </div>
                                 <div class="tab-pane" id="nav-mission" role="tabpanel" aria-labelledby="nav-mission-tab">
                                     <p class="text-dark">Hiện chưa có đánh giá nào cho sản phẩm này.</p>
-                                    </div>
+                                </div>
                             </div>
                         </div>
                         
@@ -125,4 +128,4 @@
             </div>
         </div>
     </div>
-    @endsection
+@endsection

@@ -11,6 +11,7 @@
             <li class="breadcrumb-item active text-white">Giỏ hàng</li>
         </ol>
     </div>
+    
     <div class="container-fluid py-5">
         <div class="container py-5">
             <div class="table-responsive">
@@ -36,7 +37,7 @@
                                 <p class="mb-0 py-4">G2356</p>
                             </td>
                             <td>
-                                <p class="mb-0 py-4 text-primary">2.99 $</p>
+                                <p class="mb-0 py-4 text-primary">2.690.000đ</p>
                             </td>
                             <td>
                                 <div class="input-group quantity py-4" style="width: 130px;">
@@ -54,7 +55,7 @@
                                 </div>
                             </td>
                             <td>
-                                <p class="mb-0 py-4 text-primary">2.99 $</p>
+                                <p class="mb-0 py-4 text-primary fw-bold">2.690.000đ</p>
                             </td>
                             <td class="py-4">
                                 <button class="btn btn-md rounded-circle bg-light border" title="Xóa sản phẩm">
@@ -65,13 +66,13 @@
 
                         <tr>
                             <th scope="row">
-                                <p class="mb-0 py-4">Smart Camera</p>
+                                <p class="mb-0 py-4">Camera thông minh</p>
                             </th>
                             <td>
                                 <p class="mb-0 py-4">C102</p>
                             </td>
                             <td>
-                                <p class="mb-0 py-4 text-primary">3.50 $</p>
+                                <p class="mb-0 py-4 text-primary">350.000đ</p>
                             </td>
                             <td>
                                 <div class="input-group quantity py-4" style="width: 130px;">
@@ -89,7 +90,7 @@
                                 </div>
                             </td>
                             <td>
-                                <p class="mb-0 py-4 text-primary">7.00 $</p>
+                                <p class="mb-0 py-4 text-primary fw-bold">700.000đ</p>
                             </td>
                             <td class="py-4">
                                 <button class="btn btn-md rounded-circle bg-light border" title="Xóa sản phẩm">
@@ -116,19 +117,19 @@
                             <h1 class="display-6 mb-4">Tổng <span class="fw-normal">đơn hàng</span></h1>
                             <div class="d-flex justify-content-between mb-4">
                                 <h5 class="mb-0 me-4">Tạm tính:</h5>
-                                <p class="mb-0">9.99 $</p>
+                                <p class="mb-0">3.390.000đ</p>
                             </div>
                             <div class="d-flex justify-content-between">
                                 <h5 class="mb-0 me-4">Vận chuyển:</h5>
                                 <div>
-                                    <p class="mb-0">Đồng giá: 3.00 $</p>
+                                    <p class="mb-0">Đồng giá: 30.000đ</p>
                                 </div>
                             </div>
                             <p class="mb-0 text-end mt-2">Giao hàng toàn quốc.</p>
                         </div>
                         <div class="py-4 mb-4 border-top border-bottom d-flex justify-content-between">
                             <h5 class="mb-0 ps-4 me-4">Thành tiền</h5>
-                            <p class="mb-0 pe-4 fw-bold text-primary fs-5">12.99 $</p>
+                            <p class="mb-0 pe-4 fw-bold text-primary fs-5">3.420.000đ</p>
                         </div>
                         <div class="d-flex justify-content-center mb-4">
                             <a href="#" class="btn btn-primary rounded-pill px-4 py-3 text-uppercase text-white w-75">
@@ -140,4 +141,4 @@
             </div>
         </div>
     </div>
-    @endsection
+@endsection

@@ -4,10 +4,10 @@
 
 @section('content')
 <div class="container-fluid page-header py-5">
-    <h1 class="text-center text-white display-6 wow fadeInUp" data-wow-delay="0.1s">Shop Page</h1>
+    <h1 class="text-center text-white display-6 wow fadeInUp" data-wow-delay="0.1s">Cửa hàng</h1>
     <ol class="breadcrumb justify-content-center mb-0 wow fadeInUp" data-wow-delay="0.3s">
-        <li class="breadcrumb-item"><a href="{{ route('home') }}">Home</a></li>
-        <li class="breadcrumb-item active text-white">Shop</li>
+        <li class="breadcrumb-item"><a href="{{ route('home') }}">Trang chủ</a></li>
+        <li class="breadcrumb-item active text-white">Cửa hàng</li>
     </ol>
 </div>
 
@@ -30,7 +30,7 @@
                         @endforeach
                     </ul>
                 </div>
-                </div>
+            </div>
 
             <div class="col-lg-9 wow fadeInUp" data-wow-delay="0.1s">
                 <div class="row g-4">
@@ -42,12 +42,13 @@
                                     <img src="{{ $product->image ? asset('storage/' . $product->image) : asset('img/product-3.png') }}" 
                                          class="img-fluid w-100 rounded-top" alt="{{ $product->name }}">
                                     @if($product->is_new)
-                                        <div class="product-new">New</div>
+                                        <div class="product-new">Mới</div>
                                     @endif
                                 </div>
                                 <div class="text-center p-4">
                                     <a href="{{ route('shop.show', $product->id) }}" class="h4 d-block">{{ $product->name }}</a>
-                                    <span class="text-primary fs-5">${{ number_format($product->price, 2) }}</span>
+                                    {{-- Đã sửa định dạng tiền tệ sang VNĐ --}}
+                                    <span class="text-primary fs-5">{{ number_format($product->price, 0, ',', '.') }}đ</span>
                                 </div>
                             </div>
                             <div class="product-item-add border border-top-0 rounded-bottom text-center p-4">
@@ -55,7 +56,7 @@
                                     @csrf
                                     <input type="hidden" name="product_id" value="{{ $product->id }}">
                                     <button type="submit" class="btn btn-primary rounded-pill py-2 px-4">
-                                        <i class="fas fa-shopping-cart me-2"></i> Add To Cart
+                                        <i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ hàng
                                     </button>
                                 </form>
                             </div>
@@ -68,24 +69,24 @@
                     @endforelse
 
                     <div class="col-12">
-    <div class="d-flex justify-content-center mt-5">
-        <style>
-            /* Ép buộc khối phân trang dàn ngang */
-            .pagination {
-                display: flex !important;
-                flex-direction: row !important;
-                padding-left: 0;
-                list-style: none;
-                gap: 5px;
-            }
-            .pagination .page-item {
-                display: inline-block;
-            }
-        </style>
-        
-        {{ $products->links('pagination::bootstrap-5') }}
-    </div>
-</div>
+                        <div class="d-flex justify-content-center mt-5">
+                            <style>
+                                /* Ép buộc khối phân trang dàn ngang */
+                                .pagination {
+                                    display: flex !important;
+                                    flex-direction: row !important;
+                                    padding-left: 0;
+                                    list-style: none;
+                                    gap: 5px;
+                                }
+                                .pagination .page-item {
+                                    display: inline-block;
+                                }
+                            </style>
+                            
+                            {{ $products->links('pagination::bootstrap-5') }}
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

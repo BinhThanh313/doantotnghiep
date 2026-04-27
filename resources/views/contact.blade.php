@@ -24,6 +24,7 @@
                         <h5 class="text-primary wow fadeInUp" data-wow-delay="0.1s">Gửi tin nhắn</h5>
                         <h1 class="display-5 mb-4 wow fadeInUp" data-wow-delay="0.3s">Bạn cần hỗ trợ gì?</h1>
                         
+                        {{-- Form Liên hệ --}}
                         <form action="#" method="POST">
                             @csrf
                             <div class="row g-4 wow fadeInUp" data-wow-delay="0.1s">
@@ -64,14 +65,16 @@
                         </form>
                     </div>
                     
+                    {{-- Google Maps iframe đã được fix lại src --}}
                     <div class="col-lg-5 wow fadeInUp" data-wow-delay="0.2s">
                         <div class="h-100 rounded">
                             <iframe class="rounded w-100" style="height: 100%; min-height: 400px;"
-                                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3725.3024241076296!2d105.74530007503006!3d20.960450580671603!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x313452efff3fc9c1%3A0x4851a2a0fed64434!2zVHLGsOG7nW5nIMSQ4bqhaSBo4buNYyBQaGVuaWthYQ!5e0!3m2!1svi!2s!4v1714000000000!5m2!1svi!2s"
+                                src="https://maps.google.com/maps?q=Yên%20Nghĩa,%20Hà%20Đông,%20Hà%20Nội&t=&z=13&ie=UTF8&iwloc=&output=embed"
                                 loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
                         </div>
                     </div>
                     
+                    {{-- Thông tin liên hệ --}}
                     <div class="col-lg-12">
                         <div class="row g-4 align-items-center justify-content-center mt-3">
                             <div class="col-md-6 col-lg-6 col-xl-3 wow fadeInUp" data-wow-delay="0.1s">
@@ -116,4 +119,4 @@
             </div>
         </div>
     </div>
-    @endsection
+@endsection

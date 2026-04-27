@@ -6,11 +6,12 @@
     <div class="container-fluid page-header py-5">
         <h1 class="text-center text-white display-6 wow fadeInUp" data-wow-delay="0.1s">Sản phẩm Bán chạy</h1>
         <ol class="breadcrumb justify-content-center mb-0 wow fadeInUp" data-wow-delay="0.3s">
-            <li class="breadcrumb-item"><a href="{{ route('home') ?? '/' }}">Trang chủ</a></li>
-            <li class="breadcrumb-item"><a href="#">Cửa hàng</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('home') }}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('shop.index') }}">Cửa hàng</a></li>
             <li class="breadcrumb-item active text-white">Bán chạy nhất</li>
         </ol>
     </div>
+
     <div class="container-fluid px-0">
         <div class="row g-0">
             <div class="col-6 col-md-4 col-lg-2 border-start border-end wow fadeInUp" data-wow-delay="0.1s">
@@ -52,7 +53,7 @@
                         <i class="fas fa-credit-card fa-2x text-primary"></i>
                         <div class="ms-4">
                             <h6 class="text-uppercase mb-2">Quà tặng hấp dẫn</h6>
-                            <p class="mb-0">Cho đơn trên $50</p>
+                            <p class="mb-0">Cho đơn trên 1.000.000đ</p>
                         </div>
                     </div>
                 </div>
@@ -81,6 +82,7 @@
             </div>
         </div>
     </div>
+
     <div class="container-fluid bg-light py-5">
         <div class="container">
             <div class="row g-4">
@@ -91,7 +93,7 @@
                             <h3 class="text-primary">Camera Thông minh</h3>
                             <h1 class="display-3 text-secondary mb-0">Giảm <span class="text-primary fw-normal">40%</span></h1>
                         </div>
-                        <img src="{{ asset('img/product-1.png') }}" class="img-fluid" style="max-height: 150px" alt="">
+                        <img src="{{ asset('img/product-1.png') }}" class="img-fluid" style="max-height: 150px" alt="Khuyến mãi Camera">
                     </a>
                 </div>
                 <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.3s">
@@ -101,12 +103,13 @@
                             <h3 class="text-primary">Đồng hồ Thông minh</h3>
                             <h1 class="display-3 text-secondary mb-0">Giảm <span class="text-primary fw-normal">20%</span></h1>
                         </div>
-                        <img src="{{ asset('img/product-2.png') }}" class="img-fluid" style="max-height: 150px" alt="">
+                        <img src="{{ asset('img/product-2.png') }}" class="img-fluid" style="max-height: 150px" alt="Khuyến mãi Đồng hồ">
                     </a>
                 </div>
             </div>
         </div>
     </div>
+
     <div class="container-fluid products pt-5">
         <div class="container products-mini py-5">
             <div class="mx-auto text-center mb-5" style="max-width: 700px;">
@@ -115,14 +118,14 @@
             </div>
             
             <div class="row g-4">
-                {{-- GHI CHÚ: Vòng lặp @foreach lấy sản phẩm bán chạy --}}
+                {{-- Vòng lặp sản phẩm bán chạy --}}
                 @for ($i = 3; $i <= 8; $i++) 
                 <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.1s">
                     <div class="products-mini-item border">
                         <div class="row g-0">
                             <div class="col-5">
                                 <div class="products-mini-img border-end h-100">
-                                    <img src="{{ asset('img/product-'.$i.'.png') }}" class="img-fluid w-100 h-100" alt="Image">
+                                    <img src="{{ asset('img/product-'.$i.'.png') }}" class="img-fluid w-100 h-100" alt="Hình ảnh sản phẩm">
                                     <div class="products-mini-icon rounded-circle bg-primary">
                                         <a href="#"><i class="fa fa-eye fa-1x text-white"></i></a>
                                     </div>
@@ -130,27 +133,27 @@
                             </div>
                             <div class="col-7">
                                 <div class="products-mini-content p-3">
-                                    <a href="#" class="d-block mb-2">Điện thoại</a>
+                                    <a href="#" class="d-block mb-2 text-muted">Điện thoại</a>
                                     <a href="#" class="d-block h4">Mẫu Sản Phẩm Số {{ $i }}</a>
-                                    <del class="me-2 fs-5">$1,250.00</del>
-                                    <span class="text-primary fs-5">$1,050.00</span>
+                                    <del class="me-2 fs-6 text-muted">12.500.000đ</del>
+                                    <span class="text-primary fs-5 fw-bold">10.500.000đ</span>
                                 </div>
                             </div>
                         </div>
                         <div class="products-mini-add border p-3">
                             <a href="#" class="btn btn-primary border-secondary rounded-pill py-2 px-4"><i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ</a>
                             <div class="d-flex">
-                                <a href="#" class="text-primary d-flex align-items-center justify-content-center me-3"><span class="rounded-circle btn-sm-square border"><i class="fas fa-random"></i></span></a>
-                                <a href="#" class="text-primary d-flex align-items-center justify-content-center me-0"><span class="rounded-circle btn-sm-square border"><i class="fas fa-heart"></i></span></a>
+                                <a href="#" class="text-primary d-flex align-items-center justify-content-center me-3" title="So sánh"><span class="rounded-circle btn-sm-square border"><i class="fas fa-random"></i></span></a>
+                                <a href="#" class="text-primary d-flex align-items-center justify-content-center me-0" title="Yêu thích"><span class="rounded-circle btn-sm-square border"><i class="fas fa-heart"></i></span></a>
                             </div>
                         </div>
                     </div>
                 </div>
                 @endfor
-                {{-- Kết thúc vòng lặp --}}
             </div>
         </div>
     </div>
+
     <div class="container-fluid product pt-5">
         <div class="container py-5">
             <div class="tab-class">
@@ -182,25 +185,24 @@
                 <div class="tab-content">
                     <div id="tab-1" class="tab-pane fade show p-0 active">
                         <div class="row g-4">
-                            {{-- Vòng lặp sản phẩm Tab Tất Cả --}}
                             @for ($i = 4; $i <= 7; $i++)
                             <div class="col-md-6 col-lg-4 col-xl-3">
                                 <div class="product-item rounded wow fadeInUp" data-wow-delay="0.1s">
                                     <div class="product-item-inner border rounded">
                                         <div class="product-item-inner-item">
-                                            <img src="{{ asset('img/product-'.$i.'.png') }}" class="img-fluid w-100 rounded-top" alt="">
+                                            <img src="{{ asset('img/product-'.$i.'.png') }}" class="img-fluid w-100 rounded-top" alt="Sản phẩm công nghệ">
                                             <div class="product-new">Mới</div>
                                         </div>
                                         <div class="text-center rounded-bottom p-4">
-                                            <a href="#" class="d-block mb-2">Điện thoại / Laptop</a>
+                                            <a href="#" class="d-block mb-2 text-muted">Điện thoại / Laptop</a>
                                             <a href="#" class="d-block h4">Mẫu Thiết Bị {{ $i }}</a>
-                                            <del class="me-2 fs-5">$1,250.00</del>
-                                            <span class="text-primary fs-5">$1,050.00</span>
+                                            <del class="me-2 fs-6 text-muted">12.500.000đ</del>
+                                            <span class="text-primary fs-5 fw-bold">10.500.000đ</span>
                                         </div>
                                     </div>
                                     <div class="product-item-add border border-top-0 rounded-bottom text-center p-4 pt-0">
                                         <a href="#" class="btn btn-primary border-secondary rounded-pill py-2 px-4 mb-4"><i class="fas fa-shopping-cart me-2"></i> Thêm Vào Giỏ</a>
-                                        <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex justify-content-center">
                                             <div class="d-flex text-primary">
                                                 <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
                                             </div>
@@ -212,22 +214,23 @@
                         </div>
                     </div>
                     
-                    <div id="tab-2" class="tab-pane fade show p-0"><div class="row g-4"><p class="text-center">Đang cập nhật hàng mới...</p></div></div>
-                    <div id="tab-3" class="tab-pane fade show p-0"><div class="row g-4"><p class="text-center">Đang cập nhật hàng nổi bật...</p></div></div>
+                    <div id="tab-2" class="tab-pane fade show p-0"><div class="row g-4"><p class="text-center py-5">Đang cập nhật hàng mới...</p></div></div>
+                    <div id="tab-3" class="tab-pane fade show p-0"><div class="row g-4"><p class="text-center py-5">Đang cập nhật hàng nổi bật...</p></div></div>
                 </div>
             </div>
         </div>
     </div>
+
     <div class="container-fluid py-5">
         <div class="container pb-5">
             <div class="row g-4">
                 <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.1s">
                     <a href="#">
                         <div class="bg-primary rounded position-relative">
-                            <img src="{{ asset('img/product-banner.jpg') }}" class="img-fluid w-100 rounded" alt="">
+                            <img src="{{ asset('img/product-banner.jpg') }}" class="img-fluid w-100 rounded" alt="Banner máy ảnh">
                             <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center rounded p-4" style="background: rgba(255, 255, 255, 0.5);">
                                 <h3 class="display-5 text-primary">Máy Ảnh Chuyên Nghiệp <br> <span>Kèm Phụ Kiện</span></h3>
-                                <p class="fs-4 text-dark fw-bold">$899.99</p>
+                                <p class="fs-4 text-dark fw-bold">8.990.000đ</p>
                                 <span class="btn btn-primary rounded-pill align-self-start py-2 px-4">Mua Ngay</span>
                             </div>
                         </div>
@@ -236,7 +239,7 @@
                 <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.2s">
                     <a href="#">
                         <div class="text-center bg-primary rounded position-relative">
-                            <img src="{{ asset('img/product-banner-2.jpg') }}" class="img-fluid w-100" alt="">
+                            <img src="{{ asset('img/product-banner-2.jpg') }}" class="img-fluid w-100" alt="Banner khuyến mãi">
                             <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center rounded p-4" style="background: rgba(242, 139, 0, 0.5);">
                                 <h2 class="display-2 text-secondary">SALE KHỦNG</h2>
                                 <h4 class="display-5 text-white mb-4">Giảm giá tới 50%</h4>
@@ -248,4 +251,4 @@
             </div>
         </div>
     </div>
-    @endsection
+@endsection

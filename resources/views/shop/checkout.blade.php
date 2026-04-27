@@ -6,7 +6,7 @@
     <div class="container-fluid page-header py-5">
         <h1 class="text-center text-white display-6 wow fadeInUp" data-wow-delay="0.1s">Thanh toán</h1>
         <ol class="breadcrumb justify-content-center mb-0 wow fadeInUp" data-wow-delay="0.3s">
-            <li class="breadcrumb-item"><a href="{{ route('home') ?? '/' }}">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="{{ route('home') }}">Trang chủ</a></li>
             <li class="breadcrumb-item"><a href="#">Cửa hàng</a></li>
             <li class="breadcrumb-item active text-white">Thanh toán</li>
         </ol>
@@ -52,7 +52,7 @@
                         <i class="fas fa-credit-card fa-2x text-primary"></i>
                         <div class="ms-4">
                             <h6 class="text-uppercase mb-2">Quà tặng hấp dẫn</h6>
-                            <p class="mb-0">Cho đơn trên $50</p>
+                            <p class="mb-0">Cho đơn trên 1.000.000đ</p>
                         </div>
                     </div>
                 </div>
@@ -141,15 +141,15 @@
                                     {{-- GHI CHÚ: Sau này lặp @foreach giỏ hàng ở đây --}}
                                     <tr class="text-center">
                                         <th scope="row" class="text-start py-4">Apple iPad Mini</th>
-                                        <td class="py-4">$269.00</td>
+                                        <td class="py-4">2.690.000đ</td>
                                         <td class="py-4">2</td>
-                                        <td class="py-4 fw-bold">$538.00</td>
+                                        <td class="py-4 fw-bold">5.380.000đ</td>
                                     </tr>
                                     <tr class="text-center">
-                                        <th scope="row" class="text-start py-4">Smart Camera</th>
-                                        <td class="py-4">$35.00</td>
+                                        <th scope="row" class="text-start py-4">Camera thông minh</th>
+                                        <td class="py-4">350.000đ</td>
                                         <td class="py-4">1</td>
-                                        <td class="py-4 fw-bold">$35.00</td>
+                                        <td class="py-4 fw-bold">350.000đ</td>
                                     </tr>
                                     {{-- Kết thúc @foreach --}}
                                     
@@ -159,7 +159,7 @@
                                         <td class="py-4"><p class="mb-0 text-dark py-2 text-end">Tạm tính</p></td>
                                         <td class="py-4">
                                             <div class="py-2 text-center border-bottom border-top">
-                                                <p class="mb-0 text-dark">$573.00</p>
+                                                <p class="mb-0 text-dark">5.730.000đ</p>
                                             </div>
                                         </td>
                                     </tr>
@@ -172,8 +172,8 @@
                                                 <label class="form-check-label" for="Shipping-1">Miễn phí vận chuyển (Tiêu chuẩn)</label>
                                             </div>
                                             <div class="form-check text-start">
-                                                <input type="radio" class="form-check-input bg-primary border-0" id="Shipping-2" name="shipping_fee" value="15">
-                                                <label class="form-check-label" for="Shipping-2">Giao hàng hỏa tốc: $15.00</label>
+                                                <input type="radio" class="form-check-input bg-primary border-0" id="Shipping-2" name="shipping_fee" value="30000">
+                                                <label class="form-check-label" for="Shipping-2">Giao hàng hỏa tốc: 30.000đ</label>
                                             </div>
                                         </td>
                                     </tr>
@@ -183,7 +183,7 @@
                                         <td class="py-4"></td>
                                         <td class="py-4">
                                             <div class="py-2 text-center border-bottom border-top">
-                                                <p class="mb-0 text-primary fw-bold fs-5">$573.00</p>
+                                                <p class="mb-0 text-primary fw-bold fs-5">5.730.000đ</p>
                                             </div>
                                         </td>
                                     </tr>
@@ -220,4 +220,4 @@
             </form>
         </div>
     </div>
-    @endsection
+@endsection
