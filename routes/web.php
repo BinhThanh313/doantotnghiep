@@ -42,3 +42,14 @@ Route::get('/checkout', function () {
 Route::get('/bestseller', function () {
     return view('shop.bestseller'); // Đổi thành 'shop.bestseller' nếu bạn để trong thư mục shop
 })->name('bestseller');
+
+// routes/web.php — thêm vào cuối
+Route::get('/admin/{any?}', function () {
+    // Khi đã build (production)
+    $indexPath = public_path('admin/index.html');
+    if (file_exists($indexPath)) {
+        return file_get_contents($indexPath);
+    }
+    // Khi dev, redirect sang Vite dev server
+    return redirect('http://localhost:5173');
+})->where('any', '.*');
