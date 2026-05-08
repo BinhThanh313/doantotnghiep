@@ -1,39 +1,48 @@
+// admin-frontend/src/views/LoginView.vue
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { mdiAccount, mdiAsterisk } from '@mdi/js'
+import api from '@/services/api.js'
+import { useMainStore } from '@/stores/main.js'
 import SectionFullScreen from '@/components/SectionFullScreen.vue'
 import CardBox from '@/components/CardBox.vue'
-import FormCheckRadio from '@/components/FormCheckRadio.vue'
 import FormField from '@/components/FormField.vue'
 import FormControl from '@/components/FormControl.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
+import FormCheckRadio from '@/components/FormCheckRadio.vue'
 import LayoutGuest from '@/layouts/LayoutGuest.vue'
-import api from '@/services/api.js'
-import { useMainStore } from '@/stores/main.js'
 
 const form = reactive({
-  login: '',
-  pass: '',
+  login: 'admin@electro.vn',
+  pass: 'password',
   remember: false,
 })
 
+const error = ref('')
+const loading = ref(false)
 const router = useRouter()
 const mainStore = useMainStore()
 
 const submit = async () => {
+  error.value = ''
+  loading.value = true
   try {
     const res = await api.post('/admin/login', {
       email: form.login,
       password: form.pass,
     })
     localStorage.setItem('admin_token', res.data.token)
-    // Lưu thông tin user
-    useMainStore().setUser(res.data.user)
+    mainStore.setUser({
+      name: res.data.user.name,
+      email: res.data.user.email,
+    })
     router.push('/dashboard')
   } catch (err) {
-    alert('Sai email hoặc mật khẩu')
+    error.value = err.response?.data?.message ?? 'Đăng nhập thất bại'
+  } finally {
+    loading.value = false
   }
 }
 </script>
@@ -42,36 +51,27 @@ const submit = async () => {
   <LayoutGuest>
     <SectionFullScreen v-slot="{ cardClass }" bg="purplePink">
       <CardBox :class="cardClass" is-form @submit.prevent="submit">
-        <FormField label="Login" help="Please enter your login">
-          <FormControl
-            v-model="form.login"
-            :icon="mdiAccount"
-            name="login"
-            autocomplete="username"
-          />
+        <div v-if="error" class="mb-4 rounded bg-red-100 p-3 text-sm text-red-700">
+          {{ error }}
+        </div>
+
+        <FormField label="Email" help="Nhập email admin">
+          <FormControl v-model="form.login" :icon="mdiAccount"
+                       type="email" name="email" autocomplete="email" />
         </FormField>
 
-        <FormField label="Password" help="Please enter your password">
-          <FormControl
-            v-model="form.pass"
-            :icon="mdiAsterisk"
-            type="password"
-            name="password"
-            autocomplete="current-password"
-          />
+        <FormField label="Mật khẩu" help="Nhập mật khẩu">
+          <FormControl v-model="form.pass" :icon="mdiAsterisk"
+                       type="password" name="password" autocomplete="current-password" />
         </FormField>
 
-        <FormCheckRadio
-          v-model="form.remember"
-          name="remember"
-          label="Remember"
-          :input-value="true"
-        />
+        <FormCheckRadio v-model="form.remember" name="remember"
+                        label="Ghi nhớ đăng nhập" :input-value="true" />
 
         <template #footer>
           <BaseButtons>
-            <BaseButton type="submit" color="info" label="Login" />
-            <BaseButton to="/dashboard" color="info" outline label="Back" />
+            <BaseButton type="submit" color="info" label="Đăng nhập"
+                        :disabled="loading" />
           </BaseButtons>
         </template>
       </CardBox>

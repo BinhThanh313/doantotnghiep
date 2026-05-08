@@ -1,71 +1,61 @@
 <?php
-
 namespace App\Http\Controllers;
 
+use App\Models\Category;
+use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 class ShopController extends Controller
 {
     public function index(Request $request)
     {
-        // 1. Tạo dữ liệu Mock cho Categories
-        $categories = collect([
-            (object)['id' => 1, 'name' => 'Laptops', 'products_count' => 5],
-            (object)['id' => 2, 'name' => 'Smartphones', 'products_count' => 8],
-            (object)['id' => 3, 'name' => 'Cameras', 'products_count' => 3],
-        ]);
+        $query = Product::with('category')->where('is_active', true);
 
-        // 2. Tạo dữ liệu Mock cho Products
-        $allProducts = collect();
-        for ($i = 1; $i <= 12; $i++) {
-            $allProducts->push((object)[
-                'id' => $i,
-                'name' => "Sản phẩm mẫu $i",
-                'price' => 100 + ($i * 10),
-                'image' => null, // Sẽ dùng ảnh mặc định trong Blade
-                'is_new' => $i % 2 == 0,
-                'category_id' => ($i % 3) + 1
-            ]);
+        // Lọc theo danh mục
+        if ($request->filled('category')) {
+            $query->where('category_id', $request->category);
         }
 
-        // 3. Giả lập phân trang (Pagination) để không bị lỗi gọi hàm ->links() ở Blade
-        $currentPage = $request->input('page', 1);
-        $perPage = 9;
-        $currentItems = $allProducts->slice(($currentPage - 1) * $perPage, $perPage)->all();
-        
-        $products = new LengthAwarePaginator(
-            $currentItems, 
-            $allProducts->count(), 
-            $perPage, 
-            $currentPage, 
-            ['path' => $request->url(), 'query' => $request->query()]
-        );
+        // Tìm kiếm theo tên
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%');
+        }
+
+        // Lọc theo giá
+        if ($request->filled('min_price')) {
+            $query->where('price', '>=', $request->min_price);
+        }
+        if ($request->filled('max_price')) {
+            $query->where('price', '<=', $request->max_price);
+        }
+
+        // Sắp xếp
+        $sort = $request->get('sort', 'latest');
+        match ($sort) {
+            'price_asc'  => $query->orderBy('price', 'asc'),
+            'price_desc' => $query->orderBy('price', 'desc'),
+            'name'       => $query->orderBy('name', 'asc'),
+            default      => $query->latest(),
+        };
+
+        $products   = $query->paginate(12)->withQueryString();
+        $categories = Category::withCount('products')->get();
 
         return view('shop.shop', compact('products', 'categories'));
     }
 
     public function show($id)
     {
-        // 1. Tạo mock data cho danh sách Danh mục (Categories)
-        $categories = [
-            (object) ['id' => 1, 'name' => 'Điện thoại thông minh', 'products_count' => 15],
-            (object) ['id' => 2, 'name' => 'Laptop & Máy tính', 'products_count' => 8],
-            (object) ['id' => 3, 'name' => 'Phụ kiện công nghệ', 'products_count' => 24],
-            (object) ['id' => 4, 'name' => 'Thiết bị thông minh', 'products_count' => 5],
-        ];
+        $product    = Product::with('category')->findOrFail($id);
+        $categories = Category::withCount('products')->get();
 
-        // 2. Tạo mock data cho Sản phẩm (Product) dựa trên ID trên URL
-        $product = (object) [
-            'id' => $id,
-            'name' => 'Sản phẩm thử nghiệm số ' . $id,
-            'price' => 199.99,
-            'image' => null, // Cố tình để null để View tự lấy ảnh mặc định (product-4.png)
-            'description' => 'Đây là nội dung mô tả giả (Mock Data) cho sản phẩm. Bạn có thể thoải mái căn chỉnh giao diện, CSS, HTML. Sau khi hoàn thiện toàn bộ các trang, chúng ta mới bắt đầu kết nối với Database.',
-            'category' => (object) ['name' => 'Điện thoại thông minh'] // Giả lập quan hệ (relationship) với bảng Category
-        ];
+        // Sản phẩm liên quan cùng danh mục
+        $related = Product::where('category_id', $product->category_id)
+                          ->where('id', '!=', $product->id)
+                          ->where('is_active', true)
+                          ->limit(4)
+                          ->get();
 
-        // 3. Trả về View cùng với Mock Data
-        return view('shop.show', compact('product', 'categories'));
+        return view('shop.show', compact('product', 'categories', 'related'));
     }
 }
