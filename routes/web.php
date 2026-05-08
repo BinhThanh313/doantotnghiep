@@ -51,5 +51,5 @@ Route::get('/admin/{any?}', function () {
         return file_get_contents($indexPath);
     }
     // Khi dev, redirect sang Vite dev server
-    return redirect('http://localhost:5173');
+    return file_get_contents(public_path('admin/index.html'));
 })->where('any', '.*');

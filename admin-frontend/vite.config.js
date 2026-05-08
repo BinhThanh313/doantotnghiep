@@ -1,29 +1,38 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
 import path from 'path'
 
 export default defineConfig({
-  plugins: [vue()],
-  base: '/admin/',          // URL prefix khi chạy thật
+  plugins: [
+    vue(),
+    tailwindcss()
+  ],
+
+  // Sửa base cho khớp với WampServer
+  base: '/doantotnghiep/public/admin/',
+
   build: {
-    outDir: '../public/admin',  // build vào public/ của Laravel
+    outDir: '../public/admin',
     emptyOutDir: true,
   },
+
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
+
   server: {
     port: 5173,
     proxy: {
-      // Khi dev, tự động forward API call sang Laravel
       '/api': {
-        target: 'http://localhost:8000',
+        // Sửa target sang WampServer thay vì localhost:8000
+        target: 'http://localhost/doantotnghiep/public',
         changeOrigin: true,
       },
       '/sanctum': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost/doantotnghiep/public',
         changeOrigin: true,
       },
     },
