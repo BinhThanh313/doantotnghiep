@@ -10,17 +10,31 @@ import FormControl from '@/components/FormControl.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
 import LayoutGuest from '@/layouts/LayoutGuest.vue'
+import api from '@/services/api.js'
+import { useMainStore } from '@/stores/main.js'
 
 const form = reactive({
-  login: 'john.doe',
-  pass: 'highly-secure-password-fYjUw-',
-  remember: true,
+  login: '',
+  pass: '',
+  remember: false,
 })
 
 const router = useRouter()
+const mainStore = useMainStore()
 
-const submit = () => {
-  router.push('/dashboard')
+const submit = async () => {
+  try {
+    const res = await api.post('/admin/login', {
+      email: form.login,
+      password: form.pass,
+    })
+    localStorage.setItem('admin_token', res.data.token)
+    // Lưu thông tin user
+    useMainStore().setUser(res.data.user)
+    router.push('/dashboard')
+  } catch (err) {
+    alert('Sai email hoặc mật khẩu')
+  }
 }
 </script>
 

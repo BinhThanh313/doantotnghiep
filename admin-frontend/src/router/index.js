@@ -87,4 +87,15 @@ const router = createRouter({
   },
 })
 
+// admin-frontend/src/router/index.js — thêm vào cuối trước export
+router.beforeEach((to, from, next) => {
+  const publicPages = ['/login', '/error', '/']
+  const authRequired = !publicPages.includes(to.path)
+  const token = localStorage.getItem('admin_token')
+
+  if (authRequired && !token) {
+    return next('/login')
+  }
+  next()
+})
 export default router

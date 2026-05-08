@@ -27,80 +27,64 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {{-- GHI CHÚ: Sau này bạn sẽ dùng vòng lặp @foreach($cartItems as $item) ở đây --}}
-                        
-                        <tr>
-                            <th scope="row">
-                                <p class="mb-0 py-4">Apple iPad Mini</p>
-                            </th>
-                            <td>
-                                <p class="mb-0 py-4">G2356</p>
-                            </td>
-                            <td>
-                                <p class="mb-0 py-4 text-primary">2.690.000đ</p>
-                            </td>
-                            <td>
-                                <div class="input-group quantity py-4" style="width: 130px;">
-                                    <div class="input-group-btn">
-                                        <button class="btn btn-sm btn-minus rounded-circle bg-light border">
-                                            <i class="fa fa-minus"></i>
-                                        </button>
-                                    </div>
-                                    <input type="text" class="form-control form-control-sm text-center border-0" value="1">
-                                    <div class="input-group-btn">
-                                        <button class="btn btn-sm btn-plus rounded-circle bg-light border">
-                                            <i class="fa fa-plus"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <p class="mb-0 py-4 text-primary fw-bold">2.690.000đ</p>
-                            </td>
-                            <td class="py-4">
-                                <button class="btn btn-md rounded-circle bg-light border" title="Xóa sản phẩm">
-                                    <i class="fa fa-times text-danger"></i>
-                                </button>
-                            </td>
-                        </tr>
-
-                        <tr>
-                            <th scope="row">
-                                <p class="mb-0 py-4">Camera thông minh</p>
-                            </th>
-                            <td>
-                                <p class="mb-0 py-4">C102</p>
-                            </td>
-                            <td>
-                                <p class="mb-0 py-4 text-primary">350.000đ</p>
-                            </td>
-                            <td>
-                                <div class="input-group quantity py-4" style="width: 130px;">
-                                    <div class="input-group-btn">
-                                        <button class="btn btn-sm btn-minus rounded-circle bg-light border">
-                                            <i class="fa fa-minus"></i>
-                                        </button>
-                                    </div>
-                                    <input type="text" class="form-control form-control-sm text-center border-0" value="2">
-                                    <div class="input-group-btn">
-                                        <button class="btn btn-sm btn-plus rounded-circle bg-light border">
-                                            <i class="fa fa-plus"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                <p class="mb-0 py-4 text-primary fw-bold">700.000đ</p>
-                            </td>
-                            <td class="py-4">
-                                <button class="btn btn-md rounded-circle bg-light border" title="Xóa sản phẩm">
-                                    <i class="fa fa-times text-danger"></i>
-                                </button>
-                            </td>
-                        </tr>
-                        
-                        {{-- GHI CHÚ: Kết thúc vòng lặp @endforeach ở đây --}}
-                    </tbody>
+    @php $total = 0 @endphp
+    @forelse($cart as $item)
+        @php $subtotal = $item['price'] * $item['quantity']; $total += $subtotal; @endphp
+        <tr>
+            <th scope="row">
+                <p class="mb-0 py-4">{{ $item['name'] }}</p>
+            </th>
+            <td>
+                <p class="mb-0 py-4 text-primary">
+                    {{ number_format($item['price'], 0, ',', '.') }}đ
+                </p>
+            </td>
+            <td>
+                <form action="{{ route('cart.update', $item['id']) }}" method="POST"
+                      class="input-group quantity py-4" style="width: 130px;">
+                    @csrf
+                    <div class="input-group-btn">
+                        <button type="submit" name="quantity"
+                                value="{{ $item['quantity'] - 1 }}"
+                                class="btn btn-sm btn-minus rounded-circle bg-light border">
+                            <i class="fa fa-minus"></i>
+                        </button>
+                    </div>
+                    <input type="text" class="form-control form-control-sm text-center border-0"
+                           value="{{ $item['quantity'] }}" readonly>
+                    <div class="input-group-btn">
+                        <button type="submit" name="quantity"
+                                value="{{ $item['quantity'] + 1 }}"
+                                class="btn btn-sm btn-plus rounded-circle bg-light border">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                    </div>
+                </form>
+            </td>
+            <td>
+                <p class="mb-0 py-4 text-primary fw-bold">
+                    {{ number_format($subtotal, 0, ',', '.') }}đ
+                </p>
+            </td>
+            <td class="py-4">
+                <form action="{{ route('cart.remove', $item['id']) }}" method="POST">
+                    @csrf
+                    <button type="submit" class="btn btn-md rounded-circle bg-light border"
+                            title="Xóa sản phẩm">
+                        <i class="fa fa-times text-danger"></i>
+                    </button>
+                </form>
+            </td>
+        </tr>
+    @empty
+        <tr>
+            <td colspan="5" class="text-center py-5">
+                Giỏ hàng đang trống.
+                <a href="{{ route('shop.index') }}">Tiếp tục mua sắm</a>
+            </td>
+        </tr>
+    @endforelse
+</tbody>
                 </table>
             </div>
             

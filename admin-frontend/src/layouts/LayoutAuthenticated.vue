@@ -33,8 +33,11 @@ const menuClick = (event, item) => {
   }
 
   if (item.isLogout) {
-    alert('Logout clicked')
-  }
+  api.post('/admin/logout').finally(() => {
+    localStorage.removeItem('admin_token')
+    router.push('/login')
+  })
+}
 }
 </script>
 

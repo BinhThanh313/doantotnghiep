@@ -4,6 +4,8 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\CartController;
+use App\Http\Controllers\CheckoutController;
 
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/shop', function () { return "Trang danh sách sản phẩm"; })->name('shop.index');
@@ -31,13 +33,21 @@ Route::get('/contact', function () {
     return view('contact');
 })->name('contact');
 
-Route::get('/cart', function () {
-    return view('shop.cart'); // Nếu bạn lưu trong thư mục shop thì là view('shop.cart')
-})->name('cart.index');
+// Route::get('/cart', function () {
+//     return view('shop.cart'); // Nếu bạn lưu trong thư mục shop thì là view('shop.cart')
+// })->name('cart.index');
 
-Route::get('/checkout', function () {
-    return view('shop.checkout'); // Đổi thành 'shop.checkout' nếu bạn lưu trong thư mục shop
-})->name('checkout');
+// Route::get('/checkout', function () {
+//     return view('shop.checkout'); // Đổi thành 'shop.checkout' nếu bạn lưu trong thư mục shop
+// })->name('checkout');
+Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+Route::post('/cart/update/{id}', [CartController::class, 'update'])->name('cart.update');
+Route::post('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
+
+Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
+Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+Route::get('/checkout/success/{id}', [CheckoutController::class, 'success'])->name('checkout.success');
 
 Route::get('/bestseller', function () {
     return view('shop.bestseller'); // Đổi thành 'shop.bestseller' nếu bạn để trong thư mục shop

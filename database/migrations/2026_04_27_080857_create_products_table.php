@@ -13,6 +13,16 @@ return new class extends Migration
     {
         Schema::create('products', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('category_id')->constrained()->onDelete('cascade');
+            $table->string('name');
+            $table->string('slug')->unique();
+            $table->text('description')->nullable();
+            $table->decimal('price', 15, 0);          // VND không cần decimal
+            $table->decimal('original_price', 15, 0)->nullable();
+            $table->string('image')->nullable();
+            $table->integer('stock')->default(0);
+            $table->boolean('is_new')->default(false);
+            $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
     }
