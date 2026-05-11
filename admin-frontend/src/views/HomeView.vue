@@ -22,7 +22,7 @@ import CardBoxTransaction from '@/components/CardBoxTransaction.vue'
 import CardBoxClient from '@/components/CardBoxClient.vue'
 import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
 import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.vue'
-import SectionBannerStarOnGitHub from '@/components/SectionBannerStarOnGitHub.vue'
+// import SectionBannerStarOnGitHub from '@/components/SectionBannerStarOnGitHub.vue'
 
 const chartData = ref(null)
 
@@ -45,7 +45,7 @@ const transactionBarItems = computed(() => mainStore.history)
   <LayoutAuthenticated>
     <SectionMain>
       <SectionTitleLineWithButton :icon="mdiChartTimelineVariant" title="Overview" main>
-        <BaseButton
+        <!-- <BaseButton
           href="https://github.com/justboil/admin-one-vue-tailwind"
           target="_blank"
           :icon="mdiGithub"
@@ -53,7 +53,7 @@ const transactionBarItems = computed(() => mainStore.history)
           color="contrast"
           rounded-full
           small
-        />
+        /> -->
       </SectionTitleLineWithButton>
 
       <div class="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -124,9 +124,9 @@ const transactionBarItems = computed(() => mainStore.history)
 
       <SectionTitleLineWithButton :icon="mdiAccountMultiple" title="Clients" />
 
-      <NotificationBar color="info" :icon="mdiMonitorCellphone">
+      <!-- <NotificationBar color="info" :icon="mdiMonitorCellphone">
         <b>Responsive table.</b> Collapses on mobile
-      </NotificationBar>
+      </NotificationBar> -->
 
       <CardBox has-table>
         <TableSampleClients />

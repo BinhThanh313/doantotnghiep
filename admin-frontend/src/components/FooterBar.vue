@@ -7,7 +7,7 @@ const year = new Date().getFullYear()
 </script>
 
 <template>
-  <footer class="px-6 py-2" :class="containerMaxW">
+  <!-- <footer class="px-6 py-2" :class="containerMaxW">
     <BaseLevel>
       <div class="flex flex-col items-center justify-center gap-6 lg:flex-row lg:justify-start">
         <b>&copy;{{ year }}, <a href="https://justboil.me/" target="_blank">JustBoil.me</a></b>
@@ -19,5 +19,5 @@ const year = new Date().getFullYear()
         </a>
       </div>
     </BaseLevel>
-  </footer>
+  </footer> -->
 </template>
