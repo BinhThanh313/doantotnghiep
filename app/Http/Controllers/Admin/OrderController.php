@@ -37,4 +37,17 @@ class OrderController extends Controller
         $order->update($data);
         return response()->json($order);
     }
+
+    public function destroy($id)
+    {
+        $order = Order::findOrFail($id);
+        
+        // Tùy thuộc vào thiết kế DB, nếu bạn chưa thiết lập khóa ngoại cascade (onDelete('cascade'))
+        // thì cần phải xóa các order_items trước
+        $order->items()->delete(); 
+        
+        $order->delete();
+
+        return response()->json(['message' => 'Đã xóa đơn hàng thành công']);
+    }
 }

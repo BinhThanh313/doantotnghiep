@@ -22,6 +22,14 @@ const routes = [
     component: Home,
   },
   {
+  meta: {
+    title: 'Quản lý người dùng',
+  },
+  path: '/users',
+  name: 'users.index',
+  component: () => import('@/views/UserListView.vue'), // Trỏ tới file bạn vừa tạo
+},
+  {
     meta: {
       title: 'Tables',
     },

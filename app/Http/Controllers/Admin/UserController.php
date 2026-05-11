@@ -3,16 +3,28 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class UserController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        //
+        $query = User::query();
+
+        // Hỗ trợ tìm kiếm theo tên hoặc email
+        if ($request->filled('search')) {
+            $query->where('name', 'like', '%' . $request->search . '%')
+                  ->orWhere('email', 'like', '%' . $request->search . '%');
+        }
+
+        $users = $query->latest()->paginate(15);
+
+        return response()->json($users);
     }
 
     /**
@@ -20,7 +32,19 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $data = $request->validate([
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|string|email|max:255|unique:users',
+            'password' => 'required|string|min:8',
+            // 'role'  => 'nullable|string', // Bỏ comment nếu DB của bạn có trường role
+        ]);
+
+        // Mã hóa password trước khi lưu
+        $data['password'] = Hash::make($data['password']);
+
+        $user = User::create($data);
+
+        return response()->json($user, 201);
     }
 
     /**
@@ -28,7 +52,9 @@ class UserController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $user = User::findOrFail($id);
+        
+        return response()->json($user);
     }
 
     /**
@@ -36,7 +62,25 @@ class UserController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $user = User::findOrFail($id);
+
+        $data = $request->validate([
+            'name'     => 'sometimes|string|max:255',
+            'email'    => 'sometimes|string|email|max:255|unique:users,email,' . $id,
+            'password' => 'nullable|string|min:8',
+            // 'role'  => 'nullable|string',
+        ]);
+
+        // Nếu admin có nhập password mới thì tiến hành cập nhật, nếu không thì bỏ qua
+        if ($request->filled('password')) {
+            $data['password'] = Hash::make($data['password']);
+        } else {
+            unset($data['password']);
+        }
+
+        $user->update($data);
+
+        return response()->json($user);
     }
 
     /**
@@ -44,6 +88,15 @@ class UserController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $user = User::findOrFail($id);
+        
+        // Ngăn chặn admin tự xóa chính mình nếu cần thiết (giả sử có check Auth)
+        // if (auth()->id() == $id) {
+        //     return response()->json(['message' => 'Không thể tự xóa tài khoản của chính mình'], 422);
+        // }
+
+        $user->delete();
+
+        return response()->json(['message' => 'Đã xóa người dùng']);
     }
 }

@@ -11,6 +11,7 @@ import {
   mdiResponsive,
   mdiPalette,
   mdiLogout,
+  mdiAccountGroup,
 } from '@mdi/js'
 
 export const menuAsideMain = [
@@ -18,6 +19,11 @@ export const menuAsideMain = [
     to: '/dashboard',
     icon: mdiMonitor,
     label: 'Dashboard',
+  },
+  {
+    to: '/users',
+    label: 'Quản lý User',
+    icon: mdiAccountGroup,
   },
   {
     to: '/tables',
