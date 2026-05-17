@@ -29,7 +29,7 @@ const submit = async () => {
   error.value = ''
   loading.value = true
   try {
-    const res = await api.post('/admin/login', {
+    const res = await api.post('/api/admin/login', {
       email: form.login,
       password: form.pass,
     })

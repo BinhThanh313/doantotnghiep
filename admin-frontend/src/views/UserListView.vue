@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import { mdiAccountGroup, mdiTrashCan, mdiSquareEditOutline } from '@mdi/js'
+import { mdiAccountGroup, mdiTrashCan, mdiSquareEditOutline, mdiPlus } from '@mdi/js'
 import SectionMain from '@/components/SectionMain.vue'
 import CardBox from '@/components/CardBox.vue'
 import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
@@ -9,34 +9,30 @@ import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.
 import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
 
-// Biến lưu trữ danh sách người dùng lấy từ API
+const apiUrl = 'http://localhost/doantotnghiep/public/api/admin/users'
 const users = ref([])
 
-// Hàm gọi API lấy danh sách User
+const getHeaders = () => {
+  return { Authorization: `Bearer ${localStorage.getItem('admin_token')}` }
+}
+
+// 1. Lấy danh sách người dùng
 const fetchUsers = async () => {
   try {
-    const token = localStorage.getItem('admin_token')
-    // Đảm bảo URL này đúng với URL Laravel Backend của bạn đang chạy
-    const response = await axios.get('http://127.0.0.1:8000/api/admin/users', {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    // Laravel paginate trả về data bọc trong object 'data'
-    users.value = response.data.data 
+    const response = await axios.get(apiUrl, { headers: getHeaders() })
+    users.value = response.data.data || response.data
   } catch (error) {
     console.error("Lỗi lấy dữ liệu:", error)
   }
 }
 
-// Hàm gọi API xóa User
+// 2. Xóa người dùng
 const deleteUser = async (id) => {
   if (confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
     try {
-      const token = localStorage.getItem('admin_token')
-      await axios.delete(`http://127.0.0.1:8000/api/admin/users/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      await axios.delete(`${apiUrl}/${id}`, { headers: getHeaders() })
       alert('Đã xóa thành công!')
-      fetchUsers() // Gọi lại hàm fetch để cập nhật lại bảng
+      fetchUsers()
     } catch (error) {
       console.error("Lỗi khi xóa:", error)
       alert('Có lỗi xảy ra khi xóa.')
@@ -44,7 +40,6 @@ const deleteUser = async (id) => {
   }
 }
 
-// Tự động chạy hàm fetchUsers khi load trang
 onMounted(() => {
   fetchUsers()
 })
@@ -53,7 +48,15 @@ onMounted(() => {
 <template>
   <LayoutAuthenticated>
     <SectionMain>
-      <SectionTitleLineWithButton :icon="mdiAccountGroup" title="Quản lý Người dùng" main />
+      <SectionTitleLineWithButton :icon="mdiAccountGroup" title="Quản lý Người dùng" main>
+        <BaseButton 
+          color="success" 
+          :icon="mdiPlus" 
+          label="Thêm Mới" 
+          to="/users/form" 
+          rounded-full 
+        />
+      </SectionTitleLineWithButton>
 
       <CardBox class="mb-6" has-table>
         <table>
@@ -75,8 +78,20 @@ onMounted(() => {
               
               <td class="before:hidden lg:w-1 whitespace-nowrap">
                 <BaseButtons type="justify-start lg:justify-end" no-wrap>
-                  <BaseButton color="info" :icon="mdiSquareEditOutline" small title="Sửa" />
-                  <BaseButton color="danger" :icon="mdiTrashCan" small title="Xóa" @click="deleteUser(user.id)" />
+                  <BaseButton 
+                    color="info" 
+                    :icon="mdiSquareEditOutline" 
+                    small 
+                    title="Sửa" 
+                    :to="`/users/form/${user.id}`" 
+                  />
+                  <BaseButton 
+                    color="danger" 
+                    :icon="mdiTrashCan" 
+                    small 
+                    title="Xóa" 
+                    @click="deleteUser(user.id)" 
+                  />
                 </BaseButtons>
               </td>
             </tr>

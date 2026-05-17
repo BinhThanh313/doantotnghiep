@@ -22,6 +22,18 @@ const routes = [
     component: Home,
   },
   {
+    meta: { title: 'Quản lý sản phẩm' },
+    path: '/products',
+    name: 'products.index',
+    component: () => import('@/views/ProductListView.vue'),
+  },
+  {
+    meta: { title: 'Thêm/Sửa sản phẩm' },
+    path: '/products/form/:id?', // Có :id? để dùng chung cho cả Thêm và Sửa
+    name: 'products.form',
+    component: () => import('@/views/ProductFormView.vue'),
+  },
+  {
   meta: {
     title: 'Quản lý người dùng',
   },
@@ -29,6 +41,12 @@ const routes = [
   name: 'users.index',
   component: () => import('@/views/UserListView.vue'), // Trỏ tới file bạn vừa tạo
 },
+{
+    meta: { title: 'Thêm/Sửa người dùng' },
+    path: '/users/form/:id?', // Dấu hỏi chấm ? có nghĩa id này có thể có hoặc không
+    name: 'users.form',
+    component: () => import('@/views/UserFormView.vue'),
+  },
   {
     meta: {
       title: 'Tables',
