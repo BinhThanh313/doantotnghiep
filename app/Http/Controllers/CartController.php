@@ -7,16 +7,20 @@ use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
-    // Lấy giỏ hàng từ session
     private function getCart()
     {
         return session()->get('cart', []);
     }
 
-    public function index()
+    public function index(Request $request)
     {
         $cart = $this->getCart();
         $total = collect($cart)->sum(fn($item) => $item['price'] * $item['quantity']);
+
+        if ($request->ajax() || $request->wantsJson() || $request->has('ajax')) {
+            return view('shop.cart', compact('cart', 'total'));
+        }
+
         return view('shop.cart', compact('cart', 'total'));
     }
 
@@ -24,7 +28,6 @@ class CartController extends Controller
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
-            'quantity'   => 'integer|min:1',
         ]);
 
         $product  = Product::findOrFail($request->product_id);
@@ -45,24 +48,46 @@ class CartController extends Controller
 
         session()->put('cart', $cart);
 
-        return redirect()->back()->with('success', 'Đã thêm vào giỏ hàng!');
+        return response()->json([
+            'success' => true,
+            'message' => 'Đã thêm vào giỏ hàng',
+            'cart_count' => count($cart)
+        ]);
     }
 
     public function update(Request $request, $id)
     {
         $cart = $this->getCart();
+
         if (isset($cart[$id])) {
-            $cart[$id]['quantity'] = max(1, (int) $request->quantity);
+            $action = $request->action ?? 'plus';
+            
+            if ($action === 'plus') {
+                $cart[$id]['quantity'] += 1;
+            } else {
+                $cart[$id]['quantity'] = max(1, $cart[$id]['quantity'] - 1);
+            }
+
             session()->put('cart', $cart);
         }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return redirect()->route('cart.index');
     }
 
-    public function remove($id)
+    public function remove($id, Request $request)
     {
         $cart = $this->getCart();
         unset($cart[$id]);
         session()->put('cart', $cart);
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json(['success' => true]);
+        }
+
         return redirect()->route('cart.index');
     }
 }

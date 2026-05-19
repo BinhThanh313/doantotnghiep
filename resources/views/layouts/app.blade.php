@@ -22,6 +22,7 @@
     <link href="{{ asset('css/bootstrap.min.css') }}" rel="stylesheet">
     <link href="{{ asset('css/style.css') }}" rel="stylesheet">
 
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     @stack('styles')
 </head>
 <body>
