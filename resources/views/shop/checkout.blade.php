@@ -138,56 +138,53 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {{-- GHI CHÚ: Sau này lặp @foreach giỏ hàng ở đây --}}
-                                    <tr class="text-center">
-                                        <th scope="row" class="text-start py-4">Apple iPad Mini</th>
-                                        <td class="py-4">2.690.000đ</td>
-                                        <td class="py-4">2</td>
-                                        <td class="py-4 fw-bold">5.380.000đ</td>
-                                    </tr>
-                                    <tr class="text-center">
-                                        <th scope="row" class="text-start py-4">Camera thông minh</th>
-                                        <td class="py-4">350.000đ</td>
-                                        <td class="py-4">1</td>
-                                        <td class="py-4 fw-bold">350.000đ</td>
-                                    </tr>
-                                    {{-- Kết thúc @foreach --}}
-                                    
-                                    <tr>
-                                        <th scope="row"></th>
-                                        <td class="py-4"></td>
-                                        <td class="py-4"><p class="mb-0 text-dark py-2 text-end">Tạm tính</p></td>
-                                        <td class="py-4">
-                                            <div class="py-2 text-center border-bottom border-top">
-                                                <p class="mb-0 text-dark">5.730.000đ</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th scope="row"></th>
-                                        <td class="py-4"><p class="mb-0 text-dark py-4 text-end">Phí ship</p></td>
-                                        <td colspan="2" class="py-4">
-                                            <div class="form-check text-start">
-                                                <input type="radio" class="form-check-input bg-primary border-0" id="Shipping-1" name="shipping_fee" value="0" checked>
-                                                <label class="form-check-label" for="Shipping-1">Miễn phí vận chuyển (Tiêu chuẩn)</label>
-                                            </div>
-                                            <div class="form-check text-start">
-                                                <input type="radio" class="form-check-input bg-primary border-0" id="Shipping-2" name="shipping_fee" value="30000">
-                                                <label class="form-check-label" for="Shipping-2">Giao hàng hỏa tốc: 30.000đ</label>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th scope="row"></th>
-                                        <td class="py-4"><p class="mb-0 text-dark text-uppercase py-2 text-end">Tổng cộng</p></td>
-                                        <td class="py-4"></td>
-                                        <td class="py-4">
-                                            <div class="py-2 text-center border-bottom border-top">
-                                                <p class="mb-0 text-primary fw-bold fs-5">5.730.000đ</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                </tbody>
+    @if(session('cart'))
+        @foreach($cart as $id => $item)
+        <tr class="text-center">
+            <th scope="row" class="text-start py-4">{{ $item['name'] }}</th>
+            <td class="py-4">{{ number_format($item['price'], 0, ',', '.') }}đ</td>
+            <td class="py-4">{{ $item['quantity'] }}</td>
+            <td class="py-4 fw-bold">{{ number_format($item['price'] * $item['quantity'], 0, ',', '.') }}đ</td>
+        </tr>
+        @endforeach
+    @endif
+    
+    <tr>
+        <th scope="row"></th>
+        <td class="py-4"></td>
+        <td class="py-4"><p class="mb-0 text-dark py-2 text-end">Tạm tính</p></td>
+        <td class="py-4">
+            <div class="py-2 text-center border-bottom border-top">
+                <p class="mb-0 text-dark">{{ number_format($total, 0, ',', '.') }}đ</p>
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <th scope="row"></th>
+        <td class="py-4"><p class="mb-0 text-dark py-4 text-end">Phí ship</p></td>
+        <td colspan="2" class="py-4">
+            <div class="form-check text-start">
+                <input type="radio" class="form-check-input bg-primary border-0" id="Shipping-1" name="shipping_fee" value="0" checked>
+                <label class="form-check-label" for="Shipping-1">Miễn phí vận chuyển (Tiêu chuẩn)</label>
+            </div>
+            <div class="form-check text-start">
+                <input type="radio" class="form-check-input bg-primary border-0" id="Shipping-2" name="shipping_fee" value="30000">
+                <label class="form-check-label" for="Shipping-2">Giao hàng hỏa tốc: 30.000đ</label>
+            </div>
+        </td>
+    </tr>
+    <tr>
+        <th scope="row"></th>
+        <td class="py-4"><p class="mb-0 text-dark text-uppercase py-2 text-end">Tổng cộng</p></td>
+        <td class="py-4"></td>
+        <td class="py-4">
+            <div class="py-2 text-center border-bottom border-top">
+                {{-- Bạn có thể cộng thêm phí ship bằng JS sau, ở đây hiện tổng tiền giỏ hàng --}}
+                <p class="mb-0 text-primary fw-bold fs-5" id="final-total">{{ number_format($total, 0, ',', '.') }}đ</p>
+            </div>
+        </td>
+    </tr>
+</tbody>
                             </table>
                         </div>
                         

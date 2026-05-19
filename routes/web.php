@@ -7,24 +7,14 @@ use App\Http\Controllers\ShopController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 
+/*
+|--------------------------------------------------------------------------
+| CÁC ROUTE CÔNG KHAI (KHÔNG CẦN ĐĂNG NHẬP)
+|--------------------------------------------------------------------------
+*/
+
 Route::get('/', [HomeController::class, 'index'])->name('home');
-Route::get('/shop', function () { return "Trang danh sách sản phẩm"; })->name('shop.index');
-Route::get('/shop/{id}', function ($id) { return "Chi tiết sản phẩm: " . $id; })->name('shop.show');
-Route::get('/cart', function () { return "Trang giỏ hàng"; })->name('cart.index');
-Route::post('/cart/add', function () { return "Thêm vào giỏ hàng"; })->name('cart.add');
-Route::get('/contact', function () { return "Trang liên hệ"; })->name('contact');
-Route::get('/profile', function () { return "Trang cá nhân"; })->name('profile');
-// Các route xác thực (Tạm thời để tránh lỗi giao diện)
-Route::get('/login', function () { return "Trang đăng nhập"; })->name('login');
-Route::get('/register', function () { return "Trang đăng ký"; })->name('register');
-Route::post('/logout', function () { return "Xử lý đăng xuất"; })->name('logout');
-
-// Các route khác cũng xuất hiện trong file app.blade.php của bạn
-Route::get('/profile', function () { return "Trang cá nhân"; })->name('profile');
-Route::get('/wishlist', function () { return "Danh sách yêu thích"; })->name('wishlist');
-Auth::routes();
-
-Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
+Route::get('/home', [HomeController::class, 'index'])->name('home');
 
 Route::get('/shop', [ShopController::class, 'index'])->name('shop.index');
 Route::get('/shop/{id}', [ShopController::class, 'show'])->name('shop.show');
@@ -33,33 +23,55 @@ Route::get('/contact', function () {
     return view('contact');
 })->name('contact');
 
-// Route::get('/cart', function () {
-//     return view('shop.cart'); // Nếu bạn lưu trong thư mục shop thì là view('shop.cart')
-// })->name('cart.index');
-
-// Route::get('/checkout', function () {
-//     return view('shop.checkout'); // Đổi thành 'shop.checkout' nếu bạn lưu trong thư mục shop
-// })->name('checkout');
-Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
-Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
-Route::post('/cart/update/{id}', [CartController::class, 'update'])->name('cart.update');
-Route::post('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
-
-Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
-Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
-Route::get('/checkout/success/{id}', [CheckoutController::class, 'success'])->name('checkout.success');
-
 Route::get('/bestseller', function () {
-    return view('shop.bestseller'); // Đổi thành 'shop.bestseller' nếu bạn để trong thư mục shop
+    return view('shop.bestseller');
 })->name('bestseller');
 
-// routes/web.php — thêm vào cuối
+// Tạo các route Đăng nhập / Đăng ký / Quên mật khẩu tự động của Laravel
+Auth::routes();
+
+
+/*
+|--------------------------------------------------------------------------
+| CÁC ROUTE YÊU CẦU ĐĂNG NHẬP (MIDDLEWARE AUTH)
+|--------------------------------------------------------------------------
+| Người dùng chưa đăng nhập khi truy cập các route này sẽ bị đẩy về trang /login
+*/
+
+Route::middleware(['auth'])->group(function () {
+    
+    // Trang cá nhân & Danh sách yêu thích
+    Route::get('/profile', function () { 
+        return view('profile'); // Cần đảm bảo bạn đã tạo file resources/views/profile.blade.php
+    })->name('profile');
+    
+    Route::get('/wishlist', function () { 
+        return "Danh sách yêu thích"; 
+    })->name('wishlist');
+
+    // Giỏ hàng
+    Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+    Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
+    Route::post('/cart/update/{id}', [CartController::class, 'update'])->name('cart.update');
+    Route::post('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
+
+    // Thanh toán
+    Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
+    Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
+    Route::get('/checkout/success/{id}', [CheckoutController::class, 'success'])->name('checkout.success');
+    
+});
+
+
+/*
+|--------------------------------------------------------------------------
+| ROUTE CHO ADMIN (VUE/REACT FRONTEND)
+|--------------------------------------------------------------------------
+*/
 Route::get('/admin/{any?}', function () {
-    // Khi đã build (production)
     $indexPath = public_path('admin/index.html');
     if (file_exists($indexPath)) {
         return file_get_contents($indexPath);
     }
-    // Khi dev, redirect sang Vite dev server
     return file_get_contents(public_path('admin/index.html'));
 })->where('any', '.*');
