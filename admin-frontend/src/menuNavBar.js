@@ -49,11 +49,11 @@ export default [
       {
         isDivider: true,
       },
-      {
-        icon: mdiLogout,
-        label: 'Log Out',
-        isLogout: true,
-      },
+      // {
+      //   icon: mdiLogout,
+      //   label: 'Log Out',
+      //   isLogout: true,
+      // },
     ],
   },
   {

@@ -20,7 +20,17 @@ class AuthController extends Controller
             ], 401);
         }
 
+        /** @var \App\Models\User $user */
         $user  = Auth::user();
+        if ($user->role !== 'admin') { 
+            // Nếu không phải admin, thu hồi phiên đăng nhập vừa tạo
+            Auth::logout(); 
+            return response()->json([
+                'message' => 'Tài khoản của bạn không có quyền truy cập trang quản trị!'
+            ], 403);
+        }
+
+        // 3. Nếu là Admin, tạo token
         $token = $user->createToken('admin-token')->plainTextToken;
 
         return response()->json([

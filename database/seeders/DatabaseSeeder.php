@@ -14,6 +14,7 @@ class DatabaseSeeder extends Seeder
             'name'     => 'Admin',
             'email'    => 'admin@electro.vn',
             'password' => Hash::make('password'),
+            'role'     => 'admin',
         ]);
 
         // Tạo test user

@@ -2,6 +2,7 @@
 import { mdiForwardburger, mdiBackburger, mdiMenu } from '@mdi/js'
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import api from '@/services/api.js'
 import { menuAsideMain, menuAsideBottom } from '@/menuAside.js'
 import menuNavBar from '@/menuNavBar.js'
 import { useDarkModeStore } from '@/stores/darkMode.js'
@@ -33,11 +34,17 @@ const menuClick = (event, item) => {
   }
 
   if (item.isLogout) {
-  api.post('/admin/logout').finally(() => {
-    localStorage.removeItem('admin_token')
-    router.push('/login')
-  })
-}
+    // 2. SỬA '/admin/logout' THÀNH '/api/admin/logout'
+    api.post('/api/admin/logout').finally(() => {
+      localStorage.removeItem('admin_token')
+      router.push('/login')
+    }).catch(err => {
+      console.log('Lỗi logout:', err)
+      // Dù có lỗi thì vẫn xóa token và đẩy về login
+      localStorage.removeItem('admin_token')
+      router.push('/login')
+    })
+  }
 }
 </script>
 
