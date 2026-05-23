@@ -4,23 +4,19 @@ import Home from '@/views/HomeView.vue'
 
 const routes = [
   {
-    meta: {
-      title: 'Select style',
-    },
+    meta: { title: 'Select style' },
     path: '/',
     name: 'style',
     component: Style,
   },
   {
-    // Document title tag
-    // We combine it with defaultDocumentTitle set in `src/main.js` on router.afterEach hook
-    meta: {
-      title: 'Dashboard',
-    },
+    meta: { title: 'Dashboard' },
     path: '/dashboard',
     name: 'dashboard',
     component: Home,
   },
+
+  // ==================== PRODUCTS ====================
   {
     meta: { title: 'Quản lý sản phẩm' },
     path: '/products',
@@ -29,76 +25,92 @@ const routes = [
   },
   {
     meta: { title: 'Thêm/Sửa sản phẩm' },
-    path: '/products/form/:id?', // Có :id? để dùng chung cho cả Thêm và Sửa
+    path: '/products/form/:id?',
     name: 'products.form',
     component: () => import('@/views/ProductFormView.vue'),
   },
+
+  // ==================== USERS ====================
   {
-  meta: {
-    title: 'Quản lý người dùng',
+    meta: { title: 'Quản lý người dùng' },
+    path: '/users',
+    name: 'users.index',
+    component: () => import('@/views/UserListView.vue'),
   },
-  path: '/users',
-  name: 'users.index',
-  component: () => import('@/views/UserListView.vue'), // Trỏ tới file bạn vừa tạo
-},
-{
+  {
     meta: { title: 'Thêm/Sửa người dùng' },
-    path: '/users/form/:id?', // Dấu hỏi chấm ? có nghĩa id này có thể có hoặc không
+    path: '/users/form/:id?',
     name: 'users.form',
     component: () => import('@/views/UserFormView.vue'),
   },
+
+  // ==================== ORDERS ====================
   {
-    meta: {
-      title: 'Tables',
-    },
+    meta: { title: 'Quản lý đơn hàng' },
+    path: '/orders',
+    name: 'orders.index',
+    component: () => import('@/views/OrderListView.vue'),
+  },
+
+  // ==================== VOUCHERS ====================
+  {
+    meta: { title: 'Quản lý Voucher' },
+    path: '/vouchers',
+    name: 'vouchers.index',
+    component: () => import('@/views/VoucherListView.vue'),
+  },
+
+  // ==================== SHIPPING ====================
+  {
+    meta: { title: 'Quản lý Vận chuyển' },
+    path: '/shipping',
+    name: 'shipping',
+    component: () => import('@/views/ShippingView.vue'),
+  },
+
+  // ==================== REVIEWS ====================
+  {
+    meta: { title: 'Quản lý Đánh giá' },
+    path: '/reviews',
+    name: 'reviews.index',
+    component: () => import('@/views/ReviewListView.vue'),
+  },
+
+  // ==================== CATEGORIES (optional page) ====================
+  {
+    meta: { title: 'Quản lý danh mục' },
+    path: '/categories',
+    name: 'categories.index',
+    component: () => import('@/views/CategoryListView.vue'),
+  },
+
+  // ==================== MISC ====================
+  {
+    meta: { title: 'Tables' },
     path: '/tables',
     name: 'tables',
     component: () => import('@/views/TablesView.vue'),
   },
   {
-    meta: {
-      title: 'Forms',
-    },
+    meta: { title: 'Forms' },
     path: '/forms',
     name: 'forms',
     component: () => import('@/views/FormsView.vue'),
   },
   {
-    meta: {
-      title: 'Profile',
-    },
+    meta: { title: 'Profile' },
     path: '/profile',
     name: 'profile',
     component: () => import('@/views/ProfileView.vue'),
   },
   {
-    meta: {
-      title: 'Ui',
-    },
-    path: '/ui',
-    name: 'ui',
-    component: () => import('@/views/UiView.vue'),
-  },
-  {
-    meta: {
-      title: 'Responsive layout',
-    },
-    path: '/responsive',
-    name: 'responsive',
-    component: () => import('@/views/ResponsiveView.vue'),
-  },
-  {
-    meta: {
-      title: 'Login',
-    },
+    meta: { title: 'Login' },
     path: '/login',
     name: 'login',
     component: () => import('@/views/LoginView.vue'),
   },
   {
-    meta: {
-      title: 'Error',
-    },
+    meta: { title: 'Error' },
     path: '/error',
     name: 'error',
     component: () => import('@/views/ErrorView.vue'),
@@ -113,15 +125,13 @@ const router = createRouter({
   },
 })
 
-// admin-frontend/src/router/index.js — thêm vào cuối trước export
+// Auth guard
 router.beforeEach((to, from, next) => {
   const publicPages = ['/login', '/error', '/']
   const authRequired = !publicPages.includes(to.path)
   const token = localStorage.getItem('admin_token')
-
-  if (authRequired && !token) {
-    return next('/login')
-  }
+  if (authRequired && !token) return next('/login')
   next()
 })
+
 export default router
