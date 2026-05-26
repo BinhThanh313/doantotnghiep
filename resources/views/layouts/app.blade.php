@@ -34,27 +34,61 @@
         </div>
     </div>
 
-    {{-- Topbar --}}
-    <div class="container-fluid px-5 d-none border-bottom d-lg-block">
+    {{-- Header Kết Hợp (Topbar + Logo & Search) --}}
+    <div class="container-fluid px-5 py-3 d-none border-bottom d-lg-block">
         <div class="row gx-0 align-items-center">
-            <div class="col-lg-4 text-center text-lg-start mb-lg-0">
-                <div class="d-inline-flex align-items-center" style="height: 45px;">
-                    <a href="#" class="text-muted me-2">Trợ giúp</a><small> / </small>
-                    <a href="#" class="text-muted mx-2">Hỗ trợ</a><small> / </small>
-                    <a href="#" class="text-muted ms-2">Liên hệ</a>
+            
+            <div class="col-lg-3 text-start">
+                <a href="{{ route('home') }}" class="navbar-brand p-0">
+                    <h1 class="display-5 text-primary m-0">
+                        <i class="fas fa-shopping-bag text-secondary me-2"></i>Electro
+                    </h1>
+                </a>
+            </div>
+
+            <div class="col-lg-5 text-center">
+                <form action="{{ route('shop.index') }}" method="GET">
+                    <div class="position-relative">
+                        <div class="d-flex border rounded-pill">
+                            <input class="form-control border-0 rounded-pill w-100 py-3 ps-4" type="text"
+                                name="search" value="{{ request('search') }}" placeholder="Bạn đang tìm gì?">
+                            <select class="form-select text-dark border-0 border-start rounded-0 py-3"
+                                name="category" style="width: 200px;">
+                                <option value="">Tất cả danh mục</option>
+                                @foreach($categories ?? [] as $cat)
+                                    <option value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'selected' : '' }}>
+                                        {{ $cat->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                            <button type="submit" class="btn btn-primary rounded-pill py-3 px-4" style="border: 0;">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="col-lg-4 text-end d-flex align-items-center justify-content-end">
+                
+                <div class="d-flex flex-column text-end me-4 pe-4 border-end">
+                    <!-- <div class="d-inline-flex align-items-center justify-content-end mb-1" style="font-size: 13px;">
+                        <a href="#" class="text-muted">Trợ giúp</a><span class="text-muted mx-2">/</span>
+                        <a href="#" class="text-muted">Hỗ trợ</a><span class="text-muted mx-2">/</span>
+                        <a href="#" class="text-muted">Liên hệ</a>
+                    </div> -->
+                    <div>
+                        <small class="text-dark me-1">Hotline:</small>
+                        <a href="#" class="text-muted fw-bold">(+012) 1234 567890</a>
+                    </div>
                 </div>
-            </div>
-            <div class="col-lg-4 text-center d-flex align-items-center justify-content-center">
-                <small class="text-dark">Gọi cho chúng tôi:</small>
-                <a href="#" class="text-muted">(+012) 1234 567890</a>
-            </div>
-            <div class="col-lg-4 text-center text-lg-end">
-                <div class="d-inline-flex align-items-center" style="height: 45px;">
-                    <div class="dropdown">
-                        <a href="#" class="dropdown-toggle text-muted ms-2" data-bs-toggle="dropdown">
-                            <small><i class="fa fa-home me-2"></i> Bảng điều khiển</small>
+
+                <div class="d-inline-flex align-items-center">
+                    <div class="dropdown me-3">
+                        <a href="#" class="text-muted d-flex align-items-center justify-content-center text-decoration-none" data-bs-toggle="dropdown">
+                            <span class="rounded-circle btn-md-square border"><i class="fa fa-user"></i></span>
                         </a>
-                        <div class="dropdown-menu rounded">
+                        <div class="dropdown-menu rounded dropdown-menu-end mt-2">
                             @auth
                                 <a href="{{ route('profile') }}" class="dropdown-item">Tài khoản của tôi</a>
                                 <form method="POST" action="{{ route('logout') }}">
@@ -65,64 +99,28 @@
                                 <a href="{{ route('login') }}" class="dropdown-item">Đăng nhập</a>
                                 <a href="{{ route('register') }}" class="dropdown-item">Đăng ký</a>
                             @endauth
-                            <a href="#" class="dropdown-item">Danh sách yêu thích</a>
-                            <a href="{{ route('cart.index') }}" class="dropdown-item">Giỏ hàng</a>
+                            <!-- <a href="#" class="dropdown-item">Danh sách yêu thích</a>
+                            <a href="{{ route('cart.index') }}" class="dropdown-item">Giỏ hàng</a> -->
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    {{-- Logo & Search --}}
-    <div class="container-fluid px-5 py-4 d-none d-lg-block">
-        <div class="row gx-0 align-items-center text-center">
-            <div class="col-md-4 col-lg-3 text-center text-lg-start">
-                <a href="{{ route('home') }}" class="navbar-brand p-0">
-                    <h1 class="display-5 text-primary m-0">
-                        <i class="fas fa-shopping-bag text-secondary me-2"></i>Electro
-                    </h1>
-                </a>
-            </div>
-            <div class="col-md-4 col-lg-6 text-center">
-                <form action="{{ route('shop.index') }}" method="GET">
-                    <div class="position-relative ps-4">
-                        <div class="d-flex border rounded-pill">
-                            <input class="form-control border-0 rounded-pill w-100 py-3" type="text"
-                                name="search" value="{{ request('search') }}" placeholder="Bạn đang tìm gì?">
-                            <select class="form-select text-dark border-0 border-start rounded-0 p-3"
-                                name="category" style="width: 200px;">
-                                <option value="">Tất cả danh mục</option>
-                                @foreach($categories ?? [] as $cat)
-                                    <option value="{{ $cat->id }}" {{ request('category') == $cat->id ? 'selected' : '' }}>
-                                        {{ $cat->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                            <button type="submit" class="btn btn-primary rounded-pill py-3 px-5" style="border: 0;">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="col-md-4 col-lg-3 text-center text-lg-end">
-                <div class="d-inline-flex align-items-center">
-                    <a href="#" class="text-muted d-flex align-items-center justify-content-center me-3">
+                    <!-- <a href="#" class="text-muted d-flex align-items-center justify-content-center me-3">
                         <span class="rounded-circle btn-md-square border"><i class="fas fa-heart"></i></span>
-                    </a>
-                    <a href="{{ route('cart.index') }}" class="text-muted d-flex align-items-center justify-content-center">
+                    </a> -->
+
+                    <a href="{{ route('cart.index') }}" class="text-muted d-flex align-items-center justify-content-center text-decoration-none">
                         <span class="rounded-circle btn-md-square border"><i class="fas fa-shopping-cart"></i></span>
-                        <span class="text-dark ms-2">
+                        <!-- <span class="text-dark ms-2 fw-bold">
                             ${{ number_format(session('cart_total', 0), 2) }}
-                        </span>
+                        </span> -->
                     </a>
                 </div>
+
             </div>
         </div>
     </div>
 
-    {{-- Navbar --}}
+    {{-- Navbar (Giữ nguyên) --}}
     <div class="container-fluid nav-bar p-0">
         <div class="row gx-0 bg-primary px-5 align-items-center">
             <div class="col-lg-3 d-none d-lg-block">
@@ -163,22 +161,25 @@
                     <div class="collapse navbar-collapse" id="navbarCollapse">
                         <div class="navbar-nav ms-auto py-0">
                             <a href="{{ route('home') }}" class="nav-item nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Trang chủ</a>
-                            <a href="{{ route('shop.index') }}" class="nav-item nav-link {{ request()->routeIs('shop.*') ? 'active' : '' }}">Sản phẩm</a>
-                            <a href="{{ route('contact') }}" class="nav-item nav-link me-2">Liên hệ</a>
+                            
+                            {{-- Sửa 'shop.*' thành cụ thể 'shop.index' và 'shop.show' để không bị dính vào các trang khác --}}
+                            <a href="{{ route('shop.index') }}" class="nav-item nav-link {{ request()->routeIs('shop.index', 'shop.show') ? 'active' : '' }}">Sản phẩm</a>
+                            
+                            {{-- Thêm điều kiện active riêng cho mã giảm giá --}}
+                            <a href="{{ route('shop.vouchers') }}" class="nav-item nav-link {{ request()->routeIs('shop.vouchers') ? 'active' : '' }}">Mã giảm giá</a>
+                            
+                            <a href="{{ route('contact') }}" class="nav-item nav-link {{ request()->routeIs('contact') ? 'active' : '' }} me-2">Liên hệ</a>
                         </div>
-                        <a href="tel:+01234567890" class="btn btn-secondary rounded-pill py-2 px-4 px-lg-3 mb-3 mb-md-3 mb-lg-0">
-                            <i class="fa fa-mobile-alt me-2"></i> +0123 456 7890
-                        </a>
-                    </div>
+                        </div>
                 </nav>
             </div>
         </div>
     </div>
 
-    {{-- Nội dung từng trang --}}
+    {{-- Nội dung từng trang (Giữ nguyên) --}}
     @yield('content')
 
-    {{-- Footer --}}
+    {{-- Footer (Giữ nguyên) --}}
     <div class="container-fluid footer py-5 wow fadeIn" data-wow-delay="0.2s">
         <div class="container py-5">
             <div class="row g-4 rounded mb-5" style="background: rgba(255, 255, 255, .03);">
@@ -256,7 +257,7 @@
         </div>
     </div>
 
-    {{-- Copyright --}}
+    {{-- Copyright (Giữ nguyên) --}}
     <div class="container-fluid copyright py-4">
         <div class="container">
             <div class="row g-4 align-items-center">
@@ -272,10 +273,10 @@
         </div>
     </div>
 
-    {{-- Back to Top --}}
+    {{-- Back to Top (Giữ nguyên) --}}
     <a href="#" class="btn btn-primary btn-lg-square back-to-top"><i class="fa fa-arrow-up"></i></a>
 
-    {{-- JavaScript --}}
+    {{-- JavaScript (Giữ nguyên) --}}
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ asset('lib/wow/wow.min.js') }}"></script>

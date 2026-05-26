@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use App\Models\Voucher; 
 
 class ShopController extends Controller
 {
@@ -63,5 +64,27 @@ class ShopController extends Controller
                           ->get();
 
         return view('shop.show', compact('product', 'categories', 'related'));
+    }
+
+    public function vouchers()
+    {
+        $vouchers = Voucher::where('is_active', true)
+            ->where(function ($query) {
+                $query->whereNull('end_date')
+                    ->orWhere('end_date', '>=', now());
+            })
+            ->where(function ($query) {
+                $query->whereNull('start_date')
+                    ->orWhere('start_date', '<=', now());
+            })
+            ->where(function ($query) {
+                $query->whereNull('max_uses')
+                    ->orWhereColumn('used_count', '<', 'max_uses');
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // Trả về file view resources/views/shop/vouchers.blade.php
+        return view('shop.vouchers', compact('vouchers'));
     }
 }

@@ -77,12 +77,12 @@ const routes = [
   },
 
   // ==================== CATEGORIES (optional page) ====================
-  // {
-  //   meta: { title: 'Quản lý danh mục' },
-  //   path: '/categories',
-  //   name: 'categories.index',
-  //   component: () => import('@/views/CategoryListView.vue'),
-  // },
+  {
+    meta: { title: 'Quản lý danh mục' },
+    path: '/categories',
+    name: 'categories.index',
+    component: () => import('@/views/CategoryListView.vue'),
+  },
 
   // ==================== MISC ====================
   {

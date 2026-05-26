@@ -18,6 +18,7 @@ import {
   mdiStarOutline,        // Đánh giá
   mdiTruckDelivery,      // Vận chuyển
   mdiFolderText,
+  mdiFormatListBulleted,
 } from '@mdi/js'
 
 export const menuAsideMain = [
@@ -37,8 +38,8 @@ export const menuAsideMain = [
   // ==================== CATEGORIES ====================
   {
     to: '/categories',
-    label: 'Quản lý Danh mục',
-    icon: mdiFolderText,
+    icon: mdiFormatListBulleted, // Bạn cần import icon này từ @mdi/js
+    label: 'Quản lý Danh mục'
   },
 
   // ==================== ORDERS ====================

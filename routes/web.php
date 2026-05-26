@@ -18,6 +18,7 @@ Route::get('/home', [HomeController::class, 'index']);
 
 Route::get('/shop', [ShopController::class, 'index'])->name('shop.index');
 Route::get('/shop/{id}', [ShopController::class, 'show'])->name('shop.show');
+Route::get('/vouchers', [ShopController::class, 'vouchers'])->name('shop.vouchers');
 
 Route::get('/contact', fn() => view('contact'))->name('contact');
 Route::get('/bestseller', fn() => view('shop.bestseller'))->name('bestseller');
