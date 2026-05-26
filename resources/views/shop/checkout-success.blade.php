@@ -34,9 +34,31 @@
                 </tbody>
                 <tfoot>
                     <tr>
-                        <td colspan="3" class="text-end fw-bold">Tổng cộng:</td>
+                        <td colspan="3" class="text-end fw-bold">Tạm tính:</td>
                         <td class="text-primary fw-bold fs-5">
                             {{ number_format($order->total_amount, 0, ',', '.') }}đ
+                        </td>
+                    </tr>
+                    @if($order->discount_amount > 0)
+                    <tr>
+                        <td colspan="3" class="text-end fw-bold text-success">Giảm giá:</td>
+                        <td class="text-success fw-bold fs-5">
+                            - {{ number_format($order->discount_amount, 0, ',', '.') }}đ
+                        </td>
+                    </tr>
+                    @endif
+                    @if($order->shipping_fee > 0)
+                    <tr>
+                        <td colspan="3" class="text-end fw-bold">Phí vận chuyển:</td>
+                        <td class="fw-bold fs-5">
+                            {{ number_format($order->shipping_fee, 0, ',', '.') }}đ
+                        </td>
+                    </tr>
+                    @endif
+                    <tr>
+                        <td colspan="3" class="text-end fw-bold">TỔNG CỘNG:</td>
+                        <td class="text-primary fw-bold fs-5">
+                            {{ number_format($order->total_amount + $order->shipping_fee - $order->discount_amount, 0, ',', '.') }}đ
                         </td>
                     </tr>
                 </tfoot>

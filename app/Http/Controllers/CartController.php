@@ -13,16 +13,30 @@ class CartController extends Controller
     }
 
     public function index(Request $request)
-    {
-        $cart = $this->getCart();
-        $total = collect($cart)->sum(fn($item) => $item['price'] * $item['quantity']);
+{
+    $cart = session()->get('cart', []);
+    $total = 0;
+    $discount = 0;
 
-        if ($request->ajax() || $request->wantsJson() || $request->has('ajax')) {
-            return view('shop.cart', compact('cart', 'total'));
-        }
-
-        return view('shop.cart', compact('cart', 'total'));
+    foreach ($cart as $item) {
+        $total += $item['price'] * $item['quantity'];
     }
+
+    // Lấy discount từ session nếu có voucher
+    if (session('applied_voucher')) {
+        $voucher = \App\Models\Voucher::where('code', session('applied_voucher'))->first();
+        if ($voucher) {
+            $discount = $voucher->calculateDiscount($total);
+        }
+    }
+
+    if ($request->ajax() || $request->get('ajax')) {
+        return view('shop.cart-items', compact('cart'))->render() . 
+               view('shop.cart-summary', compact('cart', 'total', 'discount'))->render();
+    }
+
+    return view('shop.cart', compact('cart', 'total', 'discount'));
+}
 
     public function add(Request $request)
     {

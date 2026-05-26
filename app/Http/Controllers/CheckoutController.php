@@ -136,17 +136,22 @@ class CheckoutController extends Controller
                     $shippingFee = $zone ? $zone->fee : ($carrier?->base_fee ?? 0);
                 }
 
-                // 4. Áp dụng voucher
+                // Trong hàm store(), thay phần áp dụng voucher bằng:
                 $discountAmount = 0;
-                $voucher        = null;
-                if ($request->filled('voucher_code')) {
-                    $voucher = Voucher::where('code', strtoupper($request->voucher_code))
-                                     ->lockForUpdate()
-                                     ->first();
+                $voucher = null;
+
+                $voucherCode = $request->voucher_code ?? session('applied_voucher');
+
+                if ($voucherCode) {
+                    $voucher = Voucher::where('code', strtoupper($voucherCode))
+                                    ->lockForUpdate()
+                                    ->first();
 
                     if ($voucher && $voucher->isValid()) {
                         $discountAmount = $voucher->calculateDiscount($subtotal);
-                        $voucher->increment('used_count');
+                        if ($discountAmount > 0) {
+                            $voucher->increment('used_count');
+                        }
                     }
                 }
 
@@ -235,16 +240,26 @@ class CheckoutController extends Controller
             // Xóa giỏ hàng & voucher session
             session()->forget(['cart', 'applied_voucher']);
 
-            // TODO: Gửi email xác nhận (queue job)
-            // SendOrderConfirmationEmail::dispatch($order);
-
-            return redirect()->route('checkout.success', $order->id);
-
-        } catch (\Exception $e) {
-            return back()->withErrors(['error' => $e->getMessage()])->withInput();
+             if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Đặt hàng thành công!',
+                'order_id' => $order->id,
+                'redirect_url' => route('checkout.success', ['id' => $order->id]),
+            ]);
         }
-    }
 
+        return redirect()->route('checkout.success', $order->id);
+    } catch (\Exception $e) {
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['error' => $e->getMessage()]
+            ], 422);
+        }
+        return back()->withErrors(['error' => $e->getMessage()])->withInput();
+    }
+    }
     public function success($id)
     {
         $order = Order::with('items', 'shipment.carrier', 'vouchers', 'payment')->findOrFail($id);

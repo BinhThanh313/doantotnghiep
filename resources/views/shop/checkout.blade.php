@@ -11,6 +11,7 @@
             <li class="breadcrumb-item active text-white">Thanh toán</li>
         </ol>
     </div>
+
     <div class="container-fluid px-0">
         <div class="row g-0">
             <div class="col-6 col-md-4 col-lg-2 border-start border-end wow fadeInUp" data-wow-delay="0.1s">
@@ -81,13 +82,15 @@
             </div>
         </div>
     </div>
+
     <div class="container-fluid bg-light overflow-hidden py-5">
         <div class="container py-5">
             <h1 class="mb-4 wow fadeInUp" data-wow-delay="0.1s">Chi tiết thanh toán</h1>
             
-            <form action="#" method="POST">
+            <form action="{{ route('checkout.store') }}" method="POST" id="checkout-form">
                 @csrf
                 <div class="row g-5">
+                    <!-- Bên trái: Thông tin khách hàng -->
                     <div class="col-md-12 col-lg-6 col-xl-6 wow fadeInUp" data-wow-delay="0.1s">
                         <div class="row">
                             <div class="col-md-12 col-lg-6">
@@ -113,6 +116,10 @@
                         </div>
                         <div class="form-item">
                             <label class="form-label my-3">Tỉnh/Thành phố <sup>*</sup></label>
+                            <input type="text" name="province" class="form-control" required>
+                        </div>
+                        <div class="form-item">
+                            <label class="form-label my-3">Quận/Huyện <sup>*</sup></label>
                             <input type="text" name="city" class="form-control" required>
                         </div>
                         <div class="form-item">
@@ -126,6 +133,7 @@
                         </div>
                     </div>
                     
+                    <!-- Bên phải -->
                     <div class="col-md-12 col-lg-6 col-xl-6 wow fadeInUp" data-wow-delay="0.3s">
                         <div class="table-responsive">
                             <table class="table">
@@ -138,57 +146,70 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-    @if(session('cart'))
-        @foreach($cart as $id => $item)
-        <tr class="text-center">
-            <th scope="row" class="text-start py-4">{{ $item['name'] }}</th>
-            <td class="py-4">{{ number_format($item['price'], 0, ',', '.') }}đ</td>
-            <td class="py-4">{{ $item['quantity'] }}</td>
-            <td class="py-4 fw-bold">{{ number_format($item['price'] * $item['quantity'], 0, ',', '.') }}đ</td>
-        </tr>
-        @endforeach
-    @endif
-    
-    <tr>
-        <th scope="row"></th>
-        <td class="py-4"></td>
-        <td class="py-4"><p class="mb-0 text-dark py-2 text-end">Tạm tính</p></td>
-        <td class="py-4">
-            <div class="py-2 text-center border-bottom border-top">
-                <p class="mb-0 text-dark">{{ number_format($total, 0, ',', '.') }}đ</p>
-            </div>
-        </td>
-    </tr>
-    <tr>
-        <th scope="row"></th>
-        <td class="py-4"><p class="mb-0 text-dark py-4 text-end">Phí ship</p></td>
-        <td colspan="2" class="py-4">
-            <div class="form-check text-start">
-                <input type="radio" class="form-check-input bg-primary border-0" id="Shipping-1" name="shipping_fee" value="0" checked>
-                <label class="form-check-label" for="Shipping-1">Miễn phí vận chuyển (Tiêu chuẩn)</label>
-            </div>
-            <div class="form-check text-start">
-                <input type="radio" class="form-check-input bg-primary border-0" id="Shipping-2" name="shipping_fee" value="30000">
-                <label class="form-check-label" for="Shipping-2">Giao hàng hỏa tốc: 30.000đ</label>
-            </div>
-        </td>
-    </tr>
-    <tr>
-        <th scope="row"></th>
-        <td class="py-4"><p class="mb-0 text-dark text-uppercase py-2 text-end">Tổng cộng</p></td>
-        <td class="py-4"></td>
-        <td class="py-4">
-            <div class="py-2 text-center border-bottom border-top">
-                {{-- Bạn có thể cộng thêm phí ship bằng JS sau, ở đây hiện tổng tiền giỏ hàng --}}
-                <p class="mb-0 text-primary fw-bold fs-5" id="final-total">{{ number_format($total, 0, ',', '.') }}đ</p>
-            </div>
-        </td>
-    </tr>
-</tbody>
+                                    @if(session('cart'))
+                                        @foreach($cart as $id => $item)
+                                        <tr class="text-center">
+                                            <th scope="row" class="text-start py-4">{{ $item['name'] }}</th>
+                                            <td class="py-4">{{ number_format($item['price'], 0, ',', '.') }}đ</td>
+                                            <td class="py-4">{{ $item['quantity'] }}</td>
+                                            <td class="py-4 fw-bold">{{ number_format($item['price'] * $item['quantity'], 0, ',', '.') }}đ</td>
+                                        </tr>
+                                        @endforeach
+                                    @endif
+                                </tbody>
                             </table>
                         </div>
-                        
-                        <div class="row g-0 text-center align-items-center justify-content-center border-bottom py-3">
+
+                        <!-- Voucher -->
+                        <div class="mb-4">
+                            <label for="checkout-voucher" class="form-label fw-bold">Mã giảm giá</label>
+                            <div class="input-group">
+                                <input type="text" id="checkout-voucher" 
+                                       class="form-control" 
+                                       placeholder="Nhập mã voucher"
+                                       style="text-transform: uppercase;">
+                                <button class="btn btn-outline-primary" type="button" id="apply-voucher-checkout">
+                                    Áp dụng
+                                </button>
+                            </div>
+                            <div id="checkout-voucher-message" class="mt-2 small"></div>
+                        </div>
+
+                        <!-- Tóm tắt tiền -->
+                        <div class="bg-white p-4 rounded border">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Tạm tính:</span>
+                                <span id="subtotal-display">{{ number_format($subtotal ?? 0, 0, ',', '.') }}đ</span>
+                            </div>
+                            
+                            <div id="discount-row" class="d-flex justify-content-between mb-3 text-success" style="display: none;">
+                                <span>Giảm giá (<span id="voucher-name"></span>):</span>
+                                <span id="discount-amount">- 0đ</span>
+                            </div>
+
+                            <hr>
+                            <div class="d-flex justify-content-between fw-bold fs-5">
+                                <span>Tổng cộng:</span>
+                                <span id="final-total" class="text-primary">{{ number_format($subtotal ?? 0, 0, ',', '.') }}đ</span>
+                            </div>
+                        </div>
+
+                        <!-- Phí ship -->
+                        <div class="row g-0 text-center align-items-center justify-content-center border-bottom py-3 mt-4">
+                            <div class="col-12">
+                                <div class="form-check text-start my-2">
+                                    <input type="radio" class="form-check-input bg-primary border-0" id="Shipping-1" name="shipping_fee" value="0" checked>
+                                    <label class="form-check-label" for="Shipping-1">Miễn phí vận chuyển (Tiêu chuẩn)</label>
+                                </div>
+                                <div class="form-check text-start">
+                                    <input type="radio" class="form-check-input bg-primary border-0" id="Shipping-2" name="shipping_fee" value="30000">
+                                    <label class="form-check-label" for="Shipping-2">Giao hàng hỏa tốc: 30.000đ</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Phương thức thanh toán -->
+                        <div class="row g-4 text-center align-items-center justify-content-center border-bottom py-3">
                             <div class="col-12">
                                 <div class="form-check text-start my-2">
                                     <input type="radio" class="form-check-input bg-primary border-0" id="Payment-COD" name="payment_method" value="cod" checked>
@@ -203,7 +224,7 @@
                                     <input type="radio" class="form-check-input bg-primary border-0" id="Payment-Bank" name="payment_method" value="bank">
                                     <label class="form-check-label fw-bold" for="Payment-Bank">Chuyển khoản ngân hàng</label>
                                 </div>
-                                <p class="text-start text-dark small ms-4">Chuyển khoản trực tiếp qua tài khoản ngân hàng của cửa hàng. Đơn hàng sẽ được xử lý sau khi nhận được tiền.</p>
+                                <p class="text-start text-dark small ms-4">Chuyển khoản trực tiếp qua tài khoản ngân hàng của cửa hàng.</p>
                             </div>
                         </div>
 
@@ -218,3 +239,109 @@
         </div>
     </div>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const checkoutForm = document.getElementById('checkout-form');
+    const applyBtn       = document.getElementById('apply-voucher-checkout');
+    const voucherInput   = document.getElementById('checkout-voucher');
+    const messageEl      = document.getElementById('checkout-voucher-message');
+    const finalTotalEl   = document.getElementById('final-total');
+    const discountRow    = document.getElementById('discount-row');
+    const discountAmount = document.getElementById('discount-amount');
+    const voucherName    = document.getElementById('voucher-name');
+
+    const currentSubtotal = parseFloat("{{ $subtotal ?? 0 }}") || 0;
+    let appliedVoucherCode = null;
+
+    // ==================== VOUCHER ====================
+    applyBtn.addEventListener('click', function () {
+        const code = voucherInput.value.trim().toUpperCase();
+
+        if (!code) {
+            showMessage('Vui lòng nhập mã voucher!', 'danger');
+            return;
+        }
+
+        applyBtn.disabled = true;
+        applyBtn.textContent = 'Đang áp dụng...';
+
+        fetch("{{ route('checkout.apply-voucher') }}", {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                code: code,
+                amount: currentSubtotal
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                const discount = parseFloat(data.discount) || 0;
+                const newTotal = currentSubtotal - discount;
+
+                finalTotalEl.textContent = newTotal.toLocaleString('vi-VN') + 'đ';
+                discountAmount.textContent = '- ' + discount.toLocaleString('vi-VN') + 'đ';
+                voucherName.textContent = code;
+                discountRow.style.display = 'flex';
+                
+                // Lưu mã voucher đã áp dụng
+                appliedVoucherCode = code;
+
+                showMessage(data.message, 'success');
+                voucherInput.value = '';
+            } else {
+                showMessage(data.message || 'Mã voucher không hợp lệ', 'danger');
+            }
+        })
+        .catch(() => showMessage('Lỗi kết nối server!', 'danger'))
+        .finally(() => {
+            applyBtn.disabled = false;
+            applyBtn.textContent = 'Áp dụng';
+        });
+    });
+
+    checkoutForm.addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        if (appliedVoucherCode) {
+            const voucherField = document.createElement('input');
+            voucherField.type = 'hidden';
+            voucherField.name = 'voucher_code';
+            voucherField.value = appliedVoucherCode;
+            checkoutForm.appendChild(voucherField);
+        }
+
+        const formData = new FormData(checkoutForm);
+        
+        fetch("{{ route('checkout.store') }}", {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+            },
+            body: formData
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                alert('✅ Đặt hàng thành công!');
+                // ← Sử dụng redirect_url từ response
+                window.location.href = data.redirect_url;
+            } else {
+                alert('❌ Lỗi: ' + (data.message || 'Có lỗi xảy ra'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Lỗi kết nối server!');
+        });
+    });
+});
+</script>
+@endpush

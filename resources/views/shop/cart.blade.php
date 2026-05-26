@@ -32,9 +32,17 @@
             </table>
         </div>
 
+        <!-- Voucher Section -->
         <div class="mt-5">
-            <input type="text" class="border-0 border-bottom rounded me-5 py-3 mb-4" placeholder="Mã giảm giá">
-            <button class="btn btn-primary rounded-pill px-4 py-3 text-white" type="button">Áp dụng</button>
+            <div class="input-group" style="max-width: 420px;">
+                <input type="text" id="voucher-code"
+                       class="form-control border-0 border-bottom rounded-start py-3"
+                       placeholder="Nhập mã giảm giá" style="text-transform: uppercase;">
+                <button class="btn btn-primary rounded-end px-5" type="button" id="apply-voucher-btn">
+                    Áp dụng
+                </button>
+            </div>
+            <div id="voucher-message" class="mt-2 fs-6"></div>
         </div>
 
         <div class="row g-4 justify-content-end">
@@ -52,8 +60,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
+    // ====================== EXISTING FUNCTIONS ======================
     document.addEventListener('click', function (e) {
-        // Tăng / Giảm
         if (e.target.closest('.quantity-btn')) {
             const btn = e.target.closest('.quantity-btn');
             const id = btn.dataset.id;
@@ -61,7 +69,6 @@ document.addEventListener('DOMContentLoaded', function () {
             updateQuantity(id, action);
         }
 
-        // Xóa
         if (e.target.closest('.remove-item')) {
             const btn = e.target.closest('.remove-item');
             if (confirm('Xóa sản phẩm này khỏi giỏ hàng?')) {
@@ -113,6 +120,64 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('cart-summary').innerHTML = temp.querySelector('#cart-summary')?.innerHTML || '';
         });
     }
+
+    // ====================== VOUCHER FUNCTION ======================
+    const applyBtn     = document.getElementById('apply-voucher-btn');
+    const voucherInput = document.getElementById('voucher-code');
+    const messageEl    = document.getElementById('voucher-message');
+
+    // Giải pháp an toàn nhất cho VS Code
+    const cartTotal = parseFloat(document.getElementById('cart-total-hidden')?.value) || 0;
+
+    applyBtn.addEventListener('click', function () {
+        const code = voucherInput.value.trim().toUpperCase();
+
+        if (!code) {
+            showMessage('Vui lòng nhập mã voucher!', 'danger');
+            return;
+        }
+
+        applyBtn.disabled = true;
+        applyBtn.innerHTML = 'Đang áp dụng...';
+
+        fetch("{{ route('checkout.apply-voucher') }}", {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                code: code,
+                amount: cartTotal
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                showMessage(data.message, 'success');
+                loadCart();
+                voucherInput.value = '';
+            } else {
+                showMessage(data.message, 'danger');
+            }
+        })
+        .catch(() => {
+            showMessage('Lỗi kết nối server!', 'danger');
+        })
+        .finally(() => {
+            applyBtn.disabled = false;
+            applyBtn.innerHTML = 'Áp dụng';
+        });
+    });
+
+    function showMessage(message, type) {
+        messageEl.innerHTML = `<span class="text-${type}">${message}</span>`;
+    }
+
 });
 </script>
 @endpush
+
+<!-- Hidden input để truyền tổng tiền an toàn -->
+<input type="hidden" id="cart-total-hidden" value="{{ $total ?? 0 }}">
