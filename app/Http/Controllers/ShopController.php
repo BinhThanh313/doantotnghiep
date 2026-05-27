@@ -68,6 +68,7 @@ class ShopController extends Controller
 
     public function vouchers()
     {
+        
         $vouchers = Voucher::where('is_active', true)
             ->where(function ($query) {
                 $query->whereNull('end_date')

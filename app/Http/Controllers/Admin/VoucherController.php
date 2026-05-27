@@ -25,27 +25,44 @@ class VoucherController extends Controller
     }
 
     public function store(Request $request)
-    {
-        $data = $request->validate([
-            'code'                 => 'required|string|max:50|unique:vouchers',
-            'name'                 => 'nullable|string|max:255',
-            'discount_type'        => 'required|in:percent,fixed',
-            'discount_value'       => 'required|numeric|min:0',
-            'min_amount'           => 'nullable|numeric|min:0',
-            'max_discount'         => 'nullable|numeric|min:0',
-            'max_uses'             => 'nullable|integer|min:1',
-            'max_uses_per_user'    => 'nullable|integer|min:1',
-            'start_date'           => 'nullable|date',
-            'end_date'             => 'nullable|date|after_or_equal:start_date',
-            'applicable_categories'=> 'nullable|array',
-            'applicable_products'  => 'nullable|array',
-            'is_active'            => 'boolean',
-        ]);
+{
+    $data = $request->validate([
+        'code'                 => 'required|string|max:50|unique:vouchers',
+        'name'                 => 'nullable|string|max:255',
+        'discount_type'        => 'required|in:percent,fixed',
+        'discount_value'       => 'required|numeric|min:0',
+        'min_amount'           => 'nullable|numeric|min:0',
+        'max_discount'         => 'nullable|numeric|min:0',
+        'max_uses'             => 'nullable|integer|min:1',
+        'max_uses_per_user'    => 'nullable|integer|min:1',
+        'start_date'           => 'nullable|date',
+        'end_date'             => 'nullable|date|after_or_equal:start_date',
+        'applicable_categories'=> 'nullable|array',
+        'applicable_products'  => 'nullable|array',
+        'is_active'            => 'boolean',
+    ]);
 
-        $data['code'] = strtoupper($data['code']);
+    $data['code'] = strtoupper($data['code']);
+    $data['is_active'] = $data['is_active'] ?? true;
 
-        return response()->json(Voucher::create($data), 201);
+    // ==================== SỬA DỨT ĐIỂM Ở ĐÂY ====================
+    $now = now();
+
+    // Nếu không nhập start_date hoặc start_date ở tương lai → set bằng thời gian hiện tại
+    if (empty($data['start_date']) || $data['start_date'] > $now) {
+        $data['start_date'] = $now->format('Y-m-d H:i:s');
     }
+
+    // Tự động active nếu start_date đã đến
+    if ($data['start_date'] <= $now) {
+        $data['is_active'] = true;
+    }
+    // =========================================================
+
+    $voucher = Voucher::create($data);
+
+    return response()->json($voucher, 201);
+}
 
     public function show($id)
     {
@@ -74,14 +91,25 @@ class VoucherController extends Controller
             'is_active'            => 'boolean',
         ]);
 
-        if (isset($data['code'])) {
-            $data['code'] = strtoupper($data['code']);
+        $now = now();
+
+    if (isset($data['start_date'])) {
+        if ($data['start_date'] > $now) {
+            // Có thể giữ nguyên hoặc cảnh báo, tùy bạn
+            // $data['is_active'] = false; // tùy chọn
+        } else {
+            $data['is_active'] = true;
         }
-
-        $voucher->update($data);
-
-        return response()->json($voucher);
     }
+
+    if (isset($data['code'])) {
+        $data['code'] = strtoupper($data['code']);
+    }
+
+    $voucher->update($data);
+
+    return response()->json($voucher);
+}
 
     public function destroy($id)
     {

@@ -1,119 +1,172 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import Style from '@/views/StyleView.vue'
-import Home from '@/views/HomeView.vue'
+
+// Demo views (mẫu từ template)
+import StyleView from '@/views/demo/StyleView.vue'
+import TablesView from '@/views/demo/TablesView.vue'
+import FormsView from '@/views/demo/FormsView.vue'
+import UiView from '@/views/demo/UiView.vue'
+import ResponsiveView from '@/views/demo/ResponsiveView.vue'
+
+// Auth views
+import LoginView from '@/views/auth/LoginView.vue'
+import ErrorView from '@/views/auth/ErrorView.vue'
+import ProfileView from '@/views/auth/ProfileView.vue'
+
+// Dashboard
+import HomeView from '@/views/dashboard/HomeView.vue'
+
+// Manage views - Products
+import ProductListView from '@/views/manage/products/ProductListView.vue'
+import ProductFormView from '@/views/manage/products/ProductFormView.vue'
+
+// Manage views - Categories
+import CategoryListView from '@/views/manage/categories/CategoryListView.vue'
+
+// Manage views - Users
+import UserListView from '@/views/manage/users/UserListView.vue'
+import UserFormView from '@/views/manage/users/UserFormView.vue'
+
+// Manage views - Orders
+import OrderListView from '@/views/manage/orders/OrderListView.vue'
+
+// Manage views - Vouchers
+import VoucherListView from '@/views/manage/vouchers/VoucherListView.vue'
+
+// Manage views - Reviews
+import ReviewListView from '@/views/manage/reviews/ReviewListView.vue'
+
+// Manage views - Shipping
+import ShippingView from '@/views/manage/shipping/ShippingView.vue'
 
 const routes = [
+  // ==================== DEMO & STYLE ====================
   {
     meta: { title: 'Select style' },
     path: '/',
     name: 'style',
-    component: Style,
-  },
-  {
-    meta: { title: 'Dashboard' },
-    path: '/dashboard',
-    name: 'dashboard',
-    component: Home,
+    component: StyleView,
   },
 
-  // ==================== PRODUCTS ====================
+  // ==================== AUTH ====================
   {
-    meta: { title: 'Quản lý sản phẩm' },
-    path: '/products',
-    name: 'products.index',
-    component: () => import('@/views/ProductListView.vue'),
-  },
-  {
-    meta: { title: 'Thêm/Sửa sản phẩm' },
-    path: '/products/form/:id?',
-    name: 'products.form',
-    component: () => import('@/views/ProductFormView.vue'),
-  },
-
-  // ==================== USERS ====================
-  {
-    meta: { title: 'Quản lý người dùng' },
-    path: '/users',
-    name: 'users.index',
-    component: () => import('@/views/UserListView.vue'),
-  },
-  {
-    meta: { title: 'Thêm/Sửa người dùng' },
-    path: '/users/form/:id?',
-    name: 'users.form',
-    component: () => import('@/views/UserFormView.vue'),
-  },
-
-  // ==================== ORDERS ====================
-  {
-    meta: { title: 'Quản lý đơn hàng' },
-    path: '/orders',
-    name: 'orders.index',
-    component: () => import('@/views/OrderListView.vue'),
-  },
-
-  // ==================== VOUCHERS ====================
-  {
-    meta: { title: 'Quản lý Voucher' },
-    path: '/vouchers',
-    name: 'vouchers.index',
-    component: () => import('@/views/VoucherListView.vue'),
-  },
-
-  // ==================== SHIPPING ====================
-  {
-    meta: { title: 'Quản lý Vận chuyển' },
-    path: '/shipping',
-    name: 'shipping',
-    component: () => import('@/views/ShippingView.vue'),
-  },
-
-  // ==================== REVIEWS ====================
-  {
-    meta: { title: 'Quản lý Đánh giá' },
-    path: '/reviews',
-    name: 'reviews.index',
-    component: () => import('@/views/ReviewListView.vue'),
-  },
-
-  // ==================== CATEGORIES (optional page) ====================
-  {
-    meta: { title: 'Quản lý danh mục' },
-    path: '/categories',
-    name: 'categories.index',
-    component: () => import('@/views/CategoryListView.vue'),
-  },
-
-  // ==================== MISC ====================
-  {
-    meta: { title: 'Tables' },
-    path: '/tables',
-    name: 'tables',
-    component: () => import('@/views/TablesView.vue'),
-  },
-  {
-    meta: { title: 'Forms' },
-    path: '/forms',
-    name: 'forms',
-    component: () => import('@/views/FormsView.vue'),
+    meta: { title: 'Login' },
+    path: '/login',
+    name: 'login',
+    component: LoginView,
   },
   {
     meta: { title: 'Profile' },
     path: '/profile',
     name: 'profile',
-    component: () => import('@/views/ProfileView.vue'),
-  },
-  {
-    meta: { title: 'Login' },
-    path: '/login',
-    name: 'login',
-    component: () => import('@/views/LoginView.vue'),
+    component: ProfileView,
   },
   {
     meta: { title: 'Error' },
     path: '/error',
     name: 'error',
-    component: () => import('@/views/ErrorView.vue'),
+    component: ErrorView,
+  },
+
+  // ==================== DASHBOARD ====================
+  {
+    meta: { title: 'Dashboard' },
+    path: '/dashboard',
+    name: 'dashboard',
+    component: HomeView,
+  },
+
+  // ==================== MANAGE: PRODUCTS ====================
+  {
+    meta: { title: 'Quản lý sản phẩm' },
+    path: '/products',
+    name: 'products.index',
+    component: ProductListView,
+  },
+  {
+    meta: { title: 'Thêm/Sửa sản phẩm' },
+    path: '/products/form/:id?',
+    name: 'products.form',
+    component: ProductFormView,
+  },
+
+  // ==================== MANAGE: CATEGORIES ====================
+  {
+    meta: { title: 'Quản lý danh mục' },
+    path: '/categories',
+    name: 'categories.index',
+    component: CategoryListView,
+  },
+
+  // ==================== MANAGE: USERS ====================
+  {
+    meta: { title: 'Quản lý người dùng' },
+    path: '/users',
+    name: 'users.index',
+    component: UserListView,
+  },
+  {
+    meta: { title: 'Thêm/Sửa người dùng' },
+    path: '/users/form/:id?',
+    name: 'users.form',
+    component: UserFormView,
+  },
+
+  // ==================== MANAGE: ORDERS ====================
+  {
+    meta: { title: 'Quản lý đơn hàng' },
+    path: '/orders',
+    name: 'orders.index',
+    component: OrderListView,
+  },
+
+  // ==================== MANAGE: VOUCHERS ====================
+  {
+    meta: { title: 'Quản lý Voucher' },
+    path: '/vouchers',
+    name: 'vouchers.index',
+    component: VoucherListView,
+  },
+
+  // ==================== MANAGE: REVIEWS ====================
+  {
+    meta: { title: 'Quản lý Đánh giá' },
+    path: '/reviews',
+    name: 'reviews.index',
+    component: ReviewListView,
+  },
+
+  // ==================== MANAGE: SHIPPING ====================
+  {
+    meta: { title: 'Quản lý Vận chuyển' },
+    path: '/shipping',
+    name: 'shipping',
+    component: ShippingView,
+  },
+
+  // ==================== DEMO PAGES ====================
+  {
+    meta: { title: 'Tables' },
+    path: '/tables',
+    name: 'tables',
+    component: TablesView,
+  },
+  {
+    meta: { title: 'Forms' },
+    path: '/forms',
+    name: 'forms',
+    component: FormsView,
+  },
+  {
+    meta: { title: 'UI' },
+    path: '/ui',
+    name: 'ui',
+    component: UiView,
+  },
+  {
+    meta: { title: 'Responsive' },
+    path: '/responsive',
+    name: 'responsive',
+    component: ResponsiveView,
   },
 ]
 
@@ -121,7 +174,7 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes,
   scrollBehavior(to, from, savedPosition) {
-    return savedPosition || { top: 0 }
+    return savedPosition || { left: 0, top: 0 }
   },
 })
 

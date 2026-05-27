@@ -11,7 +11,6 @@ use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\ShippingController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\ReviewController;
-use App\Http\Controllers\WishlistController;
 use App\Http\Controllers\CheckoutController;
 
 // ==================== PUBLIC ROUTES ====================
@@ -77,11 +76,6 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 // ==================== CUSTOMER API ROUTES (auth:sanctum) ====================
 
 Route::middleware('auth:sanctum')->group(function () {
-
-    // Wishlist
-    Route::get('/wishlist',               [WishlistController::class, 'index']);
-    Route::post('/wishlist/{productId}',  [WishlistController::class, 'toggle']);
-    Route::delete('/wishlist/{productId}',[WishlistController::class, 'destroy']);
 
     // Reviews: submit + helpful
     Route::post('/products/{productId}/reviews',    [ReviewController::class, 'store']);

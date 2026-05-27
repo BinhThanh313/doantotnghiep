@@ -51,11 +51,6 @@ class Product extends Model
         return $this->hasMany(InventoryLog::class);
     }
 
-    public function wishlistedByUsers()
-    {
-        return $this->belongsToMany(User::class, 'wishlists');
-    }
-
     // ==================== ACCESSORS ====================
 
     /**
