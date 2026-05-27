@@ -77,10 +77,12 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
 Route::middleware('auth:sanctum')->group(function () {
 
+    Route::post('/products/{productId}/reviews',    [ReviewController::class, 'store']);
     // Reviews: submit + helpful
     Route::post('/products/{productId}/reviews',    [ReviewController::class, 'store']);
     Route::post('/reviews/{reviewId}/helpful',      [ReviewController::class, 'helpful']);
 
+    Route::get('/reviews/{reviewId}',               [ReviewController::class, 'show']);
     // Checkout: shipping fee & voucher (cần login)
     Route::post('/checkout/shipping-fee', [CheckoutController::class, 'calculateShipping']);
 });

@@ -59,9 +59,11 @@ class ReviewController extends Controller
         ]);
     }
 
-    /**
-     * Đăng review mới (phải đăng nhập + đã mua sản phẩm)
-     */
+    public function show($id)
+    {
+        $review = Review::with('user:id,name', 'images', 'product:id,name')->findOrFail($id);
+        return response()->json($review);
+    }   
     public function store(Request $request, $productId)
     {
         $user = Auth::user();

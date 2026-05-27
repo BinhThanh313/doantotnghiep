@@ -9,6 +9,7 @@ import {
   mdiTruck,
   mdiAccountGroup,
   mdiLogout,
+    mdiPalette,
 } from '@mdi/js'
 
 export const menuAsideMain = [
@@ -61,6 +62,11 @@ export const menuAsideBottom = [
     to: '/profile',
     label: 'Profile',
     icon: mdiAccountCircle,
+  },
+    {
+    to: '/style',
+    label: 'Style',
+    icon: mdiPalette,
   },
   {
     to: '/login',

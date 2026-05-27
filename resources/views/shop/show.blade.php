@@ -118,8 +118,24 @@
                                     <p>{!! $product->description ?? 'Chưa có mô tả cho sản phẩm này.' !!}</p>
                                 </div>
                                 <div class="tab-pane" id="nav-mission" role="tabpanel" aria-labelledby="nav-mission-tab">
-                                    <p class="text-dark">Hiện chưa có đánh giá nào cho sản phẩm này.</p>
-                                </div>
+                                        @include('shop.partials.review-list')
+                                        
+                                        @auth
+                                            @include('shop.partials.review-form')
+                                        @else
+                                            <div class="alert alert-info mt-4">
+                                                Vui lòng <a href="{{ route('login') }}" class="fw-bold">đăng nhập</a> để gửi đánh giá sản phẩm.
+                                            </div>
+                                        @endauth
+                                    </div>
+
+                                    @push('scripts')
+                                    <script>
+                                        // Truyền biến productId từ Blade sang JS
+                                        const currentProductId = {{ $product->id }};
+                                    </script>
+                                    <script src="{{ asset('js/review.js') }}"></script>
+                                    @endpush
                             </div>
                         </div>
                         

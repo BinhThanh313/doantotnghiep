@@ -12,14 +12,15 @@ return new class extends Migration
             $table->id();
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
             $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('order_id')->nullable()->constrained()->onDelete('set null');
-            $table->tinyInteger('rating');                      // 1-5 sao
+            $table->foreignId('order_id')->nullable()->constrained()->onDelete('set null'); // Dòng này đã đủ để tạo cột order_id
+            $table->tinyInteger('rating'); // 1-5 sao
             $table->string('title')->nullable();
             $table->text('comment')->nullable();
             $table->boolean('verified_purchase')->default(false);
             $table->integer('helpful_count')->default(0);
             $table->boolean('is_visible')->default(true);       // Admin có thể ẩn
             $table->timestamps();
+            
         });
 
         Schema::create('review_images', function (Blueprint $table) {

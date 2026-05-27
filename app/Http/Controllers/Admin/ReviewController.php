@@ -30,9 +30,14 @@ class ReviewController extends Controller
 
     public function show($id)
     {
-        return response()->json(
-            Review::with('product', 'user', 'images', 'order')->findOrFail($id)
-        );
+        $review = Review::with([
+            'product:id,name,price,image', 
+            'user:id,name,email', 
+            'images', 
+            'order'
+        ])->findOrFail($id);
+        
+        return response()->json($review);
     }
 
     /**

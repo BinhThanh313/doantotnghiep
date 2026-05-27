@@ -34,15 +34,25 @@ import VoucherListView from '@/views/manage/vouchers/VoucherListView.vue'
 
 // Manage views - Reviews
 import ReviewListView from '@/views/manage/reviews/ReviewListView.vue'
+import ReviewDetailView from '@/views/manage/reviews/ReviewDetailView.vue'
 
 // Manage views - Shipping
 import ShippingView from '@/views/manage/shipping/ShippingView.vue'
 
 const routes = [
+  // ==================== DEFAULT REDIRECT ====================
+  {
+    path: '/',
+    redirect: (to) => {
+      const token = localStorage.getItem('admin_token')
+      return token ? '/dashboard' : '/login'
+    }
+  },
+
   // ==================== DEMO & STYLE ====================
   {
     meta: { title: 'Select style' },
-    path: '/',
+    path: '/style',
     name: 'style',
     component: StyleView,
   },
@@ -134,6 +144,14 @@ const routes = [
     name: 'reviews.index',
     component: ReviewListView,
   },
+  {
+      meta: {
+        title: 'Chi tiết đánh giá'
+      },
+      path: '/manage/reviews/:id',
+      name: 'review-detail',
+      component: () => import('@/views/manage/reviews/ReviewDetailView.vue')
+    },
 
   // ==================== MANAGE: SHIPPING ====================
   {

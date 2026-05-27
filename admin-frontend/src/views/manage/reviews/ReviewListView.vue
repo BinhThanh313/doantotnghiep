@@ -156,6 +156,13 @@ onMounted(() => fetchReviews())
                     :title="r.is_visible ? 'Ẩn review' : 'Hiện review'"
                     @click="toggleVisibility(r.id)"
                   />
+                  <BaseButton 
+                    color="info" 
+                    :icon="mdiMagnify" 
+                    small 
+                    title="Xem chi tiết" 
+                    :to="`/manage/reviews/${r.id}`" 
+                  />
                   <BaseButton color="danger" :icon="mdiTrashCan" small @click="deleteReview(r.id)" />
                 </BaseButtons>
               </td>
