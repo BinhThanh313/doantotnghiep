@@ -15,47 +15,56 @@ use App\Http\Controllers\CheckoutController;
 
 // ==================== PUBLIC ROUTES ====================
 
-// Admin login
 Route::post('/admin/login', [AuthController::class, 'login']);
-
-// Public: Shipping fee calculation (dùng trong checkout)
 Route::post('/shipping/calculate', [ShippingController::class, 'calculateFee']);
-
-// Public: Apply voucher (AJAX từ checkout page)
 Route::post('/voucher/apply', [CheckoutController::class, 'applyVoucher']);
-
-// Public: Reviews của sản phẩm
 Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
 
-// ==================== ADMIN ROUTES (auth:sanctum) ====================
+// ==================== ADMIN ROUTES ====================
 
 Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
 
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/me', [AuthController::class, 'me']);
+    Route::get('/me',      [AuthController::class, 'me']);
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
-    // Products CRUD
+    // ── Orders ──────────────────────────────────────────────
+    // !QUAN TRỌNG: Các route có path cụ thể phải đặt TRƯỚC apiResource
+    // để tránh bị match nhầm là {order} parameter
+
+    // Export (phải trước apiResource để /orders/export không bị hiểu là show(id='export'))
+    Route::get('/orders/export',          [OrderController::class, 'export']);
+
+    // Stats & Report
+    Route::get('/orders/stats/summary',   [OrderController::class, 'stats']);
+    Route::get('/orders/report',          [OrderController::class, 'report']);
+
+    // Bulk actions
+    Route::post('/orders/bulk',           [OrderController::class, 'bulk']);
+
+    // CRUD chuẩn
+    Route::apiResource('orders', OrderController::class);
+
+    // Actions trên 1 đơn hàng cụ thể
+    Route::post('/orders/{id}/refund',    [OrderController::class, 'refund']);
+
+    // ── Products ────────────────────────────────────────────
     Route::apiResource('products', ProductController::class);
 
-    // Orders CRUD + extra actions
-    Route::apiResource('orders', OrderController::class);
-    Route::get('/orders/stats/summary', [OrderController::class, 'stats']);
-
-    // Categories CRUD
+    // ── Categories ──────────────────────────────────────────
     Route::apiResource('categories', CategoryController::class);
 
-    // Users CRUD
+    // ── Users ───────────────────────────────────────────────
     Route::apiResource('users', UserController::class);
 
-    // Vouchers CRUD + toggle
+    // ── Vouchers ────────────────────────────────────────────
     Route::apiResource('vouchers', VoucherController::class);
     Route::patch('/vouchers/{id}/toggle', [VoucherController::class, 'toggle']);
 
-    // Shipping: carriers, zones, shipments
+    // ── Shipping ────────────────────────────────────────────
     Route::get('/shipping/carriers',              [ShippingController::class, 'carriers']);
     Route::post('/shipping/carriers',             [ShippingController::class, 'storeCarrier']);
     Route::put('/shipping/carriers/{id}',         [ShippingController::class, 'updateCarrier']);
@@ -66,23 +75,18 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/shipping/shipments',             [ShippingController::class, 'shipments']);
     Route::put('/shipping/shipments/{id}',        [ShippingController::class, 'updateShipment']);
 
-    // Reviews management (admin)
-    Route::get('/reviews',                          [AdminReviewController::class, 'index']);
-    Route::get('/reviews/{id}',                     [AdminReviewController::class, 'show']);
-    Route::patch('/reviews/{id}/toggle-visibility', [AdminReviewController::class, 'toggleVisibility']);
-    Route::delete('/reviews/{id}',                  [AdminReviewController::class, 'destroy']);
+    // ── Reviews ─────────────────────────────────────────────
+    Route::get('/reviews',                           [AdminReviewController::class, 'index']);
+    Route::get('/reviews/{id}',                      [AdminReviewController::class, 'show']);
+    Route::patch('/reviews/{id}/toggle-visibility',  [AdminReviewController::class, 'toggleVisibility']);
+    Route::delete('/reviews/{id}',                   [AdminReviewController::class, 'destroy']);
 });
 
-// ==================== CUSTOMER API ROUTES (auth:sanctum) ====================
+// ==================== CUSTOMER API ROUTES ====================
 
 Route::middleware('auth:sanctum')->group(function () {
-
-    Route::post('/products/{productId}/reviews',    [ReviewController::class, 'store']);
-    // Reviews: submit + helpful
-    Route::post('/products/{productId}/reviews',    [ReviewController::class, 'store']);
-    Route::post('/reviews/{reviewId}/helpful',      [ReviewController::class, 'helpful']);
-
-    Route::get('/reviews/{reviewId}',               [ReviewController::class, 'show']);
-    // Checkout: shipping fee & voucher (cần login)
-    Route::post('/checkout/shipping-fee', [CheckoutController::class, 'calculateShipping']);
+    Route::post('/products/{productId}/reviews', [ReviewController::class, 'store']);
+    Route::post('/reviews/{reviewId}/helpful',   [ReviewController::class, 'helpful']);
+    Route::get('/reviews/{reviewId}',            [ReviewController::class, 'show']);
+    Route::post('/checkout/shipping-fee',        [CheckoutController::class, 'calculateShipping']);
 });
