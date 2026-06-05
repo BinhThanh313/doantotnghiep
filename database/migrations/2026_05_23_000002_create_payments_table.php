@@ -10,11 +10,14 @@ return new class extends Migration
     {
         Schema::create('payment_methods', function (Blueprint $table) {
             $table->id();
-            $table->string('name');                        // VNPAY, Momo, COD...
-            $table->string('code', 50)->unique();          // vnpay, momo, cod, bank
+            $table->string('name');
+            $table->string('code', 50)->unique();
             $table->boolean('is_active')->default(true);
+            $table->text('description')->nullable();
+            $table->string('icon', 100)->nullable();
+            $table->integer('sort_order')->default(0);
             $table->decimal('fee_percent', 5, 2)->default(0);
-            $table->json('config')->nullable();            // API key, secret...
+            $table->json('config')->nullable();
             $table->timestamps();
         });
 
@@ -23,9 +26,9 @@ return new class extends Migration
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
             $table->decimal('amount', 15, 0);
             $table->string('currency', 3)->default('VND');
-            $table->enum('payment_method', ['COD', 'bank_transfer', 'momo', 'zalopay', 'vnpay'])->default('COD');
+            $table->enum('payment_method', ['COD', 'bank_transfer', 'momo', 'zalopay', 'vnpay', 'paypal', 'stripe'])->default('COD');
             $table->string('transaction_id', 255)->nullable()->comment('ID từ gateway');
-            $table->enum('status', ['pending', 'success', 'failed', 'refunded'])->default('pending');
+            $table->enum('status', ['pending', 'processing', 'success', 'failed', 'refunding', 'refunded'])->default('pending');
             $table->json('gateway_response')->nullable()->comment('Response raw từ gateway');
             $table->dateTime('paid_at')->nullable();
             $table->timestamps();

@@ -182,6 +182,11 @@
                                 <span id="subtotal-display">{{ number_format($subtotal ?? 0, 0, ',', '.') }}đ</span>
                             </div>
                             
+                                <div class="d-flex justify-content-between mb-2">
+                                <span>Phí vận chuyển:</span>
+                                <span id="shipping-fee-display">0đ</span>
+                            </div>
+                            
                             <div id="discount-row" class="d-flex justify-content-between mb-3 text-success" style="display: none;">
                                 <span>Giảm giá (<span id="voucher-name"></span>):</span>
                                 <span id="discount-amount">- 0đ</span>
@@ -195,17 +200,27 @@
                         </div>
 
                         <!-- Phí ship -->
-                        <div class="row g-0 text-center align-items-center justify-content-center border-bottom py-3 mt-4">
-                            <div class="col-12">
-                                <div class="form-check text-start my-2">
-                                    <input type="radio" class="form-check-input bg-primary border-0" id="Shipping-1" name="shipping_fee" value="0" checked>
-                                    <label class="form-check-label" for="Shipping-1">Miễn phí vận chuyển (Tiêu chuẩn)</label>
-                                </div>
-                                <div class="form-check text-start">
-                                    <input type="radio" class="form-check-input bg-primary border-0" id="Shipping-2" name="shipping_fee" value="30000">
-                                    <label class="form-check-label" for="Shipping-2">Giao hàng hỏa tốc: 30.000đ</label>
-                                </div>
+                        <div class="mb-4 mt-4" id="shipping-section">
+                            <label class="form-label fw-bold">Đơn vị vận chuyển</label>
+                            <p class="text-muted small mb-2">Nhập tỉnh/thành phố bên trên để xem phí ship</p>
+                        
+                            {{-- Khi chưa có province --}}
+                            <div id="carrier-placeholder" class="text-center text-muted py-3 border rounded bg-light">
+                                <i class="fas fa-truck me-2"></i>Vui lòng điền tỉnh/thành phố để tải phí ship
                             </div>
+                        
+                            {{-- Loading spinner --}}
+                            <div id="carrier-loading" class="text-center py-3 d-none">
+                                <div class="spinner-border spinner-border-sm text-primary me-2"></div>
+                                Đang tải phí vận chuyển...
+                            </div>
+                        
+                            {{-- Carrier options (render by JS) --}}
+                            <div id="carrier-list" class="d-none"></div>
+                        
+                            {{-- Hidden inputs --}}
+                            <input type="hidden" name="carrier_id" id="selected-carrier-id">
+                            <input type="hidden" name="shipping_fee" id="selected-shipping-fee" value="0">
                         </div>
 
                         <!-- Phương thức thanh toán -->
@@ -254,6 +269,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const currentSubtotal = parseFloat("{{ $subtotal ?? 0 }}") || 0;
     let appliedVoucherCode = null;
+    let currentShippingFee = 0;
 
     // ==================== VOUCHER ====================
     applyBtn.addEventListener('click', function () {
@@ -283,16 +299,14 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(data => {
             if (data.success) {
                 const discount = parseFloat(data.discount) || 0;
-                const newTotal = currentSubtotal - discount;
+                const newTotal = currentSubtotal + currentShippingFee - discount;
 
                 finalTotalEl.textContent = newTotal.toLocaleString('vi-VN') + 'đ';
                 discountAmount.textContent = '- ' + discount.toLocaleString('vi-VN') + 'đ';
                 voucherName.textContent = code;
                 discountRow.style.display = 'flex';
                 
-                // Lưu mã voucher đã áp dụng
                 appliedVoucherCode = code;
-
                 showMessage(data.message, 'success');
                 voucherInput.value = '';
             } else {
@@ -306,6 +320,174 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
+    // ==================== CARRIER DYNAMIC ====================
+    let carrierDebounceTimer = null;
+    let lastProvince = '';
+
+    const provinceInput   = document.querySelector('input[name="province"]');
+    const carrierList     = document.getElementById('carrier-list');
+    const carrierLoading  = document.getElementById('carrier-loading');
+    const carrierPlaceholder = document.getElementById('carrier-placeholder');
+    const carrierIdInput  = document.getElementById('selected-carrier-id');
+    const shippingFeeInput= document.getElementById('selected-shipping-fee');
+
+    if (provinceInput) {
+        provinceInput.addEventListener('input', function () {
+            const province = this.value.trim();
+            clearTimeout(carrierDebounceTimer);
+
+            if (province.length < 2) {
+                showCarrierPlaceholder();
+                return;
+            }
+
+            carrierDebounceTimer = setTimeout(() => {
+                if (province !== lastProvince) {
+                    lastProvince = province;
+                    loadCarriers(province);
+                }
+            }, 600);
+        });
+    }
+
+    async function loadCarriers(province) {
+        showCarrierLoading();
+        try {
+            const res = await fetch("{{ url('api/shipping/calculate') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ province })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok || !Array.isArray(data)) {
+                throw new Error(data.message || 'Lỗi tải danh sách vận chuyển');
+            }
+
+            renderCarrierOptions(data);
+        } catch (err) {
+            showCarrierError(err.message);
+        }
+    }
+
+    function renderCarrierOptions(carriers) {
+        if (!carriers.length) {
+            carrierList.innerHTML = `
+                <div class="text-muted small py-2">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Không có đơn vị vận chuyển nào phục vụ khu vực này.
+                </div>`;
+            carrierIdInput.value = '';
+            shippingFeeInput.value = 0;
+            updateShippingDisplay(0);
+            showCarrierList();
+            return;
+        }
+
+        let html = '<div class="list-group">';
+        carriers.forEach((c, idx) => {
+            const isFirst = idx === 0;
+            const feeLabel = c.fee > 0 
+                ? new Intl.NumberFormat('vi-VN').format(c.fee) + 'đ' 
+                : 'Miễn phí';
+
+            html += `
+            <label class="list-group-item list-group-item-action cursor-pointer carrier-option ${isFirst ? 'active border-primary bg-primary bg-opacity-10' : ''}">
+                <input type="radio" name="_carrier_radio" value="${c.id}" 
+                       data-fee="${c.fee}" class="carrier-radio d-none" ${isFirst ? 'checked' : ''}>
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="fw-bold">${c.name}</span>
+                        <small class="text-muted ms-2">${c.estimated_days} ngày</small>
+                    </div>
+                    <span class="badge ${c.fee > 0 ? 'bg-primary' : 'bg-success'} rounded-pill">${feeLabel}</span>
+                </div>
+            </label>`;
+        });
+        html += '</div>';
+
+        carrierList.innerHTML = html;
+
+        if (carriers[0]) {
+            setSelectedCarrier(carriers[0].id, carriers[0].fee);
+        }
+
+        // Event click
+        carrierList.querySelectorAll('.carrier-option').forEach(label => {
+            label.addEventListener('click', function () {
+                carrierList.querySelectorAll('.carrier-option').forEach(l => 
+                    l.classList.remove('active', 'border-primary', 'bg-primary', 'bg-opacity-10')
+                );
+                this.classList.add('active', 'border-primary', 'bg-primary', 'bg-opacity-10');
+
+                const radio = this.querySelector('.carrier-radio');
+                const fee = parseFloat(radio.dataset.fee) || 0;
+                setSelectedCarrier(parseInt(radio.value), fee);
+            });
+        });
+
+        showCarrierList();
+    }
+
+    function setSelectedCarrier(carrierId, fee) {
+        carrierIdInput.value = carrierId;
+        shippingFeeInput.value = fee;
+        currentShippingFee = fee;
+        updateShippingDisplay(fee);
+    }
+
+    function updateShippingDisplay(fee) {
+        const feeLabel = fee > 0 
+            ? new Intl.NumberFormat('vi-VN').format(fee) + 'đ' 
+            : 'Miễn phí';
+        document.getElementById('shipping-fee-display').textContent = feeLabel;
+        recalcTotal();
+    }
+
+    function recalcTotal() {
+        const subtotal = currentSubtotal;
+        const discountEl = document.getElementById('discount-amount');
+        const discount = discountEl 
+            ? parseFloat(discountEl.textContent.replace(/[^0-9]/g, '')) || 0 
+            : 0;
+
+        const newTotal = subtotal + currentShippingFee - discount;
+        finalTotalEl.textContent = new Intl.NumberFormat('vi-VN').format(newTotal) + 'đ';
+    }
+
+    function showCarrierPlaceholder() {
+        carrierPlaceholder.classList.remove('d-none');
+        carrierLoading.classList.add('d-none');
+        carrierList.classList.add('d-none');
+    }
+    function showCarrierLoading() {
+        carrierPlaceholder.classList.add('d-none');
+        carrierLoading.classList.remove('d-none');
+        carrierList.classList.add('d-none');
+    }
+    function showCarrierList() {
+        carrierPlaceholder.classList.add('d-none');
+        carrierLoading.classList.add('d-none');
+        carrierList.classList.remove('d-none');
+    }
+    function showCarrierError(msg) {
+        carrierList.innerHTML = `<div class="alert alert-warning small py-2 mb-0">
+            <i class="fas fa-exclamation-triangle me-1"></i>${msg || 'Không tải được phí ship.'}
+        </div>`;
+        showCarrierList();
+    }
+
+    function showMessage(msg, type) {
+        messageEl.innerHTML = `<span class="text-${type}">${msg}</span>`;
+        setTimeout(() => messageEl.innerHTML = '', 5000);
+    }
+
+    // Submit form
     checkoutForm.addEventListener('submit', function (e) {
         e.preventDefault();
 
@@ -319,29 +501,76 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const formData = new FormData(checkoutForm);
         
+        // Disable nút submit để tránh click nhiều lần
+        const submitBtn = checkoutForm.querySelector('button[type="submit"]');
+        const originalBtnText = submitBtn.innerHTML;
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Đang xử lý...';
+
         fetch("{{ route('checkout.store') }}", {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json' // Bắt buộc để nhận JSON errors từ Laravel
             },
             body: formData
         })
-        .then(r => r.json())
+        .then(async r => {
+            const data = await r.json();
+            
+            // Nếu request không thành công (vd: lỗi 422, 500)
+            if (!r.ok) {
+                return Promise.reject(data);
+            }
+            return data;
+        })
         .then(data => {
             if (data.success) {
                 alert('✅ Đặt hàng thành công!');
-                // ← Sử dụng redirect_url từ response
                 window.location.href = data.redirect_url;
             } else {
                 alert('❌ Lỗi: ' + (data.message || 'Có lỗi xảy ra'));
             }
         })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Lỗi kết nối server!');
+        .catch(err => {
+            let errorString = '❌ Có lỗi xảy ra trong quá trình đặt hàng:\n\n';
+            
+            if (err && err.errors) {
+                // Trường hợp errors là một mảng (Array)
+                if (Array.isArray(err.errors)) {
+                    err.errors.forEach(msg => {
+                        errorString += `- ${msg}\n`;
+                    });
+                } 
+                // Trường hợp errors là một đối tượng (Object - Mặc định của Laravel)
+                else if (typeof err.errors === 'object') {
+                    for (let field in err.errors) {
+                        if (Array.isArray(err.errors[field])) {
+                            errorString += `- ${err.errors[field][0]}\n`;
+                        } else {
+                            errorString += `- ${err.errors[field]}\n`;
+                        }
+                    }
+                } else {
+                    errorString += `- ${err.errors}\n`;
+                }
+            } 
+            else if (err && err.message) {
+                errorString += err.message;
+            } 
+            else {
+                errorString += 'Vui lòng kiểm tra lại thông tin trên form.';
+            }
+            
+            alert(errorString);
+        })
+        .finally(() => {
+            // Trả lại trạng thái cho nút submit
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = originalBtnText;
         });
     });
-});
+    });
 </script>
 @endpush

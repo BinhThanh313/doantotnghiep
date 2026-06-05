@@ -23,6 +23,7 @@ Route::get('/vouchers', [ShopController::class, 'vouchers'])->name('shop.voucher
 Route::get('/contact', fn() => view('contact'))->name('contact');
 Route::get('/bestseller', fn() => view('shop.bestseller'))->name('bestseller');
 
+Route::post('/checkout/shipping-fee', [CheckoutController::class, 'calculateShipping'])->name('checkout.shipping-fee');
 Auth::routes();
 
 /*
@@ -48,7 +49,7 @@ Route::middleware(['auth'])->group(function () {
 
     // AJAX: apply voucher & calculate shipping (từ checkout blade)
     Route::post('/checkout/apply-voucher', [CheckoutController::class, 'applyVoucher'])->name('checkout.apply-voucher');
-    Route::post('/checkout/shipping-fee', [CheckoutController::class, 'calculateShipping'])->name('checkout.shipping-fee');
+    
 });
 
 /*
