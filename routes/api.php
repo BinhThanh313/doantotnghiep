@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Api\PaymentController;
+use App\Http\Controllers\Admin\ProductVariantController;
 
 // ==================== PUBLIC ROUTES ====================
 
@@ -53,6 +54,14 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::apiResource('users', UserController::class);
     Route::apiResource('vouchers', VoucherController::class);
     Route::patch('/vouchers/{id}/toggle', [VoucherController::class, 'toggle']);
+
+    // Product Variants
+    Route::get('/products/{productId}/variants',                      [ProductVariantController::class, 'index']);
+    Route::post('/products/{productId}/variants',                     [ProductVariantController::class, 'store']);
+    Route::put('/products/{productId}/variants/{id}',                 [ProductVariantController::class, 'update']);
+    Route::delete('/products/{productId}/variants/{id}',              [ProductVariantController::class, 'destroy']);
+    Route::post('/products/{productId}/variants/{id}/adjust-stock',   [ProductVariantController::class, 'adjustStock']);
+    Route::get('/products/{productId}/variants/{id}/logs',            [ProductVariantController::class, 'logs']);
 
     // Shipping Admin
     Route::get('/shipping/carriers',              [ShippingController::class, 'carriers']);

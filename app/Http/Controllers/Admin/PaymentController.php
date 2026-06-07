@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Admin/PaymentController.php
 
 namespace App\Http\Controllers\Admin;
 
@@ -11,31 +12,30 @@ use Illuminate\Support\Facades\Auth;
 
 class PaymentController extends Controller
 {
+    // ✅ BankTransferService vẫn inject bình thường
+    // ✅ PaymentStateMachine inject OK vì constructor giờ là private,
+    //    Laravel sẽ resolve qua ::class nhưng ta chỉ dùng static methods.
+    //    → Tốt hơn: KHÔNG inject FSM vào constructor, dùng static trực tiếp.
     public function __construct(
         private BankTransferService $bankService,
-        private PaymentStateMachine $fsm,
     ) {}
 
-    // ──────────────────────────────────────────────────────────
     // GET /api/admin/payments
-    // ──────────────────────────────────────────────────────────
-
     public function index(Request $request)
     {
         $query = Payment::with(['order:id,customer_name,customer_phone,tracking_number,status']);
 
-        // Filters
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
         if ($request->filled('method')) {
-            $query->where('payment_method', $request->method);
+            $query->where('status', $request->input('status')); 
         }
         if ($request->filled('search')) {
             $query->whereHas('order', function ($q) use ($request) {
                 $q->where('tracking_number', 'like', '%' . $request->search . '%')
-                  ->orWhere('customer_name', 'like', '%' . $request->search . '%')
-                  ->orWhere('customer_phone', 'like', '%' . $request->search . '%');
+                  ->orWhere('customer_name',   'like', '%' . $request->search . '%')
+                  ->orWhere('customer_phone',  'like', '%' . $request->search . '%');
             });
         }
         if ($request->filled('date_from')) {
@@ -45,27 +45,25 @@ class PaymentController extends Controller
             $query->whereDate('created_at', '<=', $request->date_to);
         }
 
-        $sortBy    = in_array($request->sort_by, ['created_at', 'amount', 'status']) ? $request->sort_by : 'created_at';
-        $sortOrder = $request->sort_order === 'asc' ? 'asc' : 'desc';
+        $sortBy    = in_array($request->input('sort_by'), ['created_at', 'amount', 'status'])
+                ? $request->input('sort_by') : 'created_at';
+        $sortOrder = $request->input('sort_order') === 'asc' ? 'asc' : 'desc';
         $query->orderBy($sortBy, $sortOrder);
 
         $payments = $query->paginate($request->get('per_page', 20));
 
-        // Append status labels & available transitions
+        // ✅ Dùng static methods — không cần instance
         $payments->getCollection()->transform(function ($p) {
-            $p->status_label         = PaymentStateMachine::label($p->status);
-            $p->status_color         = PaymentStateMachine::color($p->status);
-            $p->available_transitions = $this->fsm->availableTransitions($p);
+            $p->status_label          = PaymentStateMachine::label($p->status);
+            $p->status_color          = PaymentStateMachine::color($p->status);
+            $p->available_transitions = PaymentStateMachine::availableTransitions($p);
             return $p;
         });
 
         return response()->json($payments);
     }
 
-    // ──────────────────────────────────────────────────────────
     // GET /api/admin/payments/{id}
-    // ──────────────────────────────────────────────────────────
-
     public function show($id)
     {
         $payment = Payment::with([
@@ -76,21 +74,19 @@ class PaymentController extends Controller
 
         $payment->status_label          = PaymentStateMachine::label($payment->status);
         $payment->status_color          = PaymentStateMachine::color($payment->status);
-        $payment->available_transitions  = $this->fsm->availableTransitions($payment);
+        $payment->available_transitions = PaymentStateMachine::availableTransitions($payment);
 
-        // Extra info for bank transfer
         if (strtolower($payment->payment_method) === 'bank') {
-            $payment->bank_transfer_info = $this->bankService->getTransferInfo($payment->order);
+            $payment->bank_transfer_info = array_merge(
+            $this->bankService->getBankInfo(),
+            $this->bankService->generateQrCode($payment->order),
+    );
         }
 
         return response()->json($payment);
     }
 
-    // ──────────────────────────────────────────────────────────
     // POST /api/admin/payments/{id}/verify-bank
-    // body: { transaction_id?, note? }
-    // ──────────────────────────────────────────────────────────
-
     public function verifyBank(Request $request, $id)
     {
         $payment = Payment::with('order')->findOrFail($id);
@@ -104,36 +100,28 @@ class PaymentController extends Controller
             'note'           => 'nullable|string|max:500',
         ]);
 
-        $result = $this->bankService->manualVerify($payment, [
-            'transaction_id' => $request->transaction_id,
-            'note'           => $request->note,
-            'verified_by'    => Auth::user()->name ?? 'admin',
+        $result = $this->bankService->adminVerify($payment, [
+            'transaction_id' => $request->input('transaction_id'),
+            'note'           => $request->input('note'),
+            'confirmed_by'   => Auth::user()->name ?? 'admin',
         ]);
 
         return response()->json($result, $result['success'] ? 200 : 422);
     }
 
-    // ──────────────────────────────────────────────────────────
     // POST /api/admin/payments/{id}/reject-bank
-    // body: { reason }
-    // ──────────────────────────────────────────────────────────
-
     public function rejectBank(Request $request, $id)
     {
         $payment = Payment::with('order')->findOrFail($id);
 
         $request->validate(['reason' => 'required|string|max:500']);
 
-        $result = $this->bankService->manualReject($payment, $request->reason);
+       $result = $this->bankService->adminReject($payment, $request->input('reason'));
 
         return response()->json($result, $result['success'] ? 200 : 422);
     }
 
-    // ──────────────────────────────────────────────────────────
     // POST /api/admin/payments/{id}/transition
-    // body: { status, transaction_id?, reason?, refund_txn? }
-    // ──────────────────────────────────────────────────────────
-
     public function transition(Request $request, $id)
     {
         $payment = Payment::with('order')->findOrFail($id);
@@ -146,9 +134,12 @@ class PaymentController extends Controller
         ]);
 
         try {
-            $updated = $this->fsm->transition($payment, $request->status, $request->only([
-                'transaction_id', 'reason', 'refund_txn',
-            ]));
+            // ✅ Dùng factory pattern: ::for($payment)->transition(...)
+            $updated = PaymentStateMachine::for($payment)->transition(
+                $payment,
+                $request->status,
+                $request->only(['transaction_id', 'reason', 'refund_txn'])
+            );
 
             return response()->json([
                 'success' => true,
@@ -160,10 +151,7 @@ class PaymentController extends Controller
         }
     }
 
-    // ──────────────────────────────────────────────────────────
     // GET /api/admin/payments/{id}/bank-info
-    // ──────────────────────────────────────────────────────────
-
     public function bankInfo($id)
     {
         $payment = Payment::with('order')->findOrFail($id);
@@ -172,13 +160,10 @@ class PaymentController extends Controller
             return response()->json(['message' => 'Không phải giao dịch chuyển khoản'], 422);
         }
 
-        return response()->json($this->bankService->getTransferInfo($payment->order));
+        return response()->json($payment->bank_transfer_info = $this->bankService->getBankInfo($payment->order));
     }
 
-    // ──────────────────────────────────────────────────────────
     // GET /api/admin/payments/stats
-    // ──────────────────────────────────────────────────────────
-
     public function stats()
     {
         $byStatus = Payment::selectRaw('status, count(*) as count, COALESCE(sum(amount),0) as total')

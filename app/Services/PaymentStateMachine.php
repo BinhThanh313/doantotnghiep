@@ -1,4 +1,5 @@
 <?php
+// app/Services/PaymentStateMachine.php
 
 namespace App\Services;
 
@@ -8,128 +9,100 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Payment Lifecycle State Machine
+ * Stateless Payment State Machine.
  *
- * States:   pending → processing → success → refunding → refunded
- *                  ↘ failed
+ * Dùng theo 2 cách:
+ *   // 1. Static (cho controller DI, listing):
+ *   PaymentStateMachine::label($status)
+ *   PaymentStateMachine::color($status)
+ *   PaymentStateMachine::availableTransitions($payment)   ← NEW static
+ *   PaymentStateMachine::canDo($payment, 'success')       ← NEW static
  *
- * Transitions:
- *   pending    → processing  (gateway redirect / IPN received)
- *   pending    → failed      (timeout / user cancel)
- *   processing → success     (IPN confirmed)
- *   processing → failed      (gateway error)
- *   success    → refunding   (admin initiates refund)
- *   refunding  → refunded    (gateway confirms refund)
- *   refunding  → success     (refund gateway error — rollback)
+ *   // 2. Instance per-payment (cho business logic):
+ *   PaymentStateMachine::for($payment)->transitionToSuccess(...)
  */
 class PaymentStateMachine
 {
-    // Valid transitions map
     private const TRANSITIONS = [
         'pending'    => ['processing', 'failed'],
         'processing' => ['success', 'failed'],
         'success'    => ['refunding'],
-        'refunding'  => ['refunded', 'success'],   // success = rollback nếu refund thất bại
+        'refunding'  => ['refunded', 'success'],
         'refunded'   => [],
-        'failed'     => ['pending'],               // retry
+        'failed'     => ['pending'],
     ];
 
-    public function __construct(private Payment $payment) {}
+    private const LABELS = [
+        'pending'    => 'Chờ thanh toán',
+        'processing' => 'Đang xử lý',
+        'success'    => 'Thành công',
+        'refunding'  => 'Đang hoàn tiền',
+        'refunded'   => 'Đã hoàn tiền',
+        'failed'     => 'Thất bại',
+    ];
+
+    private const COLORS = [
+        'pending'    => 'yellow',
+        'processing' => 'blue',
+        'success'    => 'green',
+        'refunding'  => 'orange',
+        'refunded'   => 'purple',
+        'failed'     => 'red',
+    ];
+
+    // Constructor private — chỉ dùng qua ::for()
+    private function __construct(private Payment $payment) {}
 
     // ─────────────────────────────────────────────────────────
-    // Public transition methods
+    // Static helpers — dùng được khi inject qua DI (không cần Payment)
     // ─────────────────────────────────────────────────────────
 
-    /** Gateway redirect đã gửi / IPN đầu tiên nhận được */
-    public function transitionToProcessing(array $meta = []): bool
+    public static function label(string $status): string
     {
-        return $this->transition('processing', $meta);
+        return self::LABELS[$status] ?? $status;
     }
 
-    /** IPN xác nhận thanh toán thành công */
-    public function transitionToSuccess(string $transactionId, array $gatewayRaw = []): bool
+    public static function color(string $status): string
     {
-        return $this->transition('success', [
-            'transaction_id'    => $transactionId,
-            'gateway_response'  => $gatewayRaw,
-            'paid_at'           => now()->toISOString(),
-        ], function (Payment $p) use ($transactionId, $gatewayRaw) {
-            $p->transaction_id   = $transactionId;
-            $p->gateway_response = $gatewayRaw;
-            $p->paid_at          = now();
-            $p->save();
-
-            // Sync order payment_status
-            $p->order->update(['payment_status' => 'paid']);
-        });
+        return self::COLORS[$status] ?? 'gray';
     }
 
-    /** Thanh toán thất bại (timeout / cancel / lỗi gateway) */
-    public function transitionToFailed(string $reason = '', array $gatewayRaw = []): bool
+    /**
+     * Trả về danh sách transition hợp lệ từ trạng thái hiện tại của $payment.
+     * Dùng trong controller listing/show mà không cần khởi tạo instance.
+     */
+    public static function availableTransitions(Payment $payment): array
     {
-        return $this->transition('failed', [
-            'fail_reason'      => $reason,
-            'gateway_response' => $gatewayRaw,
-        ], function (Payment $p) use ($gatewayRaw) {
-            if ($gatewayRaw) {
-                $p->gateway_response = array_merge($p->gateway_response ?? [], $gatewayRaw);
-                $p->save();
-            }
-        });
+        return self::TRANSITIONS[$payment->status] ?? [];
     }
 
-    /** Admin hoặc hệ thống khởi tạo hoàn tiền */
-    public function transitionToRefunding(string $reason = '', float $refundAmount = 0): bool
+    public static function canDo(Payment $payment, string $toState): bool
     {
-        return $this->transition('refunding', [
-            'refund_reason' => $reason,
-            'refund_amount' => $refundAmount ?: $this->payment->amount,
-        ], function (Payment $p) use ($reason, $refundAmount) {
-            $p->gateway_response = array_merge($p->gateway_response ?? [], [
-                'refund_initiated_at' => now()->toISOString(),
-                'refund_reason'       => $reason,
-                'refund_amount'       => $refundAmount ?: $p->amount,
-            ]);
-            $p->save();
-        });
-    }
-
-    /** Gateway xác nhận hoàn tiền hoàn tất */
-    public function transitionToRefunded(string $refundTxnId = '', array $gatewayRaw = []): bool
-    {
-        return $this->transition('refunded', [
-            'refund_transaction_id' => $refundTxnId,
-            'gateway_response'      => $gatewayRaw,
-        ], function (Payment $p) use ($refundTxnId, $gatewayRaw) {
-            $p->gateway_response = array_merge($p->gateway_response ?? [], array_merge(
-                $gatewayRaw,
-                ['refund_transaction_id' => $refundTxnId, 'refunded_at' => now()->toISOString()]
-            ));
-            $p->save();
-
-            // Sync order
-            $p->order->update(['payment_status' => 'refunded']);
-        });
-    }
-
-    /** Retry sau khi failed */
-    public function retryFromFailed(): bool
-    {
-        return $this->transition('pending', ['retry_at' => now()->toISOString()]);
+        return in_array($toState, self::availableTransitions($payment));
     }
 
     // ─────────────────────────────────────────────────────────
-    // Query helpers
+    // Factory
+    // ─────────────────────────────────────────────────────────
+
+    public static function for(Payment $payment): static
+    {
+        return new static($payment);
+    }
+
+    public static function forOrder(Order $order): static
+    {
+        $payment = $order->payment ?? Payment::where('order_id', $order->id)->firstOrFail();
+        return new static($payment);
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // Instance methods — gọi qua ::for($payment)->...
     // ─────────────────────────────────────────────────────────
 
     public function canTransitionTo(string $newState): bool
     {
         return in_array($newState, self::TRANSITIONS[$this->payment->status] ?? []);
-    }
-
-    public function currentState(): string
-    {
-        return $this->payment->status;
     }
 
     public function isTerminal(): bool
@@ -142,22 +115,110 @@ class PaymentStateMachine
         return $this->payment->status === 'success';
     }
 
-    public function allowedTransitions(): array
+    public function transitionToProcessing(array $meta = []): bool
     {
-        return self::TRANSITIONS[$this->payment->status] ?? [];
+        return $this->doTransition('processing', $meta);
+    }
+
+    public function transitionToSuccess(string $transactionId, array $gatewayRaw = []): bool
+    {
+        return $this->doTransition('success', [
+            'transaction_id'   => $transactionId,
+            'gateway_response' => $gatewayRaw,
+            'paid_at'          => now()->toISOString(),
+        ], function (Payment $p) use ($transactionId, $gatewayRaw) {
+            $p->transaction_id   = $transactionId;
+            $p->gateway_response = $gatewayRaw;
+            $p->paid_at          = now();
+            $p->save();
+            $p->order->update(['payment_status' => 'paid']);
+        });
+    }
+
+    public function transitionToFailed(string $reason = '', array $gatewayRaw = []): bool
+    {
+        return $this->doTransition('failed', [
+            'fail_reason'      => $reason,
+            'gateway_response' => $gatewayRaw,
+        ], function (Payment $p) use ($gatewayRaw) {
+            if ($gatewayRaw) {
+                $p->gateway_response = array_merge($p->gateway_response ?? [], $gatewayRaw);
+                $p->save();
+            }
+        });
+    }
+
+    public function transitionToRefunding(string $reason = '', float $refundAmount = 0): bool
+    {
+        return $this->doTransition('refunding', [
+            'refund_reason' => $reason,
+            'refund_amount' => $refundAmount ?: $this->payment->amount,
+        ], function (Payment $p) use ($reason, $refundAmount) {
+            $p->gateway_response = array_merge($p->gateway_response ?? [], [
+                'refund_initiated_at' => now()->toISOString(),
+                'refund_reason'       => $reason,
+                'refund_amount'       => $refundAmount ?: $p->amount,
+            ]);
+            $p->save();
+        });
+    }
+
+    public function transitionToRefunded(string $refundTxnId = '', array $gatewayRaw = []): bool
+    {
+        return $this->doTransition('refunded', [
+            'refund_transaction_id' => $refundTxnId,
+            'gateway_response'      => $gatewayRaw,
+        ], function (Payment $p) use ($refundTxnId, $gatewayRaw) {
+            $p->gateway_response = array_merge($p->gateway_response ?? [], array_merge(
+                $gatewayRaw,
+                ['refund_transaction_id' => $refundTxnId, 'refunded_at' => now()->toISOString()]
+            ));
+            $p->save();
+            $p->order->update(['payment_status' => 'refunded']);
+        });
+    }
+
+    public function retryFromFailed(): bool
+    {
+        return $this->doTransition('pending', ['retry_at' => now()->toISOString()]);
+    }
+
+    /**
+     * Generic transition — dùng trong AdminPaymentController::transition()
+     * để admin ép trạng thái thủ công.
+     *
+     * @throws \InvalidArgumentException nếu transition không hợp lệ
+     */
+    public function transition(Payment $payment, string $toState, array $meta = []): Payment
+    {
+        if (!self::canDo($payment, $toState)) {
+            throw new \InvalidArgumentException(
+                "Không thể chuyển từ [{$payment->status}] sang [{$toState}]"
+            );
+        }
+
+        // Bind payment rồi delegate xuống doTransition
+        $this->payment = $payment;
+        $ok = $this->doTransition($toState, $meta);
+
+        if (!$ok) {
+            throw new \InvalidArgumentException("Transition thất bại — xem log để biết chi tiết.");
+        }
+
+        return $this->payment->fresh();
     }
 
     // ─────────────────────────────────────────────────────────
-    // Core transition engine
+    // Core engine (private)
     // ─────────────────────────────────────────────────────────
 
-    private function transition(string $newState, array $meta = [], ?callable $sideEffect = null): bool
+    private function doTransition(string $newState, array $meta = [], ?callable $sideEffect = null): bool
     {
         if (!$this->canTransitionTo($newState)) {
             Log::warning('PaymentStateMachine: invalid transition', [
-                'payment_id'   => $this->payment->id,
-                'from'         => $this->payment->status,
-                'to'           => $newState,
+                'payment_id' => $this->payment->id,
+                'from'       => $this->payment->status,
+                'to'         => $newState,
             ]);
             return false;
         }
@@ -165,11 +226,9 @@ class PaymentStateMachine
         try {
             DB::transaction(function () use ($newState, $meta, $sideEffect) {
                 $oldState = $this->payment->status;
-
                 $this->payment->status = $newState;
                 $this->payment->save();
 
-                // Run any side effects (update related fields, sync order, etc.)
                 if ($sideEffect) {
                     $sideEffect($this->payment);
                 }
@@ -191,20 +250,5 @@ class PaymentStateMachine
             ]);
             return false;
         }
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // Factory
-    // ─────────────────────────────────────────────────────────
-
-    public static function for(Payment $payment): static
-    {
-        return new static($payment);
-    }
-
-    public static function forOrder(Order $order): static
-    {
-        $payment = $order->payment ?? Payment::where('order_id', $order->id)->firstOrFail();
-        return new static($payment);
     }
 }

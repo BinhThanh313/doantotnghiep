@@ -43,21 +43,39 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('voucher_usages', function (Blueprint $table) {
-            $table->dropIndex('voucher_usages_voucher_id_user_id_unique');
+            if ($this->indexExists('voucher_usages', 'voucher_usages_voucher_id_user_id_unique')) {
+                $table->dropIndex('voucher_usages_voucher_id_user_id_unique');
+            }
             if (Schema::hasColumn('voucher_usages', 'used_count')) {
                 $table->dropColumn('used_count');
             }
         });
+        
         Schema::table('vouchers', function (Blueprint $table) {
-            $table->dropIndex('vouchers_used_count_index');
-            $table->dropIndex('vouchers_is_active_end_date_index');
+            if ($this->indexExists('vouchers', 'vouchers_used_count_index')) {
+                $table->dropIndex('vouchers_used_count_index');
+            }
+            if ($this->indexExists('vouchers', 'vouchers_is_active_end_date_index')) {
+                $table->dropIndex('vouchers_is_active_end_date_index');
+            }
         });
     }
 
+    /**
+     * Hàm kiểm tra index sử dụng Native Schema của Laravel thay vì Doctrine
+     */
     private function indexExists(string $table, string $index): bool
     {
-        $sm      = Schema::getConnection()->getDoctrineSchemaManager();
-        $indexes = $sm->listTableIndexes($table);
-        return isset($indexes[$index]) || isset($indexes[strtolower($index)]);
+        // Lấy danh sách toàn bộ các index của table
+        $indexes = Schema::getIndexes($table);
+        
+        // Kiểm tra xem tên index có tồn tại trong danh sách không
+        foreach ($indexes as $idx) {
+            if (strtolower($idx['name']) === strtolower($index)) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 };
