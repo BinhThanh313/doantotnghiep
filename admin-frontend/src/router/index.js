@@ -39,6 +39,7 @@ import ReviewDetailView from '@/views/manage/reviews/ReviewDetailView.vue'
 // Manage views - Shipping
 import ShippingView from '@/views/manage/shipping/ShippingView.vue'
 
+import PaymentListView from '@/views/manage/payment/PaymentListView.vue'
 const routes = [
   // ==================== DEFAULT REDIRECT ====================
   {
@@ -159,6 +160,14 @@ const routes = [
     path: '/shipping',
     name: 'shipping',
     component: ShippingView,
+  },
+
+  // ==================== MANAGE: PAYMENTS ====================
+  {
+    meta: { title: 'Quản lý Thanh toán' },
+    path: '/payments',
+    name: 'payments.index',
+    component: PaymentListView,
   },
 
   // ==================== DEMO PAGES ====================

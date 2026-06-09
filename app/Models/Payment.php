@@ -20,4 +20,12 @@ class Payment extends Model
     {
         return $this->belongsTo(Order::class);
     }
+
+    public function setPaymentMethodAttribute(string $value): void
+{
+    $this->attributes['payment_method'] = strtoupper(
+        $value === 'bank_transfer' ? 'bank' : $value
+    );
+}
+
 }

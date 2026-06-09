@@ -37,4 +37,6 @@ class OrderRefundNotification extends Mailable
             ],
         );
     }
+
+    public function attachments(): array { return []; }
 }

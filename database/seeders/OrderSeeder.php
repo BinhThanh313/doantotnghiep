@@ -106,16 +106,16 @@ class OrderSeeder extends Seeder
             }
             DB::table('order_items')->insert($orderItemsData);
 
-            // Insert payment record
+            // Sửa thành
             if ($paymentStatus === 'paid') {
                 DB::table('payments')->insert([
-                    'order_id'       => $orderId,
-                    'amount'         => $totalAmount + $shippingFee - $discountAmount,
-                    'method'         => $paymentMethod,
-                    'status'         => 'completed',
-                    'transaction_id' => strtoupper($faker->bothify('TXN-########')),
-                    'created_at'     => $createdAt->copy()->addMinutes(rand(1, 30)),
-                    'updated_at'     => $createdAt->copy()->addMinutes(rand(1, 30)),
+                    'order_id'         => $orderId,
+                    'amount'           => $totalAmount + $shippingFee - $discountAmount,
+                    'payment_method'   => strtoupper($paymentMethod), // ← đúng tên cột + uppercase
+                    'status'           => 'success',                  // ← đúng enum value
+                    'transaction_id'   => strtoupper($faker->bothify('TXN-########')),
+                    'created_at'       => $createdAt->copy()->addMinutes(rand(1, 30)),
+                    'updated_at'       => $createdAt->copy()->addMinutes(rand(1, 30)),
                 ]);
             }
 

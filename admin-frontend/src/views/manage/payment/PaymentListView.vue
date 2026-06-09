@@ -49,10 +49,10 @@ const statusOptions = [
 
 const methodOptions = [
   { id: '', label: 'Tất cả PTTT' },
-  { id: 'COD',           label: 'COD' },
-  { id: 'bank',          label: 'Chuyển khoản' },
-  { id: 'MOMO',          label: 'MoMo' },
-  { id: 'VNPAY',         label: 'VNPay' },
+  { id: 'COD',   label: 'COD' },
+  { id: 'BANK',  label: 'Chuyển khoản' },
+  { id: 'MOMO',  label: 'MoMo' },
+  { id: 'VNPAY', label: 'VNPay' },
 ]
 
 const statusColors = {
@@ -137,7 +137,7 @@ const submitBankVerify = async () => {
   }
   bankVerifyLoading.value = true
   try {
-    const res = await api.post(`/api/admin/payments/${selectedPayment.value.id}/bank-verify`, {
+    const res = await api.post(`/api/admin/payments/${selectedPayment.value.id}/verify-bank`, {
       transaction_id:   verifyForm.value.transaction_id,
       confirmed_amount: verifyForm.value.confirmed_amount,
       note:             verifyForm.value.note,
@@ -156,7 +156,7 @@ const rejectPayment = async (payment) => {
   const reason = prompt('Lý do từ chối giao dịch:')
   if (reason === null) return
   try {
-    await api.post(`/api/admin/payments/${payment.id}/bank-reject`, { reason })
+    await api.post(`/api/admin/payments/${payment.id}/reject-bank`, { reason })
     showToast('Đã từ chối giao dịch')
     fetchPayments(currentPage.value)
   } catch (e) {
@@ -244,7 +244,7 @@ onMounted(() => fetchPayments())
                 <span class="px-2 py-1 rounded text-xs font-bold"
                   :class="{
                     'bg-yellow-100 text-yellow-800': p.payment_method === 'COD',
-                    'bg-blue-100 text-blue-800':    p.payment_method?.toLowerCase() === 'bank',
+                    'bg-blue-100 text-blue-800':    p.payment_method === 'BANK',
                     'bg-pink-100 text-pink-800':    p.payment_method === 'MOMO',
                     'bg-indigo-100 text-indigo-800':p.payment_method === 'VNPAY',
                   }">

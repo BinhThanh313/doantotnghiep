@@ -29,7 +29,7 @@ class PaymentController extends Controller
             $query->where('status', $request->status);
         }
         if ($request->filled('method')) {
-            $query->where('status', $request->input('status')); 
+            $query->where('payment_method', strtoupper($request->input('method')));
         }
         if ($request->filled('search')) {
             $query->whereHas('order', function ($q) use ($request) {

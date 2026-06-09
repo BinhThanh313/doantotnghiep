@@ -47,8 +47,5 @@ class OrderStatusUpdated extends Mailable
         );
     }
 
-    public function attachments(): array
-    {
-        return [];
-    }
+    public function attachments(): array { return []; }
 }

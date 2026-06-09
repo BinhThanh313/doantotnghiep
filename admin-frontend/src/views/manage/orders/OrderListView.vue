@@ -689,18 +689,6 @@ onMounted(() => fetchOrders())
               <span class="text-blue-600">{{ formatPrice(grandTotal) }}</span>
             </div>
           </div>
-
-          <!-- Payment & Notes -->
-          <div class="flex flex-wrap gap-4 text-sm text-gray-600">
-            <span>Thanh toán: <strong>{{ (selectedOrder.payment_method || '').toUpperCase() }}</strong></span>
-            <span>|</span>
-            <span class="px-2 py-0.5 rounded text-xs font-medium" :class="paymentStatusColors[selectedOrder.payment_status]">
-              {{ paymentStatusLabels[selectedOrder.payment_status] }}
-            </span>
-          </div>
-          <div v-if="selectedOrder.notes" class="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded text-sm">
-            <span class="font-semibold">Ghi chú:</span> {{ selectedOrder.notes }}
-          </div>
         </div>
 
         <div class="px-6 pb-6 flex justify-end gap-2">
@@ -713,7 +701,118 @@ onMounted(() => fetchOrders())
           <BaseButton color="info" outline label="Đóng" @click="isDetailModalActive = false" />
         </div>
       </CardBoxModal>
+        <!-- ══ DETAIL MODAL — thay thế toàn bộ phần Payment & Notes cũ ══ -->
 
+<!-- Payment Info -->
+<div class="p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
+  <p class="text-xs text-gray-500 mb-2 font-semibold uppercase">Thông tin thanh toán</p>
+  <div v-if="selectedOrder.payment" class="space-y-2">
+    <div class="flex justify-between text-sm">
+      <span class="text-gray-500">Phương thức:</span>
+      <span class="font-bold uppercase">{{ selectedOrder.payment.payment_method }}</span>
+    </div>
+    <div class="flex justify-between text-sm">
+      <span class="text-gray-500">Trạng thái:</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+        :class="{
+          'bg-emerald-100 text-emerald-700': selectedOrder.payment.status === 'success',
+          'bg-yellow-100 text-yellow-700':  selectedOrder.payment.status === 'pending',
+          'bg-blue-100 text-blue-700':      selectedOrder.payment.status === 'processing',
+          'bg-red-100 text-red-700':        selectedOrder.payment.status === 'failed',
+          'bg-gray-100 text-gray-600':      selectedOrder.payment.status === 'refunded',
+          'bg-orange-100 text-orange-700':  selectedOrder.payment.status === 'refunding',
+        }">
+        {{ {
+          pending:    'Chờ thanh toán',
+          processing: 'Đang xử lý',
+          success:    'Thành công',
+          failed:     'Thất bại',
+          refunding:  'Đang hoàn tiền',
+          refunded:   'Đã hoàn tiền',
+        }[selectedOrder.payment.status] || selectedOrder.payment.status }}
+      </span>
+    </div>
+    <div v-if="selectedOrder.payment.transaction_id" class="flex justify-between text-sm">
+      <span class="text-gray-500">Mã giao dịch:</span>
+      <code class="text-xs bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded">
+        {{ selectedOrder.payment.transaction_id }}
+      </code>
+    </div>
+    <div v-if="selectedOrder.payment.paid_at" class="flex justify-between text-sm">
+      <span class="text-gray-500">Thanh toán lúc:</span>
+      <span>{{ formatDate(selectedOrder.payment.paid_at) }}</span>
+    </div>
+    <div class="flex justify-between text-sm">
+      <span class="text-gray-500">Số tiền:</span>
+      <span class="font-bold text-emerald-600">
+        {{ formatPrice(selectedOrder.payment.amount) }}
+      </span>
+    </div>
+  </div>
+  <div v-else class="text-sm text-gray-400">Chưa có thông tin thanh toán</div>
+</div>
+
+<!-- Shipment Info -->
+<div class="p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
+  <p class="text-xs text-gray-500 mb-2 font-semibold uppercase">Thông tin vận chuyển</p>
+  <div v-if="selectedOrder.shipment" class="space-y-2">
+    <div class="flex justify-between text-sm">
+      <span class="text-gray-500">Đơn vị VC:</span>
+      <span class="font-medium">
+        {{ selectedOrder.shipment.carrier?.name ?? '—' }}
+      </span>
+    </div>
+    <div class="flex justify-between text-sm">
+      <span class="text-gray-500">Mã vận đơn:</span>
+      <code class="text-xs bg-gray-100 dark:bg-slate-700 px-2 py-0.5 rounded">
+        {{ selectedOrder.shipment.tracking_number ?? '—' }}
+      </code>
+    </div>
+    <div class="flex justify-between text-sm">
+      <span class="text-gray-500">Trạng thái:</span>
+      <span class="px-2 py-0.5 rounded-full text-xs font-medium"
+        :class="{
+          'bg-yellow-100 text-yellow-700': selectedOrder.shipment.status === 'pending',
+          'bg-blue-100 text-blue-700':     selectedOrder.shipment.status === 'in_transit',
+          'bg-emerald-100 text-emerald-700': selectedOrder.shipment.status === 'delivered',
+          'bg-red-100 text-red-700':       selectedOrder.shipment.status === 'failed',
+          'bg-gray-100 text-gray-600':     selectedOrder.shipment.status === 'returned',
+        }">
+        {{ {
+          pending:    'Chờ lấy hàng',
+          in_transit: 'Đang vận chuyển',
+          delivered:  'Đã giao',
+          failed:     'Giao thất bại',
+          returned:   'Hoàn hàng',
+        }[selectedOrder.shipment.status] || selectedOrder.shipment.status }}
+      </span>
+    </div>
+    <div v-if="selectedOrder.shipment.estimated_delivery" class="flex justify-between text-sm">
+      <span class="text-gray-500">Dự kiến giao:</span>
+      <span>{{ formatDate(selectedOrder.shipment.estimated_delivery) }}</span>
+    </div>
+    <div v-if="selectedOrder.shipment.shipping_fee" class="flex justify-between text-sm">
+      <span class="text-gray-500">Phí ship:</span>
+      <span class="font-medium">{{ formatPrice(selectedOrder.shipment.shipping_fee) }}</span>
+    </div>
+  </div>
+  <div v-else class="text-sm text-gray-400">Chưa có thông tin vận chuyển</div>
+</div>
+
+<!-- Vouchers -->
+<div v-if="selectedOrder.vouchers?.length" class="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+  <p class="text-xs text-gray-500 mb-2 font-semibold uppercase">Voucher đã dùng</p>
+  <div v-for="v in selectedOrder.vouchers" :key="v.id" class="flex justify-between text-sm">
+    <code class="font-bold text-emerald-600">{{ v.code }}</code>
+    <span class="text-emerald-600">-{{ formatPrice(v.pivot.discount_amount) }}</span>
+  </div>
+</div>
+
+<!-- Notes -->
+<div v-if="selectedOrder.notes"
+     class="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded text-sm">
+  <span class="font-semibold">Ghi chú:</span> {{ selectedOrder.notes }}
+</div>
       <!-- ══ REFUND MODAL ══════════════════════════════════════════ -->
       <CardBoxModal
         v-model="isRefundModalActive"

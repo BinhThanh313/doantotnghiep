@@ -26,7 +26,7 @@ return new class extends Migration
             $table->foreignId('order_id')->constrained()->onDelete('cascade');
             $table->decimal('amount', 15, 0);
             $table->string('currency', 3)->default('VND');
-            $table->enum('payment_method', ['COD', 'bank_transfer', 'momo', 'zalopay', 'vnpay', 'paypal', 'stripe'])->default('COD');
+            $table->string('payment_method', 20)->default('COD');
             $table->string('transaction_id', 255)->nullable()->comment('ID từ gateway');
             $table->enum('status', ['pending', 'processing', 'success', 'failed', 'refunding', 'refunded'])->default('pending');
             $table->json('gateway_response')->nullable()->comment('Response raw từ gateway');

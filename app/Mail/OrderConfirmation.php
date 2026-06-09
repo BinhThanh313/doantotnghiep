@@ -19,7 +19,6 @@ class OrderConfirmation extends Mailable
     public function __construct(
         public Order $order,
     ) {
-        // Pre-load bank info if needed
         if (strtolower($order->payment_method) === 'bank') {
             $this->bankInfo = app(BankTransferService::class)->getTransferInfo($order);
         }
@@ -37,9 +36,11 @@ class OrderConfirmation extends Mailable
         return new Content(
             view: 'emails.orders.confirmation',
             with: [
-                'order'       => $this->order,
-                'grandTotal'  => $this->order->total_amount + ($this->order->shipping_fee ?? 0) - ($this->order->discount_amount ?? 0),
-                'bankInfo'    => $this->bankInfo,
+                'order'          => $this->order,
+                'grandTotal'     => $this->order->total_amount
+                                  + ($this->order->shipping_fee ?? 0)
+                                  - ($this->order->discount_amount ?? 0),
+                'bankInfo'       => $this->bankInfo,
                 'isBankTransfer' => !empty($this->bankInfo),
             ],
         );
