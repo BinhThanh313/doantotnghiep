@@ -27,7 +27,55 @@
                         <div class="col-sm-3 fw-bold">Ngày tham gia:</div>
                         <div class="col-sm-9">{{ Auth::user()->created_at->format('d/m/Y') }}</div>
                     </div>
-                    
+                <div class="card shadow mt-4">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0 text-white">Lịch sử đơn hàng</h5>
+    </div>
+    <div class="card-body p-0">
+        @if($orders->isEmpty())
+            <p class="text-center py-4 text-muted">Bạn chưa có đơn hàng nào.</p>
+        @else
+            <table class="table mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã đơn</th>
+                        <th>Ngày đặt</th>
+                        <th>Tổng tiền</th>
+                        <th>Trạng thái</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($orders as $order)
+                    <tr>
+                        <td><code>{{ $order->tracking_number }}</code></td>
+                        <td>{{ $order->created_at->format('d/m/Y') }}</td>
+                        <td class="text-primary fw-bold">
+                            {{ number_format($order->grand_total, 0, ',', '.') }}đ
+                        </td>
+                        <td>
+                            <span class="badge rounded-pill
+                                @if($order->status === 'completed') bg-success
+                                @elseif($order->status === 'cancelled') bg-danger
+                                @elseif(in_array($order->status, ['shipped','delivered'])) bg-info
+                                @else bg-warning text-dark @endif">
+                                {{ $order->status_label }}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{{ route('order.detail', $order->id) }}" 
+                               class="btn btn-sm btn-outline-primary rounded-pill">
+                                Xem
+                            </a>
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            <div class="p-3">{{ $orders->links() }}</div>
+        @endif
+    </div>
+</div>    
                     <hr>
                     <div class="d-flex justify-content-between">
                         <a href="{{ route('home') }}" class="btn btn-secondary">Về trang chủ</a>

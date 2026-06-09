@@ -223,31 +223,42 @@
                             <input type="hidden" name="shipping_fee" id="selected-shipping-fee" value="0">
                         </div>
 
-                        <!-- Phương thức thanh toán -->
-                        <div class="row g-4 text-center align-items-center justify-content-center border-bottom py-3">
-                            <div class="col-12">
-                                <div class="form-check text-start my-2">
-                                    <input type="radio" class="form-check-input bg-primary border-0" id="Payment-COD" name="payment_method" value="cod" checked>
-                                    <label class="form-check-label fw-bold" for="Payment-COD">Thanh toán khi nhận hàng (COD)</label>
-                                </div>
-                                <p class="text-start text-dark small ms-4">Khách hàng thanh toán bằng tiền mặt khi shipper giao hàng tới.</p>
-                            </div>
-                        </div>
-                        <div class="row g-4 text-center align-items-center justify-content-center border-bottom py-3">
-                            <div class="col-12">
-                                <div class="form-check text-start my-2">
-                                    <input type="radio" class="form-check-input bg-primary border-0" id="Payment-Bank" name="payment_method" value="bank">
-                                    <label class="form-check-label fw-bold" for="Payment-Bank">Chuyển khoản ngân hàng</label>
-                                </div>
-                                <p class="text-start text-dark small ms-4">Chuyển khoản trực tiếp qua tài khoản ngân hàng của cửa hàng.</p>
-                            </div>
-                        </div>
+                       <div class="mb-4">
+    <h5 class="fw-bold mb-3">Phương thức thanh toán</h5>
+    @php
+    $paymentMethods = [
+        'cod'   => ['label' => 'Thanh toán khi nhận hàng (COD)', 'icon' => '💵', 'desc' => 'Thanh toán bằng tiền mặt khi shipper giao hàng.'],
+        'bank'  => ['label' => 'Chuyển khoản ngân hàng', 'icon' => '🏦', 'desc' => 'Chuyển khoản vào tài khoản ngân hàng của cửa hàng.'],
+        'vnpay' => ['label' => 'VNPay', 'icon' => '<img src="https://sandbox.vnpayment.vn/paymentv2/Images/logos/vnpay-logo.png" height="22" alt="VNPay">', 'desc' => 'Thanh toán qua cổng VNPay — ATM/Internet Banking/QR.'],
+        'momo'  => ['label' => 'Ví MoMo', 'icon' => '<img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" height="22" alt="MoMo">', 'desc' => 'Thanh toán nhanh qua ví điện tử MoMo.'],
+    ]
+    @endphp
 
-                        <div class="row g-4 text-center align-items-center justify-content-center pt-4">
-                            <button type="submit" class="btn btn-primary border-secondary py-3 px-4 text-uppercase w-100 text-white fw-bold">
-                                Đặt Hàng Ngay
-                            </button>
-                        </div>
+    @foreach($paymentMethods as $value => $pm)
+    <div class="row g-4 align-items-center border-bottom py-3">
+        <div class="col-12">
+            <div class="form-check text-start my-2">
+                <input type="radio" class="form-check-input bg-primary border-0" 
+                       id="Payment-{{ $value }}" name="payment_method" 
+                       value="{{ $value }}" {{ $value === 'cod' ? 'checked' : '' }}>
+                <label class="form-check-label fw-bold d-flex align-items-center gap-2" 
+                       for="Payment-{{ $value }}">
+                    {!! $pm['icon'] !!} {{ $pm['label'] }}
+                </label>
+            </div>
+            <p class="text-start text-dark small ms-4 mb-0">{{ $pm['desc'] }}</p>
+        </div>
+    </div>
+    @endforeach
+</div>
+
+<div class="row g-4 text-center align-items-center justify-content-center pt-4">
+    <button type="submit" class="btn btn-primary border-secondary py-3 px-4 text-uppercase w-100 text-white fw-bold">
+        Đặt Hàng Ngay
+    </button>
+</div>
+
+                        
                     </div>
                 </div>
             </form>

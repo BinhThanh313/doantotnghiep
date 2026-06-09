@@ -77,21 +77,24 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
+    let debounceTimer = null;
+
     function updateQuantity(id, action) {
-        fetch("{{ url('cart/update') }}/" + id, {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ action: action })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) loadCart();
-        })
-        .catch(() => alert('Lỗi kết nối'));
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            fetch("{{ url('cart/update') }}/" + id, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ action })
+            })
+            .then(r => r.json())
+            .then(data => { if (data.success) loadCart(); })
+            .catch(() => alert('Lỗi kết nối'));
+        }, 300);
     }
 
     function removeItem(id) {
@@ -172,8 +175,29 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     function showMessage(message, type) {
-        messageEl.innerHTML = `<span class="text-${type}">${message}</span>`;
-    }
+    const clearBtn = type === 'success' 
+        ? ' <button id="clear-voucher-btn" class="btn btn-sm btn-outline-danger ms-2">✕ Xóa</button>' 
+        : '';
+    messageEl.innerHTML = `<span class="text-${type}">${message}</span>${clearBtn}`;
+}
+
+    // ====================== CLEAR VOUCHER FUNCTION ======================
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'clear-voucher-btn') {
+            fetch("{{ url('cart/clear-voucher') }}", {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                }
+            })
+            .then(r => r.json())
+            .then(() => {
+                loadCart();
+                messageEl.innerHTML = '';
+            });
+        }
+    });
 
 });
 </script>

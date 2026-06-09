@@ -265,4 +265,28 @@ class CheckoutController extends Controller
         $order = Order::with('items', 'shipment.carrier', 'vouchers', 'payment')->findOrFail($id);
         return view('shop.checkout-success', compact('order'));
     }
+
+    public function orderDetail($id)
+    {
+        $order = Order::with([
+            'items.product',
+            'payment',
+            'shipment.carrier',
+            'vouchers',
+        ])->where(function($q) use ($id) {
+            $q->where('id', $id)
+            ->where(function($q2) {
+                $q2->where('user_id', Auth::id())
+                    ->orWhereNull('user_id');
+            });
+        })->firstOrFail();
+
+        $bankInfo = null;
+        if (strtolower($order->payment_method) === 'bank' && $order->payment_status !== 'paid') {
+            $bankInfo = app(\App\Services\BankTransferService::class)->generateQrCode($order);
+            $bankInfo = array_merge($bankInfo, app(\App\Services\BankTransferService::class)->getBankInfo());
+        }
+
+        return view('order-detail', compact('order', 'bankInfo'));
+    }
 }

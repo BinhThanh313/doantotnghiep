@@ -34,13 +34,23 @@ Auth::routes();
 
 Route::middleware(['auth'])->group(function () {
 
-    Route::get('/profile', fn() => view('profile'))->name('profile');
+    Route::get('/profile', function() {
+        $orders = \App\Models\Order::where('user_id', Auth::id())
+            ->latest()->paginate(10);
+        return view('profile', compact('orders'));
+    })->name('profile');
 
     // Cart
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
     Route::post('/cart/update/{id}', [CartController::class, 'update'])->name('cart.update');
     Route::post('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
+    
+    // Thêm route xóa voucher ở đây
+    Route::post('/cart/clear-voucher', function() {
+        session()->forget('applied_voucher');
+        return response()->json(['success' => true]);
+    })->name('cart.clear-voucher');
 
     // Checkout
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
@@ -49,6 +59,11 @@ Route::middleware(['auth'])->group(function () {
 
     // AJAX: apply voucher & calculate shipping (từ checkout blade)
     Route::post('/checkout/apply-voucher', [CheckoutController::class, 'applyVoucher'])->name('checkout.apply-voucher');
+
+    // routes/web.php — thêm vào group middleware(['auth'])
+    Route::get('/payment/return', fn() => view('payment-return'))->name('payment.return');
+    Route::get('/payment/failed', fn() => view('payment-failed'))->name('payment.failed');
+    Route::get('/orders/{id}', [CheckoutController::class, 'orderDetail'])->name('order.detail');
     
 });
 
