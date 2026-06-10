@@ -31,7 +31,7 @@ Route::get('/payment/momo/callback',   [PaymentController::class, 'momoCallback'
 
 // ==================== ADMIN ROUTES ====================
 
-Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
 
     // Auth
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -79,6 +79,13 @@ Route::middleware('auth:sanctum')->prefix('admin')->group(function () {
     Route::get('/reviews/{id}',                      [AdminReviewController::class, 'show']);
     Route::patch('/reviews/{id}/toggle-visibility',  [AdminReviewController::class, 'toggleVisibility']);
     Route::delete('/reviews/{id}',                   [AdminReviewController::class, 'destroy']);
+
+    // Payments
+    Route::get('/payments', [\App\Http\Controllers\Admin\PaymentController::class, 'index']);
+    Route::get('/payments/{id}', [\App\Http\Controllers\Admin\PaymentController::class, 'show']);
+    Route::post('/payments/{id}/verify-bank', [\App\Http\Controllers\Admin\PaymentController::class, 'verifyBank']);
+    Route::post('/payments/{id}/reject-bank', [\App\Http\Controllers\Admin\PaymentController::class, 'rejectBank']);
+    Route::post('/payments/{id}/transition', [\App\Http\Controllers\Admin\PaymentController::class, 'transition']);
 });
 
 // ==================== CUSTOMER API ROUTES ====================

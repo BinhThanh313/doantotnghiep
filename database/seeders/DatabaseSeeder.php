@@ -9,7 +9,6 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // Tạo admin user
         User::factory()->create([
             'name'     => 'Admin',
             'email'    => 'admin@electro.vn',
@@ -17,7 +16,6 @@ class DatabaseSeeder extends Seeder
             'role'     => 'admin',
         ]);
 
-        // Tạo test user
         User::factory()->create([
             'name'     => 'Test User',
             'email'    => 'test@example.com',
@@ -27,6 +25,9 @@ class DatabaseSeeder extends Seeder
         $this->call([
             CategorySeeder::class,
             ProductSeeder::class,
+            ShippingCarrierSeeder::class, // ← phải trước OrderSeeder
+            PaymentMethodSeeder::class,
+            OrderSeeder::class,
         ]);
     }
 }

@@ -122,20 +122,19 @@ class OrderSeeder extends Seeder
             // Insert shipment record (nếu đã vận chuyển)
             if (in_array($status, ['shipped', 'delivered', 'completed']) && !empty($carrierIds)) {
                 DB::table('shipments')->insert([
-                    'order_id'          => $orderId,
-                    'carrier_id'        => $faker->randomElement($carrierIds),
-                    'tracking_number'   => $trackingNumber,
-                    'status'            => match ($status) {
-                        'shipped'   => 'in_transit',
-                        'delivered' => 'delivered',
-                        'completed' => 'delivered',
-                        default     => 'pending',
-                    },
-                    'shipped_at'        => $createdAt->copy()->addDays(1),
-                    'estimated_delivery'=> $createdAt->copy()->addDays(rand(2, 5)),
-                    'created_at'        => $createdAt,
-                    'updated_at'        => $createdAt,
-                ]);
+    'order_id'           => $orderId,
+    'carrier_id'         => $faker->randomElement($carrierIds),
+    'tracking_number'    => $trackingNumber,
+    'status'             => match ($status) {
+        'shipped'   => 'in_transit',
+        'delivered' => 'delivered',
+        'completed' => 'delivered',
+        default     => 'pending',
+    },
+    'estimated_delivery' => $createdAt->copy()->addDays(rand(2, 5)),
+    'created_at'         => $createdAt,
+    'updated_at'         => $createdAt,
+]);
             }
 
             // Progress log
