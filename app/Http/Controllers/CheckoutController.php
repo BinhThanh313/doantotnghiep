@@ -136,24 +136,35 @@ class CheckoutController extends Controller
                     $shippingFee = $zone ? $zone->fee : ($carrier?->base_fee ?? 0);
                 }
 
-                // Trong hàm store(), thay phần áp dụng voucher bằng:
-                $discountAmount = 0;
-                $voucher = null;
+                // Trong hàm store(), thay phần áp dụng voucher:
 
-                $voucherCode = $request->voucher_code ?? session('applied_voucher');
+            $discountAmount = 0;
+            $voucher = null;
 
-                if ($voucherCode) {
-                    $voucher = Voucher::where('code', strtoupper($voucherCode))
-                                    ->lockForUpdate()
-                                    ->first();
+            $voucherCode = $request->voucher_code ?? session('applied_voucher');
 
-                    if ($voucher && $voucher->isValid()) {
+            if ($voucherCode) {
+                // ✅ SỬA: Thêm lockForUpdate() để tránh race condition
+                // Và kiểm tra isValid() + max_uses TRONG lock để đảm bảo atomic
+                $voucher = Voucher::where('code', strtoupper($voucherCode))
+                                ->lockForUpdate()
+                                ->first();
+
+                if ($voucher && $voucher->isValid()) {
+                    // ✅ SỬA: Kiểm tra lại used_count sau khi đã lock
+                    // (isValid() đã check max_uses nhưng cần check lại sau lock)
+                    if ($voucher->max_uses !== null && $voucher->used_count >= $voucher->max_uses) {
+                        // Voucher đã hết lượt dùng (bị race condition)
+                        // Bỏ qua, không áp dụng
+                    } else {
                         $discountAmount = $voucher->calculateDiscount($subtotal);
                         if ($discountAmount > 0) {
+                            // ✅ Vẫn dùng increment nhưng giờ đã được bảo vệ bởi lockForUpdate()
                             $voucher->increment('used_count');
                         }
                     }
                 }
+            }
 
                 // 5. Tracking number
                 $trackingNumber = Order::generateTrackingNumber();

@@ -498,90 +498,107 @@ document.addEventListener('DOMContentLoaded', function () {
         setTimeout(() => messageEl.innerHTML = '', 5000);
     }
 
-    // Submit form
-    checkoutForm.addEventListener('submit', function (e) {
-        e.preventDefault();
+    // ====================== SUBMIT FORM ======================
+checkoutForm.addEventListener('submit', function (e) {
+    e.preventDefault();
 
-        if (appliedVoucherCode) {
+    // Thêm voucher vào form nếu đã áp dụng
+    if (appliedVoucherCode) {
+        let existingVoucher = checkoutForm.querySelector('input[name="voucher_code"]');
+        if (existingVoucher) {
+            existingVoucher.value = appliedVoucherCode;
+        } else {
             const voucherField = document.createElement('input');
-            voucherField.type = 'hidden';
-            voucherField.name = 'voucher_code';
+            voucherField.type  = 'hidden';
+            voucherField.name  = 'voucher_code';
             voucherField.value = appliedVoucherCode;
             checkoutForm.appendChild(voucherField);
         }
+    }
 
-        const formData = new FormData(checkoutForm);
-        
-        // Disable nút submit để tránh click nhiều lần
-        const submitBtn = checkoutForm.querySelector('button[type="submit"]');
-        const originalBtnText = submitBtn.innerHTML;
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = 'Đang xử lý...';
+    // ✅ SỬA: Lấy payment_method từ radio đang được checked
+    const selectedPayment = checkoutForm.querySelector('input[name="payment_method"]:checked');
+    if (!selectedPayment) {
+        alert('Vui lòng chọn phương thức thanh toán!');
+        return;
+    }
 
-        fetch("{{ route('checkout.store') }}", {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Accept': 'application/json' // Bắt buộc để nhận JSON errors từ Laravel
-            },
-            body: formData
-        })
-        .then(async r => {
-            const data = await r.json();
-            
-            // Nếu request không thành công (vd: lỗi 422, 500)
-            if (!r.ok) {
-                return Promise.reject(data);
+    // ✅ SỬA: Lấy carrier_id từ hidden input (đảm bảo là số nguyên)
+    const carrierId = document.getElementById('selected-carrier-id')?.value;
+    if (!carrierId) {
+        alert('Vui lòng chọn đơn vị vận chuyển!');
+        return;
+    }
+
+    const submitBtn = checkoutForm.querySelector('button[type="submit"]');
+    const originalBtnText = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
+
+    // ✅ SỬA: Dùng JSON thay vì FormData để kiểm soát chính xác dữ liệu gửi đi
+    const payload = {
+        first_name:     checkoutForm.querySelector('input[name="first_name"]')?.value?.trim(),
+        last_name:      checkoutForm.querySelector('input[name="last_name"]')?.value?.trim(),
+        phone:          checkoutForm.querySelector('input[name="phone"]')?.value?.trim(),
+        email:          checkoutForm.querySelector('input[name="email"]')?.value?.trim(),
+        province:       checkoutForm.querySelector('input[name="province"]')?.value?.trim(),
+        city:           checkoutForm.querySelector('input[name="city"]')?.value?.trim(),
+        address:        checkoutForm.querySelector('input[name="address"]')?.value?.trim(),
+        notes:          checkoutForm.querySelector('textarea[name="notes"]')?.value?.trim() || '',
+        payment_method: selectedPayment.value,
+        carrier_id:     parseInt(carrierId),  // ✅ Đảm bảo là integer
+        shipping_fee:   parseFloat(document.getElementById('selected-shipping-fee')?.value || 0),
+        voucher_code:   appliedVoucherCode || '',
+        _token:         document.querySelector('meta[name="csrf-token"]').content,
+    };
+
+    // Debug: log payload trước khi gửi (xóa sau khi fix xong)
+    console.log('Payload gửi đi:', payload);
+
+    fetch('{{ route("checkout.store") }}', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN':     document.querySelector('meta[name="csrf-token"]').content,
+            'Content-Type':     'application/json',
+            'Accept':           'application/json',
+        },
+        body: JSON.stringify(payload)
+    })
+    .then(async r => {
+        const data = await r.json();
+        if (!r.ok) return Promise.reject(data);
+        return data;
+    })
+    .then(data => {
+        if (data.success) {
+            alert('✅ Đặt hàng thành công!');
+            window.location.href = data.redirect_url;
+        } else {
+            alert('❌ Lỗi: ' + (data.message || 'Có lỗi xảy ra'));
+        }
+    })
+    .catch(err => {
+        let errorString = '❌ Có lỗi xảy ra trong quá trình đặt hàng:\n\n';
+        if (err?.errors) {
+            if (Array.isArray(err.errors)) {
+                err.errors.forEach(msg => { errorString += `- ${msg}\n`; });
+            } else if (typeof err.errors === 'object') {
+                Object.values(err.errors).forEach(msgs => {
+                    errorString += `- ${Array.isArray(msgs) ? msgs[0] : msgs}\n`;
+                });
             }
-            return data;
-        })
-        .then(data => {
-            if (data.success) {
-                alert('✅ Đặt hàng thành công!');
-                window.location.href = data.redirect_url;
-            } else {
-                alert('❌ Lỗi: ' + (data.message || 'Có lỗi xảy ra'));
-            }
-        })
-        .catch(err => {
-            let errorString = '❌ Có lỗi xảy ra trong quá trình đặt hàng:\n\n';
-            
-            if (err && err.errors) {
-                // Trường hợp errors là một mảng (Array)
-                if (Array.isArray(err.errors)) {
-                    err.errors.forEach(msg => {
-                        errorString += `- ${msg}\n`;
-                    });
-                } 
-                // Trường hợp errors là một đối tượng (Object - Mặc định của Laravel)
-                else if (typeof err.errors === 'object') {
-                    for (let field in err.errors) {
-                        if (Array.isArray(err.errors[field])) {
-                            errorString += `- ${err.errors[field][0]}\n`;
-                        } else {
-                            errorString += `- ${err.errors[field]}\n`;
-                        }
-                    }
-                } else {
-                    errorString += `- ${err.errors}\n`;
-                }
-            } 
-            else if (err && err.message) {
-                errorString += err.message;
-            } 
-            else {
-                errorString += 'Vui lòng kiểm tra lại thông tin trên form.';
-            }
-            
-            alert(errorString);
-        })
-        .finally(() => {
-            // Trả lại trạng thái cho nút submit
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = originalBtnText;
-        });
+        } else if (err?.message) {
+            errorString += err.message;
+        } else {
+            errorString += 'Vui lòng kiểm tra lại thông tin.';
+        }
+        alert(errorString);
+    })
+    .finally(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnText;
     });
-    });
+});
 </script>
 @endpush

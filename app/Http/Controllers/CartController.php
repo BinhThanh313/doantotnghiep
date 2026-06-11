@@ -77,16 +77,21 @@ class CartController extends Controller
             $action = $request->action ?? 'plus';
             
             if ($action === 'plus') {
-                $cart[$id]['quantity'] += 1;
-            } else {
+                // ✅ SỬA: Giới hạn tối đa để tránh abuse
+                $cart[$id]['quantity'] = min(99, $cart[$id]['quantity'] + 1);
+            } elseif ($action === 'minus') {
                 $cart[$id]['quantity'] = max(1, $cart[$id]['quantity'] - 1);
             }
+            // ✅ SỬA: Bỏ qua các action không hợp lệ thay vì xử lý silently
 
             session()->put('cart', $cart);
         }
 
         if ($request->ajax() || $request->wantsJson()) {
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success'  => true,
+                'quantity' => $cart[$id]['quantity'] ?? 0,
+            ]);
         }
 
         return redirect()->route('cart.index');

@@ -690,17 +690,6 @@ onMounted(() => fetchOrders())
             </div>
           </div>
         </div>
-
-        <div class="px-6 pb-6 flex justify-end gap-2">
-          <BaseButton
-            v-if="selectedOrder && ['delivered','completed'].includes(selectedOrder.status) && selectedOrder.payment_status === 'paid'"
-            color="warning" outline :icon="mdiCashRefund" label="Hoàn tiền"
-            @click="openRefundModal(selectedOrder)" />
-          <BaseButton color="whiteDark" outline label="In phiếu giao"
-            @click="printLabel(selectedOrder)" />
-          <BaseButton color="info" outline label="Đóng" @click="isDetailModalActive = false" />
-        </div>
-      </CardBoxModal>
         <!-- ══ DETAIL MODAL — thay thế toàn bộ phần Payment & Notes cũ ══ -->
 
 <!-- Payment Info -->
@@ -813,6 +802,17 @@ onMounted(() => fetchOrders())
      class="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded text-sm">
   <span class="font-semibold">Ghi chú:</span> {{ selectedOrder.notes }}
 </div>
+        <div class="px-6 pb-6 flex justify-end gap-2">
+          <BaseButton
+            v-if="selectedOrder && ['delivered','completed'].includes(selectedOrder.status) && selectedOrder.payment_status === 'paid'"
+            color="warning" outline :icon="mdiCashRefund" label="Hoàn tiền"
+            @click="openRefundModal(selectedOrder)" />
+          <BaseButton color="whiteDark" outline label="In phiếu giao"
+            @click="printLabel(selectedOrder)" />
+          <BaseButton color="info" outline label="Đóng" @click="isDetailModalActive = false" />
+        </div>
+      </CardBoxModal>
+        
       <!-- ══ REFUND MODAL ══════════════════════════════════════════ -->
       <CardBoxModal
         v-model="isRefundModalActive"

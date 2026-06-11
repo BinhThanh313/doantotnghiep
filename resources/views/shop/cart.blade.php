@@ -52,6 +52,9 @@
                 </div>
             </div>
         </div>
+
+        {{-- Hidden input để truyền tổng tiền --}}
+        <input type="hidden" id="cart-total-hidden" value="{{ $total ?? 0 }}">
     </div>
 </div>
 @endsection
@@ -60,7 +63,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
 
-    // ====================== EXISTING FUNCTIONS ======================
+    // ====================== QUANTITY & REMOVE ======================
     document.addEventListener('click', function (e) {
         if (e.target.closest('.quantity-btn')) {
             const btn = e.target.closest('.quantity-btn');
@@ -82,7 +85,11 @@ document.addEventListener('DOMContentLoaded', function () {
     function updateQuantity(id, action) {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
-            fetch("{{ url('cart/update') }}/" + id, {
+            // Disable nút trong lúc đang gửi request
+            document.querySelectorAll('.quantity-btn[data-id="' + id + '"]')
+                    .forEach(btn => btn.disabled = true);
+
+            fetch('{{ url("cart/update") }}/' + id, {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -92,13 +99,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 body: JSON.stringify({ action })
             })
             .then(r => r.json())
-            .then(data => { if (data.success) loadCart(); })
-            .catch(() => alert('Lỗi kết nối'));
-        }, 300);
+            .then(data => {
+                if (data.success) loadCart();
+            })
+            .catch(() => alert('Lỗi kết nối'))
+            .finally(() => {
+                document.querySelectorAll('.quantity-btn[data-id="' + id + '"]')
+                        .forEach(btn => btn.disabled = false);
+            });
+        }, 500);
     }
 
     function removeItem(id) {
-        fetch("{{ url('cart/remove') }}/" + id, {
+        fetch('{{ url("cart/remove") }}/' + id, {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
@@ -112,25 +125,25 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function loadCart() {
-        fetch("{{ route('cart.index') }}?ajax=1", {
+        fetch('{{ route("cart.index") }}?ajax=1', {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(r => r.text())
         .then(html => {
             const temp = document.createElement('div');
             temp.innerHTML = html;
-            document.getElementById('cart-body').innerHTML = temp.querySelector('#cart-body')?.innerHTML || '';
-            document.getElementById('cart-summary').innerHTML = temp.querySelector('#cart-summary')?.innerHTML || '';
+            const newBody = temp.querySelector('#cart-body');
+            const newSummary = temp.querySelector('#cart-summary');
+            if (newBody) document.getElementById('cart-body').innerHTML = newBody.innerHTML;
+            if (newSummary) document.getElementById('cart-summary').innerHTML = newSummary.innerHTML;
         });
     }
 
-    // ====================== VOUCHER FUNCTION ======================
-    const applyBtn     = document.getElementById('apply-voucher-btn');
+    // ====================== VOUCHER ======================
+    const applyBtn    = document.getElementById('apply-voucher-btn');
     const voucherInput = document.getElementById('voucher-code');
-    const messageEl    = document.getElementById('voucher-message');
-
-    // Giải pháp an toàn nhất cho VS Code
-    const cartTotal = parseFloat(document.getElementById('cart-total-hidden')?.value) || 0;
+    const messageEl   = document.getElementById('voucher-message');
+    const cartTotal   = parseFloat(document.getElementById('cart-total-hidden')?.value) || 0;
 
     applyBtn.addEventListener('click', function () {
         const code = voucherInput.value.trim().toUpperCase();
@@ -143,17 +156,14 @@ document.addEventListener('DOMContentLoaded', function () {
         applyBtn.disabled = true;
         applyBtn.innerHTML = 'Đang áp dụng...';
 
-        fetch("{{ route('checkout.apply-voucher') }}", {
+        fetch('{{ route("checkout.apply-voucher") }}', {
             method: 'POST',
             headers: {
                 'X-Requested-With': 'XMLHttpRequest',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                code: code,
-                amount: cartTotal
-            })
+            body: JSON.stringify({ code, amount: cartTotal })
         })
         .then(r => r.json())
         .then(data => {
@@ -165,9 +175,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 showMessage(data.message, 'danger');
             }
         })
-        .catch(() => {
-            showMessage('Lỗi kết nối server!', 'danger');
-        })
+        .catch(() => showMessage('Lỗi kết nối server!', 'danger'))
         .finally(() => {
             applyBtn.disabled = false;
             applyBtn.innerHTML = 'Áp dụng';
@@ -175,16 +183,16 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     function showMessage(message, type) {
-    const clearBtn = type === 'success' 
-        ? ' <button id="clear-voucher-btn" class="btn btn-sm btn-outline-danger ms-2">✕ Xóa</button>' 
-        : '';
-    messageEl.innerHTML = `<span class="text-${type}">${message}</span>${clearBtn}`;
-}
+        const clearBtn = type === 'success'
+            ? ' <button id="clear-voucher-btn" class="btn btn-sm btn-outline-danger ms-2">✕ Xóa</button>'
+            : '';
+        messageEl.innerHTML = `<span class="text-${type}">${message}</span>${clearBtn}`;
+    }
 
-    // ====================== CLEAR VOUCHER FUNCTION ======================
-    document.addEventListener('click', function(e) {
+    // ====================== CLEAR VOUCHER ======================
+    document.addEventListener('click', function (e) {
         if (e.target.id === 'clear-voucher-btn') {
-            fetch("{{ url('cart/clear-voucher') }}", {
+            fetch('{{ url("cart/clear-voucher") }}', {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -202,6 +210,3 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endpush
-
-<!-- Hidden input để truyền tổng tiền an toàn -->
-<input type="hidden" id="cart-total-hidden" value="{{ $total ?? 0 }}">

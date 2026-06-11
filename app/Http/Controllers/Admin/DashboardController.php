@@ -113,8 +113,8 @@ class DashboardController extends Controller
                 'out_of_stock'    => $outOfStock,
             ],
             'today' => [
-                'orders'  => $todayOrders,
-                'revenue' => $todayRevenue,
+                'today_orders'  => $todayOrders,
+                'today_revenue' => $todayRevenue,
             ],
             'chart' => [
                 'labels' => $chartLabels,
@@ -122,6 +122,7 @@ class DashboardController extends Controller
             ],
             'top_products'       => $topProducts,
             'recent_orders'      => $recentOrders,
+            'low_stock'          => $lowStockProducts,   
             'low_stock_products' => $lowStockProducts,
         ]);
     }

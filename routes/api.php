@@ -95,8 +95,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reviews/{reviewId}/helpful',   [ReviewController::class, 'helpful']);
     Route::get('/reviews/{reviewId}',            [ReviewController::class, 'show']);
     Route::post('/checkout/shipping-fee',        [CheckoutController::class, 'calculateShipping']);
-    Route::post('/shipping/calculate', [ShippingController::class, 'calculateFee']);
-
+  
     // ==================== PAYMENT ROUTES (YÊU CẦU ĐĂNG NHẬP) ====================
     Route::post('/payment/create',         [PaymentController::class, 'create']);
     Route::post('/payment/{id}/verify',    [PaymentController::class, 'verify']);

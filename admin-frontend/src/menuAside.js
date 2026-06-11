@@ -37,8 +37,8 @@ export const menuAsideBottom = [
     icon: mdiPalette,
   },
   {
-    to: '/login',
-    label: 'Logout',
-    icon: mdiLogout,
+  label: 'Logout',
+  icon: mdiLogout,
+  isLogout: true,   
   },
 ]
