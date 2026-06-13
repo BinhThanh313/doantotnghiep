@@ -90,8 +90,8 @@ const statusDistribution = computed(() => {
 const paymentDistribution = computed(() => {
   if (!paymentStats.value.length) return []
   const total = paymentStats.value.reduce((s, x) => s + x.count, 0)
-  const colors = { cod: '#f59e0b', bank: '#3b82f6', vnpay: '#10b981', momo: '#ec4899' }
-  const labels = { cod: 'COD', bank: 'Chuyển khoản', vnpay: 'VNPay', momo: 'MoMo' }
+  const colors = { cod: '#f59e0b', bank: '#3b82f6' }
+  const labels = { cod: 'COD', bank: 'Chuyển khoản' }
   return paymentStats.value.map(p => ({
     method: p.payment_method,
     count:  p.count,

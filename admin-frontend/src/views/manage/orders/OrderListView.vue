@@ -86,8 +86,6 @@ const paymentMethodOptions = [
   { id: '', label: 'Tất cả PTTT' },
   { id: 'cod',   label: 'COD' },
   { id: 'bank',  label: 'Chuyển khoản' },
-  { id: 'vnpay', label: 'VNPay' },
-  { id: 'momo',  label: 'MoMo' },
 ]
 
 const statusColors = {

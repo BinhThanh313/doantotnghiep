@@ -233,7 +233,7 @@ class Order extends Model
             'customer_phone' => 'required|string|max:20',
             'address'        => 'required|string|max:500',
             'province'       => 'required|string|max:100',
-            'payment_method' => 'required|in:cod,bank,vnpay,momo',
+            'payment_method' => 'required|in:cod,bank',
             'items'          => 'required|array|min:1',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity'   => 'required|integer|min:1|max:999',

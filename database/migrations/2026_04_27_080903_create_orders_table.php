@@ -31,7 +31,7 @@ return new class extends Migration
             ])->default('pending');
             
             // Phương thức thanh toán (Đã gộp mở rộng)
-            $table->enum('payment_method', ['cod', 'bank', 'vnpay', 'momo'])->default('cod');
+            $table->enum('payment_method', ['cod', 'bank'])->default('cod');
             
             $table->text('notes')->nullable();
 
