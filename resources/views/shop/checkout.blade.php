@@ -228,10 +228,7 @@
     @php
     $paymentMethods = [
         'cod'   => ['label' => 'Thanh toán khi nhận hàng (COD)', 'icon' => '💵', 'desc' => 'Thanh toán bằng tiền mặt khi shipper giao hàng.'],
-        'bank'  => ['label' => 'Chuyển khoản ngân hàng', 'icon' => '🏦', 'desc' => 'Chuyển khoản vào tài khoản ngân hàng của cửa hàng.'],
-        'vnpay' => ['label' => 'VNPay', 'icon' => '<img src="https://sandbox.vnpayment.vn/paymentv2/Images/logos/vnpay-logo.png" height="22" alt="VNPay">', 'desc' => 'Thanh toán qua cổng VNPay — ATM/Internet Banking/QR.'],
-        'momo'  => ['label' => 'Ví MoMo', 'icon' => '<img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" height="22" alt="MoMo">', 'desc' => 'Thanh toán nhanh qua ví điện tử MoMo.'],
-    ]
+        'bank'  => ['label' => 'Chuyển khoản ngân hàng', 'icon' => '🏦', 'desc' => 'Chuyển khoản vào tài khoản ngân hàng của cửa hàng.'],   ]
     @endphp
 
     @foreach($paymentMethods as $value => $pm)
@@ -570,14 +567,14 @@ checkoutForm.addEventListener('submit', function (e) {
         if (!r.ok) return Promise.reject(data);
         return data;
     })
+    // Trong checkout.blade.php, phần .then(data => {...})
     .then(data => {
-        if (data.success) {
-            alert('✅ Đặt hàng thành công!');
-            window.location.href = data.redirect_url;
-        } else {
-            alert('❌ Lỗi: ' + (data.message || 'Có lỗi xảy ra'));
-        }
-    })
+    if (data.success) {
+        window.location.href = data.redirect_url;
+    } else {
+        alert('❌ Lỗi: ' + (data.message || 'Có lỗi xảy ra'));
+    }
+})
     .catch(err => {
         let errorString = '❌ Có lỗi xảy ra trong quá trình đặt hàng:\n\n';
         if (err?.errors) {

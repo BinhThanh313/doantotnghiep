@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppNotification;
-use App\Models\InventoryLog;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -12,10 +11,11 @@ use App\Models\Shipment;
 use App\Models\ShippingCarrier;
 use App\Models\Voucher;
 use App\Models\VoucherUsage;
+use App\Services\BankTransferService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Log;
 
 class CheckoutController extends Controller
 {
@@ -32,9 +32,6 @@ class CheckoutController extends Controller
         return view('shop.checkout', compact('cart', 'subtotal', 'carriers'));
     }
 
-    /**
-     * Validate voucher trước khi checkout (AJAX)
-     */
     public function applyVoucher(Request $request)
     {
         $request->validate([
@@ -61,17 +58,14 @@ class CheckoutController extends Controller
         session(['applied_voucher' => $voucher->code]);
 
         return response()->json([
-            'success'         => true,
-            'discount'        => $discount,
-            'voucher_id'      => $voucher->id,
-            'voucher_name'    => $voucher->name ?? $voucher->code,
-            'message'         => 'Áp dụng mã thành công! Giảm ' . number_format($discount, 0, ',', '.') . 'đ',
+            'success'      => true,
+            'discount'     => $discount,
+            'voucher_id'   => $voucher->id,
+            'voucher_name' => $voucher->name ?? $voucher->code,
+            'message'      => 'Áp dụng mã thành công! Giảm ' . number_format($discount, 0, ',', '.') . 'đ',
         ]);
     }
 
-    /**
-     * Tính phí ship (AJAX)
-     */
     public function calculateShipping(Request $request)
     {
         $request->validate([
@@ -91,9 +85,6 @@ class CheckoutController extends Controller
         ]);
     }
 
-    /**
-     * Xử lý đặt hàng - Atomic Transaction
-     */
     public function store(Request $request)
     {
         $request->validate([
@@ -117,7 +108,7 @@ class CheckoutController extends Controller
         try {
             $order = DB::transaction(function () use ($request, $cart) {
 
-                // 1. Kiểm tra tồn kho từng sản phẩm
+                // 1. Kiểm tra tồn kho
                 foreach ($cart as $item) {
                     $product = Product::lockForUpdate()->findOrFail($item['id']);
                     if ($product->stock < $item['quantity']) {
@@ -136,40 +127,27 @@ class CheckoutController extends Controller
                     $shippingFee = $zone ? $zone->fee : ($carrier?->base_fee ?? 0);
                 }
 
-                // Trong hàm store(), thay phần áp dụng voucher:
+                // 4. Áp dụng voucher
+                $discountAmount = 0;
+                $voucher        = null;
+                $voucherCode    = $request->voucher_code ?? session('applied_voucher');
 
-            $discountAmount = 0;
-            $voucher = null;
+                if ($voucherCode) {
+                    $voucher = Voucher::where('code', strtoupper($voucherCode))
+                                     ->lockForUpdate()
+                                     ->first();
 
-            $voucherCode = $request->voucher_code ?? session('applied_voucher');
-
-            if ($voucherCode) {
-                // ✅ SỬA: Thêm lockForUpdate() để tránh race condition
-                // Và kiểm tra isValid() + max_uses TRONG lock để đảm bảo atomic
-                $voucher = Voucher::where('code', strtoupper($voucherCode))
-                                ->lockForUpdate()
-                                ->first();
-
-                if ($voucher && $voucher->isValid()) {
-                    // ✅ SỬA: Kiểm tra lại used_count sau khi đã lock
-                    // (isValid() đã check max_uses nhưng cần check lại sau lock)
-                    if ($voucher->max_uses !== null && $voucher->used_count >= $voucher->max_uses) {
-                        // Voucher đã hết lượt dùng (bị race condition)
-                        // Bỏ qua, không áp dụng
-                    } else {
-                        $discountAmount = $voucher->calculateDiscount($subtotal);
-                        if ($discountAmount > 0) {
-                            // ✅ Vẫn dùng increment nhưng giờ đã được bảo vệ bởi lockForUpdate()
-                            $voucher->increment('used_count');
+                    if ($voucher && $voucher->isValid()) {
+                        if ($voucher->max_uses === null || $voucher->used_count < $voucher->max_uses) {
+                            $discountAmount = $voucher->calculateDiscount($subtotal);
+                            if ($discountAmount > 0) {
+                                $voucher->increment('used_count');
+                            }
                         }
                     }
                 }
-            }
 
-                // 5. Tracking number
-                $trackingNumber = Order::generateTrackingNumber();
-
-                // 6. Tạo Order
+                // 5. Tạo Order
                 $order = Order::create([
                     'user_id'         => Auth::id(),
                     'customer_name'   => $request->first_name . ' ' . $request->last_name,
@@ -184,10 +162,10 @@ class CheckoutController extends Controller
                     'notes'           => $request->notes,
                     'status'          => 'pending',
                     'payment_status'  => 'unpaid',
-                    'tracking_number' => $trackingNumber,
+                    'tracking_number' => Order::generateTrackingNumber(),
                 ]);
 
-                // 7. Tạo OrderItems + Trừ kho + Ghi InventoryLog
+                // 6. Tạo OrderItems + Trừ kho
                 foreach ($cart as $item) {
                     OrderItem::create([
                         'order_id'     => $order->id,
@@ -197,11 +175,10 @@ class CheckoutController extends Controller
                         'price'        => $item['price'],
                     ]);
 
-                    $product = Product::find($item['id']);
-                    $product->decreaseStock($item['quantity'], $order->id);
+                    Product::find($item['id'])->decreaseStock($item['quantity'], $order->id);
                 }
 
-                // 8. Lưu voucher usage
+                // 7. Lưu voucher usage
                 if ($voucher && $discountAmount > 0) {
                     $order->vouchers()->attach($voucher->id, ['discount_amount' => $discountAmount]);
 
@@ -214,26 +191,26 @@ class CheckoutController extends Controller
                     }
                 }
 
-                // 9. Tạo Shipment record
+                // 8. Tạo Shipment
                 if ($request->filled('carrier_id')) {
                     Shipment::create([
-                        'order_id'   => $order->id,
-                        'carrier_id' => $request->carrier_id,
-                        'shipping_fee' => $shippingFee,
-                        'status'     => 'pending',
+                        'order_id'           => $order->id,
+                        'carrier_id'         => $request->carrier_id,
+                        'shipping_fee'       => $shippingFee,
+                        'status'             => 'pending',
                         'estimated_delivery' => now()->addDays(3),
                     ]);
                 }
 
-                // 10. Tạo Payment record
+                // 9. Tạo Payment
                 Payment::create([
                     'order_id'       => $order->id,
                     'amount'         => $subtotal + $shippingFee - $discountAmount,
                     'payment_method' => strtoupper($request->payment_method),
-                    'status'         => $request->payment_method === 'cod' ? 'pending' : 'pending',
+                    'status'         => 'pending',
                 ]);
 
-                // 11. Gửi thông báo in-app
+                // 10. Thông báo in-app
                 if (Auth::check()) {
                     AppNotification::send(
                         Auth::id(),
@@ -248,33 +225,44 @@ class CheckoutController extends Controller
                 return $order;
             });
 
-            // Xóa giỏ hàng & voucher session
             session()->forget(['cart', 'applied_voucher']);
 
-             if ($request->ajax() || $request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Đặt hàng thành công!',
-                'order_id' => $order->id,
-                'redirect_url' => route('checkout.success', ['id' => $order->id]),
-            ]);
-        }
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success'      => true,
+                    'message'      => 'Đặt hàng thành công!',
+                    'order_id'     => $order->id,
+                    'redirect_url' => route('checkout.success', ['id' => $order->id]),
+                ]);
+            }
 
-        return redirect()->route('checkout.success', $order->id);
-    } catch (\Exception $e) {
-        if ($request->ajax()) {
-            return response()->json([
-                'success' => false,
-                'errors' => ['error' => $e->getMessage()]
-            ], 422);
+            return redirect()->route('checkout.success', $order->id);
+
+        } catch (\Exception $e) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'errors'  => ['error' => $e->getMessage()],
+                ], 422);
+            }
+            return back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
-        return back()->withErrors(['error' => $e->getMessage()])->withInput();
     }
-    }
+
     public function success($id)
     {
         $order = Order::with('items', 'shipment.carrier', 'vouchers', 'payment')->findOrFail($id);
-        return view('shop.checkout-success', compact('order'));
+
+        $bankInfo = null;
+        if (strtolower($order->payment_method) === 'bank' && $order->payment_status !== 'paid') {
+            $bankService = app(BankTransferService::class);
+            $bankInfo    = array_merge(
+                $bankService->generateQrCode($order),
+                $bankService->getBankInfo()
+            );
+        }
+
+        return view('shop.checkout-success', compact('order', 'bankInfo'));
     }
 
     public function orderDetail($id)
@@ -284,18 +272,21 @@ class CheckoutController extends Controller
             'payment',
             'shipment.carrier',
             'vouchers',
-        ])->where(function($q) use ($id) {
+        ])->where(function ($q) use ($id) {
             $q->where('id', $id)
-            ->where(function($q2) {
-                $q2->where('user_id', Auth::id())
-                    ->orWhereNull('user_id');
-            });
+              ->where(function ($q2) {
+                  $q2->where('user_id', Auth::id())
+                     ->orWhereNull('user_id');
+              });
         })->firstOrFail();
 
         $bankInfo = null;
         if (strtolower($order->payment_method) === 'bank' && $order->payment_status !== 'paid') {
-            $bankInfo = app(\App\Services\BankTransferService::class)->generateQrCode($order);
-            $bankInfo = array_merge($bankInfo, app(\App\Services\BankTransferService::class)->getBankInfo());
+            $bankService = app(BankTransferService::class);
+            $bankInfo    = array_merge(
+                $bankService->generateQrCode($order),
+                $bankService->getBankInfo()
+            );
         }
 
         return view('order-detail', compact('order', 'bankInfo'));

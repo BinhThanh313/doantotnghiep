@@ -102,8 +102,6 @@
                 @switch($pm)
                     @case('cod')   💵 Thanh toán khi nhận hàng (COD) @break
                     @case('bank')  🏦 Chuyển khoản ngân hàng @break
-                    @case('momo')  🌸 Ví MoMo @break
-                    @case('vnpay') 💳 VNPay @break
                     @default {{ strtoupper($pm) }}
                 @endswitch
             </span>

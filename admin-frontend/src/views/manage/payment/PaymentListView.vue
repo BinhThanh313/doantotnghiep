@@ -51,8 +51,6 @@ const methodOptions = [
   { id: '', label: 'Tất cả PTTT' },
   { id: 'COD',   label: 'COD' },
   { id: 'BANK',  label: 'Chuyển khoản' },
-  { id: 'MOMO',  label: 'MoMo' },
-  { id: 'VNPAY', label: 'VNPay' },
 ]
 
 const statusColors = {
@@ -245,8 +243,6 @@ onMounted(() => fetchPayments())
                   :class="{
                     'bg-yellow-100 text-yellow-800': p.payment_method === 'COD',
                     'bg-blue-100 text-blue-800':    p.payment_method === 'BANK',
-                    'bg-pink-100 text-pink-800':    p.payment_method === 'MOMO',
-                    'bg-indigo-100 text-indigo-800':p.payment_method === 'VNPAY',
                   }">
                   {{ p.payment_method }}
                 </span>

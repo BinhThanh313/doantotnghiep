@@ -35,34 +35,6 @@ class PaymentMethodSeeder extends Seeder
                 'icon'        => 'fas fa-university',
                 'sort_order'  => 2,
             ],
-            [
-                'name'        => 'Ví MoMo',
-                'code'        => 'momo',
-                'is_active'   => true,
-                'fee_percent' => 0,
-                'config'      => json_encode([
-                    'partner_code' => env('MOMO_PARTNER_CODE', 'MOMOBKUN20180529'),
-                    'access_key'   => env('MOMO_ACCESS_KEY', ''),
-                    'endpoint'     => env('MOMO_ENDPOINT', 'https://test-payment.momo.vn/v2/gateway/api/create'),
-                ]),
-                'description' => 'Thanh toán nhanh qua ví điện tử MoMo.',
-                'icon'        => 'fas fa-wallet',
-                'sort_order'  => 3,
-            ],
-            [
-                'name'        => 'VNPay',
-                'code'        => 'vnpay',
-                'is_active'   => true,
-                'fee_percent' => 0,
-                'config'      => json_encode([
-                    'tmn_code'    => env('VNPAY_TMN_CODE', 'DEMOVNPAY'),
-                    'url'         => env('VNPAY_URL', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html'),
-                    'return_url'  => env('VNPAY_RETURN_URL', '/api/payment/vnpay/callback'),
-                ]),
-                'description' => 'Thanh toán qua cổng VNPay — hỗ trợ ATM/Internet Banking/QR Code.',
-                'icon'        => 'fas fa-credit-card',
-                'sort_order'  => 4,
-            ],
         ];
 
         foreach ($methods as $method) {

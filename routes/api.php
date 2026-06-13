@@ -22,13 +22,6 @@ Route::post('/shipping/calculate', [ShippingController::class, 'calculateFee']);
 Route::post('/voucher/apply', [CheckoutController::class, 'applyVoucher']);
 Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
 
-// ==================== PAYMENT CALLBACKS (PUBLIC) ====================
-// Webhook từ VNPay, MoMo (không cần auth)
-Route::get('/payment/vnpay/callback',  [PaymentController::class, 'vnpayCallback']);
-Route::post('/payment/vnpay/callback', [PaymentController::class, 'vnpayCallback']);
-Route::post('/payment/momo/notify',    [PaymentController::class, 'momoNotify']);
-Route::get('/payment/momo/callback',   [PaymentController::class, 'momoCallback']);
-
 // ==================== ADMIN ROUTES ====================
 
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
@@ -81,11 +74,11 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::delete('/reviews/{id}',                   [AdminReviewController::class, 'destroy']);
 
     // Payments
-    Route::get('/payments', [\App\Http\Controllers\Admin\PaymentController::class, 'index']);
-    Route::get('/payments/{id}', [\App\Http\Controllers\Admin\PaymentController::class, 'show']);
+    Route::get('/payments',                   [\App\Http\Controllers\Admin\PaymentController::class, 'index']);
+    Route::get('/payments/{id}',              [\App\Http\Controllers\Admin\PaymentController::class, 'show']);
     Route::post('/payments/{id}/verify-bank', [\App\Http\Controllers\Admin\PaymentController::class, 'verifyBank']);
     Route::post('/payments/{id}/reject-bank', [\App\Http\Controllers\Admin\PaymentController::class, 'rejectBank']);
-    Route::post('/payments/{id}/transition', [\App\Http\Controllers\Admin\PaymentController::class, 'transition']);
+    Route::post('/payments/{id}/transition',  [\App\Http\Controllers\Admin\PaymentController::class, 'transition']);
 });
 
 // ==================== CUSTOMER API ROUTES ====================
@@ -95,10 +88,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/reviews/{reviewId}/helpful',   [ReviewController::class, 'helpful']);
     Route::get('/reviews/{reviewId}',            [ReviewController::class, 'show']);
     Route::post('/checkout/shipping-fee',        [CheckoutController::class, 'calculateShipping']);
-  
-    // ==================== PAYMENT ROUTES (YÊU CẦU ĐĂNG NHẬP) ====================
-    Route::post('/payment/create',         [PaymentController::class, 'create']);
-    Route::post('/payment/{id}/verify',    [PaymentController::class, 'verify']);
-    Route::get('/payment/{id}/status',     [PaymentController::class, 'status']);
-    Route::post('/payment/{id}/refund',    [PaymentController::class, 'refund']);
+
+    // Payment (COD & Bank only)
+    Route::post('/payment/create',      [PaymentController::class, 'create']);
+    Route::get('/payment/{id}/status',  [PaymentController::class, 'status']);
+    Route::post('/payment/{id}/refund', [PaymentController::class, 'refund']);
 });
