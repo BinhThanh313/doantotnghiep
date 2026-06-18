@@ -11,6 +11,7 @@ import {
   mdiLogout,
     mdiPalette,
     mdiCreditCardOutline,
+    mdiBolt,
 } from '@mdi/js'
 
 export const menuAsideMain = [
