@@ -88,4 +88,16 @@ class ShopController extends Controller
         // Trả về file view resources/views/shop/vouchers.blade.php
         return view('shop.vouchers', compact('vouchers'));
     }
+
+    public function bestsellers(Request $request)
+    {
+        $query = Product::with('category')
+            ->where('is_active', true)
+            ->where('is_bestseller', true);
+
+        $products   = $query->latest()->paginate(12)->withQueryString();
+        $categories = Category::withCount('products')->get();
+
+        return view('shop.bestseller', compact('products', 'categories'));
+    }
 }

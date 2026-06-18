@@ -17,10 +17,12 @@ class HomeController extends Controller
                            ->get();
 
         // 6 sản phẩm bán chạy (tạm thời lấy ngẫu nhiên, sau dùng order count)
-        $bestsellers = Product::where('is_active', true)
-                              ->inRandomOrder()
-                              ->limit(6)
-                              ->get();
+        $bestsellers = Product::with('category')
+                            ->where('is_active', true)
+                            ->where('is_bestseller', true)
+                            ->latest()
+                            ->limit(6)
+                            ->get();
 
         $categories = Category::withCount('products')->get();
 

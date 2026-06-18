@@ -8,15 +8,16 @@ use Illuminate\Support\Str;
 class Product extends Model
 {
     protected $fillable = [
-        'category_id', 'name', 'slug', 'description',
-        'meta_description', 'meta_keywords', 'og_image', 'tags',
-        'price', 'original_price', 'image', 'stock',
-        'is_new', 'is_active', 'view_count',
+    'category_id', 'name', 'slug', 'description',
+    'meta_description', 'meta_keywords', 'og_image', 'tags',
+    'price', 'original_price', 'image', 'stock',
+    'is_new', 'is_active', 'is_bestseller', 'view_count',
     ];
 
     protected $casts = [
-        'is_new'    => 'boolean',
-        'is_active' => 'boolean',
+        'is_new'        => 'boolean',
+        'is_active'     => 'boolean',
+        'is_bestseller' => 'boolean',
     ];
 
     // ==================== RELATIONSHIPS ====================

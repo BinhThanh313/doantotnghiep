@@ -111,48 +111,58 @@
     </div>
 
     <div class="container-fluid products pt-5">
-        <div class="container products-mini py-5">
-            <div class="mx-auto text-center mb-5" style="max-width: 700px;">
-                <h4 class="text-primary mb-4 border-bottom border-primary border-2 d-inline-block p-2 title-border-radius wow fadeInUp" data-wow-delay="0.1s">Sản Phẩm Bán Chạy</h4>
-                <p class="mb-0 wow fadeInUp" data-wow-delay="0.2s">Khám phá ngay những sản phẩm công nghệ đang được yêu thích và săn lùng nhiều nhất trong tháng qua.</p>
-            </div>
-            
-            <div class="row g-4">
-                {{-- Vòng lặp sản phẩm bán chạy --}}
-                @for ($i = 3; $i <= 8; $i++) 
-                <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.1s">
-                    <div class="products-mini-item border">
-                        <div class="row g-0">
-                            <div class="col-5">
-                                <div class="products-mini-img border-end h-100">
-                                    <img src="{{ asset('img/product-'.$i.'.png') }}" class="img-fluid w-100 h-100" alt="Hình ảnh sản phẩm">
-                                    <div class="products-mini-icon rounded-circle bg-primary">
-                                        <a href="#"><i class="fa fa-eye fa-1x text-white"></i></a>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-7">
-                                <div class="products-mini-content p-3">
-                                    <a href="#" class="d-block mb-2 text-muted">Điện thoại</a>
-                                    <a href="#" class="d-block h4">Mẫu Sản Phẩm Số {{ $i }}</a>
-                                    <del class="me-2 fs-6 text-muted">12.500.000đ</del>
-                                    <span class="text-primary fs-5 fw-bold">10.500.000đ</span>
+    <div class="container products-mini py-5">
+        <div class="mx-auto text-center mb-5" style="max-width: 700px;">
+            <h4 class="text-primary mb-4 border-bottom border-primary border-2 d-inline-block p-2 wow fadeInUp" data-wow-delay="0.1s">Sản Phẩm Bán Chạy</h4>
+            <p class="mb-0 wow fadeInUp" data-wow-delay="0.2s">Khám phá ngay những sản phẩm công nghệ đang được yêu thích và săn lùng nhiều nhất.</p>
+        </div>
+
+        <div class="row g-4">
+            @forelse($products as $product)
+            <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.1s">
+                <div class="products-mini-item border">
+                    <div class="row g-0">
+                        <div class="col-5">
+                            <div class="products-mini-img border-end h-100">
+                                <img src="{{ $product->image ? asset('storage/' . $product->image) : asset('img/product-3.png') }}"
+                                     class="img-fluid w-100 h-100" style="object-fit:cover" alt="{{ $product->name }}">
+                                <div class="products-mini-icon rounded-circle bg-primary">
+                                    <a href="{{ route('shop.show', $product->id) }}"><i class="fa fa-eye text-white"></i></a>
                                 </div>
                             </div>
                         </div>
-                        <div class="products-mini-add border p-3">
-                            <a href="#" class="btn btn-primary border-secondary rounded-pill py-2 px-4"><i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ</a>
-                            <div class="d-flex">
-                                <a href="#" class="text-primary d-flex align-items-center justify-content-center me-3" title="So sánh"><span class="rounded-circle btn-sm-square border"><i class="fas fa-random"></i></span></a>
-                                <a href="#" class="text-primary d-flex align-items-center justify-content-center me-0" title="Yêu thích"><span class="rounded-circle btn-sm-square border"><i class="fas fa-heart"></i></span></a>
+                        <div class="col-7">
+                            <div class="products-mini-content p-3">
+                                <a href="{{ route('shop.index', ['category' => $product->category_id]) }}" class="d-block mb-2 text-muted">
+                                    {{ $product->category->name ?? '' }}
+                                </a>
+                                <a href="{{ route('shop.show', $product->id) }}" class="d-block h5">{{ $product->name }}</a>
+                                @if($product->original_price)
+                                    <del class="me-2 fs-6 text-muted">{{ number_format($product->original_price, 0, ',', '.') }}đ</del>
+                                @endif
+                                <h5 class="text-primary fw-bold">{{ number_format($product->price, 0, ',', '.') }}đ</h5>
                             </div>
                         </div>
                     </div>
+                    <div class="products-mini-add border-top p-2 text-center">
+                        <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 add-to-cart" data-id="{{ $product->id }}">
+                            <i class="fas fa-shopping-cart me-2"></i>Thêm vào giỏ
+                        </button>
+                    </div>
                 </div>
-                @endfor
             </div>
+            @empty
+            <div class="col-12 text-center py-5">
+                <p class="text-muted">Chưa có sản phẩm nào được đánh dấu "Bán chạy".</p>
+            </div>
+            @endforelse
+        </div>
+
+        <div class="col-12 mt-5 d-flex justify-content-center">
+            {{ $products->links('pagination::bootstrap-5') }}
         </div>
     </div>
+</div>
 
     <div class="container-fluid product pt-5">
         <div class="container py-5">

@@ -87,7 +87,8 @@
         <div class="container py-5">
             <h1 class="mb-4 wow fadeInUp" data-wow-delay="0.1s">Chi tiết thanh toán</h1>
             
-            <form action="{{ route('checkout.store') }}" method="POST" id="checkout-form">
+            <form action="{{ route('checkout.store') }}" method="POST" id="checkout-form"
+                data-action-url="{{ route('checkout.store') }}">
                 @csrf
                 <div class="row g-5">
                     <!-- Bên trái: Thông tin khách hàng -->
@@ -168,7 +169,8 @@
                                        class="form-control" 
                                        placeholder="Nhập mã voucher"
                                        style="text-transform: uppercase;">
-                                <button class="btn btn-outline-primary" type="button" id="apply-voucher-checkout">
+                                <button class="btn btn-outline-primary" type="button" id="apply-voucher-checkout"
+                                        data-url="{{ route('checkout.apply-voucher') }}">
                                     Áp dụng
                                 </button>
                             </div>
@@ -179,7 +181,7 @@
                         <div class="bg-white p-4 rounded border">
                             <div class="d-flex justify-content-between mb-2">
                                 <span>Tạm tính:</span>
-                                <span id="subtotal-display">{{ number_format($subtotal ?? 0, 0, ',', '.') }}đ</span>
+                                <span id="subtotal-display" data-value="{{ $subtotal ?? 0 }}">{{ number_format($subtotal ?? 0, 0, ',', '.') }}đ</span>
                             </div>
                             
                                 <div class="d-flex justify-content-between mb-2">
@@ -216,7 +218,7 @@
                             </div>
                         
                             {{-- Carrier options (render by JS) --}}
-                            <div id="carrier-list" class="d-none"></div>
+                            <div id="carrier-list" class="d-none" data-calc-url="{{ url('api/shipping/calculate') }}"></div>
                         
                             {{-- Hidden inputs --}}
                             <input type="hidden" name="carrier_id" id="selected-carrier-id">
@@ -272,83 +274,79 @@ document.addEventListener('DOMContentLoaded', function () {
     const messageEl      = document.getElementById('checkout-voucher-message');
     const finalTotalEl   = document.getElementById('final-total');
     const discountRow    = document.getElementById('discount-row');
-    const discountAmount = document.getElementById('discount-amount');
-    const voucherName    = document.getElementById('voucher-name');
+    const discountAmountEl = document.getElementById('discount-amount');
+    const voucherNameEl    = document.getElementById('voucher-name');
+    const shippingFeeEl    = document.getElementById('shipping-fee-display');
 
-    const currentSubtotal = parseFloat("{{ $subtotal ?? 0 }}") || 0;
+    // Lấy subtotal từ PHP, truyền qua data attribute để tránh lỗi syntax JS
+    const subtotalEl = document.getElementById('subtotal-display');
+    const currentSubtotal = parseFloat(subtotalEl ? subtotalEl.dataset.value : '0') || 0;
+
     let appliedVoucherCode = null;
     let currentShippingFee = 0;
+    let currentDiscount    = 0;
 
     // ==================== VOUCHER ====================
-    applyBtn.addEventListener('click', function () {
-        const code = voucherInput.value.trim().toUpperCase();
-
-        if (!code) {
-            showMessage('Vui lòng nhập mã voucher!', 'danger');
-            return;
-        }
-
-        applyBtn.disabled = true;
-        applyBtn.textContent = 'Đang áp dụng...';
-
-        fetch("{{ route('checkout.apply-voucher') }}", {
-            method: 'POST',
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                code: code,
-                amount: currentSubtotal
-            })
-        })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                const discount = parseFloat(data.discount) || 0;
-                const newTotal = currentSubtotal + currentShippingFee - discount;
-
-                finalTotalEl.textContent = newTotal.toLocaleString('vi-VN') + 'đ';
-                discountAmount.textContent = '- ' + discount.toLocaleString('vi-VN') + 'đ';
-                voucherName.textContent = code;
-                discountRow.style.display = 'flex';
-                
-                appliedVoucherCode = code;
-                showMessage(data.message, 'success');
-                voucherInput.value = '';
-            } else {
-                showMessage(data.message || 'Mã voucher không hợp lệ', 'danger');
+    if (applyBtn) {
+        applyBtn.addEventListener('click', function () {
+            const code = voucherInput.value.trim().toUpperCase();
+            if (!code) {
+                showMessage('Vui lòng nhập mã voucher!', 'danger');
+                return;
             }
-        })
-        .catch(() => showMessage('Lỗi kết nối server!', 'danger'))
-        .finally(() => {
-            applyBtn.disabled = false;
-            applyBtn.textContent = 'Áp dụng';
+
+            applyBtn.disabled = true;
+            applyBtn.textContent = 'Đang áp dụng...';
+
+            fetch(applyBtn.dataset.url, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ code: code, amount: currentSubtotal })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    currentDiscount = parseFloat(data.discount) || 0;
+                    appliedVoucherCode = code;
+                    voucherNameEl.textContent = code;
+                    discountAmountEl.textContent = '- ' + currentDiscount.toLocaleString('vi-VN') + 'đ';
+                    discountRow.style.display = 'flex';
+                    recalcTotal();
+                    showMessage(data.message, 'success');
+                    voucherInput.value = '';
+                } else {
+                    showMessage(data.message || 'Mã voucher không hợp lệ', 'danger');
+                }
+            })
+            .catch(() => showMessage('Lỗi kết nối server!', 'danger'))
+            .finally(() => {
+                applyBtn.disabled = false;
+                applyBtn.textContent = 'Áp dụng';
+            });
         });
-    });
+    }
 
     // ==================== CARRIER DYNAMIC ====================
     let carrierDebounceTimer = null;
     let lastProvince = '';
 
-    const provinceInput   = document.querySelector('input[name="province"]');
-    const carrierList     = document.getElementById('carrier-list');
-    const carrierLoading  = document.getElementById('carrier-loading');
+    const provinceInput      = document.querySelector('input[name="province"]');
+    const carrierList        = document.getElementById('carrier-list');
+    const carrierLoading     = document.getElementById('carrier-loading');
     const carrierPlaceholder = document.getElementById('carrier-placeholder');
-    const carrierIdInput  = document.getElementById('selected-carrier-id');
-    const shippingFeeInput= document.getElementById('selected-shipping-fee');
+    const carrierIdInput     = document.getElementById('selected-carrier-id');
+    const shippingFeeInput   = document.getElementById('selected-shipping-fee');
+    const calcUrl            = document.getElementById('carrier-list').dataset.calcUrl;
 
     if (provinceInput) {
         provinceInput.addEventListener('input', function () {
             const province = this.value.trim();
             clearTimeout(carrierDebounceTimer);
-
-            if (province.length < 2) {
-                showCarrierPlaceholder();
-                return;
-            }
-
+            if (province.length < 2) { showCarrierPlaceholder(); return; }
             carrierDebounceTimer = setTimeout(() => {
                 if (province !== lastProvince) {
                     lastProvince = province;
@@ -361,7 +359,7 @@ document.addEventListener('DOMContentLoaded', function () {
     async function loadCarriers(province) {
         showCarrierLoading();
         try {
-            const res = await fetch("{{ url('api/shipping/calculate') }}", {
+            const res = await fetch(calcUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -370,13 +368,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 body: JSON.stringify({ province })
             });
-
             const data = await res.json();
-
             if (!res.ok || !Array.isArray(data)) {
                 throw new Error(data.message || 'Lỗi tải danh sách vận chuyển');
             }
-
             renderCarrierOptions(data);
         } catch (err) {
             showCarrierError(err.message);
@@ -385,11 +380,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function renderCarrierOptions(carriers) {
         if (!carriers.length) {
-            carrierList.innerHTML = `
-                <div class="text-muted small py-2">
-                    <i class="fas fa-info-circle me-1"></i>
-                    Không có đơn vị vận chuyển nào phục vụ khu vực này.
-                </div>`;
+            carrierList.innerHTML = '<div class="text-muted small py-2"><i class="fas fa-info-circle me-1"></i>Không có đơn vị vận chuyển phục vụ khu vực này.</div>';
             carrierIdInput.value = '';
             shippingFeeInput.value = 0;
             updateShippingDisplay(0);
@@ -398,44 +389,38 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         let html = '<div class="list-group">';
-        carriers.forEach((c, idx) => {
+        carriers.forEach(function(c, idx) {
             const isFirst = idx === 0;
-            const feeLabel = c.fee > 0 
-                ? new Intl.NumberFormat('vi-VN').format(c.fee) + 'đ' 
+            const feeLabel = c.fee > 0
+                ? new Intl.NumberFormat('vi-VN').format(c.fee) + 'đ'
                 : 'Miễn phí';
+            const activeClass = isFirst ? 'active border-primary bg-primary bg-opacity-10' : '';
+            const checked     = isFirst ? 'checked' : '';
 
-            html += `
-            <label class="list-group-item list-group-item-action cursor-pointer carrier-option ${isFirst ? 'active border-primary bg-primary bg-opacity-10' : ''}">
-                <input type="radio" name="_carrier_radio" value="${c.id}" 
-                       data-fee="${c.fee}" class="carrier-radio d-none" ${isFirst ? 'checked' : ''}>
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <span class="fw-bold">${c.name}</span>
-                        <small class="text-muted ms-2">${c.estimated_days} ngày</small>
-                    </div>
-                    <span class="badge ${c.fee > 0 ? 'bg-primary' : 'bg-success'} rounded-pill">${feeLabel}</span>
-                </div>
-            </label>`;
+            // Dùng data attribute thay vì nhúng trực tiếp vào onclick string
+            html += '<label class="list-group-item list-group-item-action cursor-pointer carrier-option ' + activeClass + '" data-carrier-id="' + c.carrier_id + '" data-fee="' + c.fee + '">'
+                  + '<input type="radio" name="_carrier_radio" value="' + c.carrier_id + '" data-fee="' + c.fee + '" class="carrier-radio d-none" ' + checked + '>'
+                  + '<div class="d-flex justify-content-between align-items-center">'
+                  + '<div><span class="fw-bold">' + escapeHtml(c.carrier) + '</span><small class="text-muted ms-2">' + c.estimated_days + ' ngày</small></div>'
+                  + '<span class="badge ' + (c.fee > 0 ? 'bg-primary' : 'bg-success') + ' rounded-pill">' + feeLabel + '</span>'
+                  + '</div></label>';
         });
         html += '</div>';
 
         carrierList.innerHTML = html;
 
         if (carriers[0]) {
-            setSelectedCarrier(carriers[0].id, carriers[0].fee);
+            setSelectedCarrier(carriers[0].carrier_id, carriers[0].fee);
         }
 
-        // Event click
-        carrierList.querySelectorAll('.carrier-option').forEach(label => {
+        carrierList.querySelectorAll('.carrier-option').forEach(function(label) {
             label.addEventListener('click', function () {
-                carrierList.querySelectorAll('.carrier-option').forEach(l => 
-                    l.classList.remove('active', 'border-primary', 'bg-primary', 'bg-opacity-10')
-                );
+                carrierList.querySelectorAll('.carrier-option').forEach(function(l) {
+                    l.classList.remove('active', 'border-primary', 'bg-primary', 'bg-opacity-10');
+                });
                 this.classList.add('active', 'border-primary', 'bg-primary', 'bg-opacity-10');
-
-                const radio = this.querySelector('.carrier-radio');
-                const fee = parseFloat(radio.dataset.fee) || 0;
-                setSelectedCarrier(parseInt(radio.value), fee);
+                const fee = parseFloat(this.dataset.fee) || 0;
+                setSelectedCarrier(parseInt(this.dataset.carrierId), fee);
             });
         });
 
@@ -443,29 +428,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function setSelectedCarrier(carrierId, fee) {
-        carrierIdInput.value = carrierId;
+        carrierIdInput.value  = carrierId;
         shippingFeeInput.value = fee;
-        currentShippingFee = fee;
+        currentShippingFee    = fee;
         updateShippingDisplay(fee);
     }
 
     function updateShippingDisplay(fee) {
-        const feeLabel = fee > 0 
-            ? new Intl.NumberFormat('vi-VN').format(fee) + 'đ' 
+        const label = fee > 0
+            ? new Intl.NumberFormat('vi-VN').format(fee) + 'đ'
             : 'Miễn phí';
-        document.getElementById('shipping-fee-display').textContent = feeLabel;
+        if (shippingFeeEl) shippingFeeEl.textContent = label;
         recalcTotal();
     }
 
     function recalcTotal() {
-        const subtotal = currentSubtotal;
-        const discountEl = document.getElementById('discount-amount');
-        const discount = discountEl 
-            ? parseFloat(discountEl.textContent.replace(/[^0-9]/g, '')) || 0 
-            : 0;
-
-        const newTotal = subtotal + currentShippingFee - discount;
-        finalTotalEl.textContent = new Intl.NumberFormat('vi-VN').format(newTotal) + 'đ';
+        const newTotal = currentSubtotal + currentShippingFee - currentDiscount;
+        if (finalTotalEl) finalTotalEl.textContent = new Intl.NumberFormat('vi-VN').format(newTotal) + 'đ';
     }
 
     function showCarrierPlaceholder() {
@@ -484,118 +463,98 @@ document.addEventListener('DOMContentLoaded', function () {
         carrierList.classList.remove('d-none');
     }
     function showCarrierError(msg) {
-        carrierList.innerHTML = `<div class="alert alert-warning small py-2 mb-0">
-            <i class="fas fa-exclamation-triangle me-1"></i>${msg || 'Không tải được phí ship.'}
-        </div>`;
+        carrierList.innerHTML = '<div class="alert alert-warning small py-2 mb-0"><i class="fas fa-exclamation-triangle me-1"></i>' + escapeHtml(msg || 'Không tải được phí ship.') + '</div>';
         showCarrierList();
     }
 
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     function showMessage(msg, type) {
-        messageEl.innerHTML = `<span class="text-${type}">${msg}</span>`;
-        setTimeout(() => messageEl.innerHTML = '', 5000);
+        messageEl.innerHTML = '<span class="text-' + type + '">' + msg + '</span>';
+        setTimeout(function() { messageEl.innerHTML = ''; }, 5000);
     }
 
-    // ====================== SUBMIT FORM ======================
-checkoutForm.addEventListener('submit', function (e) {
-    e.preventDefault();
+    // ==================== SUBMIT FORM ====================
+    if (checkoutForm) {
+        checkoutForm.addEventListener('submit', function (e) {
+            e.preventDefault();
 
-    // Thêm voucher vào form nếu đã áp dụng
-    if (appliedVoucherCode) {
-        let existingVoucher = checkoutForm.querySelector('input[name="voucher_code"]');
-        if (existingVoucher) {
-            existingVoucher.value = appliedVoucherCode;
-        } else {
-            const voucherField = document.createElement('input');
-            voucherField.type  = 'hidden';
-            voucherField.name  = 'voucher_code';
-            voucherField.value = appliedVoucherCode;
-            checkoutForm.appendChild(voucherField);
-        }
-    }
+            const selectedPayment = checkoutForm.querySelector('input[name="payment_method"]:checked');
+            if (!selectedPayment) { alert('Vui lòng chọn phương thức thanh toán!'); return; }
 
-    // ✅ SỬA: Lấy payment_method từ radio đang được checked
-    const selectedPayment = checkoutForm.querySelector('input[name="payment_method"]:checked');
-    if (!selectedPayment) {
-        alert('Vui lòng chọn phương thức thanh toán!');
-        return;
-    }
+            const carrierId = carrierIdInput.value;
+            if (!carrierId) { alert('Vui lòng chọn đơn vị vận chuyển!'); return; }
 
-    // ✅ SỬA: Lấy carrier_id từ hidden input (đảm bảo là số nguyên)
-    const carrierId = document.getElementById('selected-carrier-id')?.value;
-    if (!carrierId) {
-        alert('Vui lòng chọn đơn vị vận chuyển!');
-        return;
-    }
+            const submitBtn = checkoutForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
 
-    const submitBtn = checkoutForm.querySelector('button[type="submit"]');
-    const originalBtnText = submitBtn.innerHTML;
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...';
+            const payload = {
+                first_name:     (checkoutForm.querySelector('input[name="first_name"]') || {}).value || '',
+                last_name:      (checkoutForm.querySelector('input[name="last_name"]')  || {}).value || '',
+                phone:          (checkoutForm.querySelector('input[name="phone"]')       || {}).value || '',
+                email:          (checkoutForm.querySelector('input[name="email"]')       || {}).value || '',
+                province:       (checkoutForm.querySelector('input[name="province"]')   || {}).value || '',
+                city:           (checkoutForm.querySelector('input[name="city"]')        || {}).value || '',
+                address:        (checkoutForm.querySelector('input[name="address"]')    || {}).value || '',
+                notes:          (checkoutForm.querySelector('textarea[name="notes"]')   || {}).value || '',
+                payment_method: selectedPayment.value,
+                carrier_id:     parseInt(carrierId),
+                shipping_fee:   parseFloat(shippingFeeInput.value || 0),
+                voucher_code:   appliedVoucherCode || '',
+                _token:         document.querySelector('meta[name="csrf-token"]').content,
+            };
 
-    // ✅ SỬA: Dùng JSON thay vì FormData để kiểm soát chính xác dữ liệu gửi đi
-    const payload = {
-        first_name:     checkoutForm.querySelector('input[name="first_name"]')?.value?.trim(),
-        last_name:      checkoutForm.querySelector('input[name="last_name"]')?.value?.trim(),
-        phone:          checkoutForm.querySelector('input[name="phone"]')?.value?.trim(),
-        email:          checkoutForm.querySelector('input[name="email"]')?.value?.trim(),
-        province:       checkoutForm.querySelector('input[name="province"]')?.value?.trim(),
-        city:           checkoutForm.querySelector('input[name="city"]')?.value?.trim(),
-        address:        checkoutForm.querySelector('input[name="address"]')?.value?.trim(),
-        notes:          checkoutForm.querySelector('textarea[name="notes"]')?.value?.trim() || '',
-        payment_method: selectedPayment.value,
-        carrier_id:     parseInt(carrierId),  // ✅ Đảm bảo là integer
-        shipping_fee:   parseFloat(document.getElementById('selected-shipping-fee')?.value || 0),
-        voucher_code:   appliedVoucherCode || '',
-        _token:         document.querySelector('meta[name="csrf-token"]').content,
-    };
-
-    // Debug: log payload trước khi gửi (xóa sau khi fix xong)
-    console.log('Payload gửi đi:', payload);
-
-    fetch('{{ route("checkout.store") }}', {
-        method: 'POST',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest',
-            'X-CSRF-TOKEN':     document.querySelector('meta[name="csrf-token"]').content,
-            'Content-Type':     'application/json',
-            'Accept':           'application/json',
-        },
-        body: JSON.stringify(payload)
-    })
-    .then(async r => {
-        const data = await r.json();
-        if (!r.ok) return Promise.reject(data);
-        return data;
-    })
-    // Trong checkout.blade.php, phần .then(data => {...})
-    .then(data => {
-    if (data.success) {
-        window.location.href = data.redirect_url;
-    } else {
-        alert('❌ Lỗi: ' + (data.message || 'Có lỗi xảy ra'));
-    }
-})
-    .catch(err => {
-        let errorString = '❌ Có lỗi xảy ra trong quá trình đặt hàng:\n\n';
-        if (err?.errors) {
-            if (Array.isArray(err.errors)) {
-                err.errors.forEach(msg => { errorString += `- ${msg}\n`; });
-            } else if (typeof err.errors === 'object') {
-                Object.values(err.errors).forEach(msgs => {
-                    errorString += `- ${Array.isArray(msgs) ? msgs[0] : msgs}\n`;
+            fetch(checkoutForm.dataset.actionUrl, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(function(r) {
+                return r.json().then(function(data) {
+                    if (!r.ok) return Promise.reject(data);
+                    return data;
                 });
-            }
-        } else if (err?.message) {
-            errorString += err.message;
-        } else {
-            errorString += 'Vui lòng kiểm tra lại thông tin.';
-        }
-        alert(errorString);
-    })
-    .finally(() => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalBtnText;
-    });
+            })
+            .then(function(data) {
+                if (data.success) {
+                    window.location.href = data.redirect_url;
+                } else {
+                    alert('Lỗi: ' + (data.message || 'Có lỗi xảy ra'));
+                }
+            })
+            .catch(function(err) {
+                let msg = 'Có lỗi xảy ra:\n';
+                if (err && err.errors) {
+                    if (typeof err.errors === 'object') {
+                        Object.values(err.errors).forEach(function(msgs) {
+                            msg += '- ' + (Array.isArray(msgs) ? msgs[0] : msgs) + '\n';
+                        });
+                    }
+                } else if (err && err.message) {
+                    msg += err.message;
+                }
+                alert(msg);
+            })
+            .finally(function() {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+            });
+        });
+    }
 });
 </script>
 @endpush

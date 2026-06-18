@@ -165,6 +165,7 @@
                             {{-- Sửa 'shop.*' thành cụ thể 'shop.index' và 'shop.show' để không bị dính vào các trang khác --}}
                             <a href="{{ route('shop.index') }}" class="nav-item nav-link {{ request()->routeIs('shop.index', 'shop.show') ? 'active' : '' }}">Sản phẩm</a>
                             
+                            <a href="{{ route('bestseller') }}" class="nav-item nav-link {{ request()->routeIs('bestseller') ? 'active' : '' }}">Bán chạy</a>
                             {{-- Thêm điều kiện active riêng cho mã giảm giá --}}
                             <a href="{{ route('shop.vouchers') }}" class="nav-item nav-link {{ request()->routeIs('shop.vouchers') ? 'active' : '' }}">Mã giảm giá</a>
                             

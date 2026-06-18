@@ -42,6 +42,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::post('/orders/{id}/refund',    [OrderController::class, 'refund']);
 
     // Products, Categories, Users, Vouchers
+    Route::post('/products/import', [ProductController::class, 'import']);
+    Route::patch('/products/{id}/toggle-bestseller', [ProductController::class, 'toggleBestseller']);
     Route::apiResource('products', ProductController::class);
     Route::apiResource('categories', CategoryController::class);
     Route::apiResource('users', UserController::class);

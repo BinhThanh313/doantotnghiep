@@ -29,6 +29,7 @@ const form = reactive({
   stock: 0,
   is_active: true,
   is_new: false,
+  is_bestseller: false,
 })
 const imageFile = ref(null)
 
@@ -51,6 +52,7 @@ const fetchProduct = async (id) => {
     form.stock          = prod.stock
     form.is_active      = Boolean(prod.is_active)
     form.is_new         = Boolean(prod.is_new)
+    form.is_bestseller = Boolean(prod.is_bestseller)
   } catch (error) { console.error('Lỗi tải sản phẩm', error) }
 }
 
@@ -64,6 +66,7 @@ const submit = async () => {
   formData.append('stock', form.stock)
   formData.append('is_active', form.is_active ? 1 : 0)
   formData.append('is_new', form.is_new ? 1 : 0)
+  formData.append('is_bestseller', form.is_bestseller ? 1 : 0)
   if (imageFile.value) formData.append('image', imageFile.value)
 
   const config = { headers: { 'Content-Type': 'multipart/form-data' } }
@@ -146,6 +149,9 @@ onMounted(() => {
           </label>
           <label class="flex items-center cursor-pointer">
             <input type="checkbox" v-model="form.is_new" class="mr-2"> Sản phẩm mới
+          </label>
+          <label class="flex items-center cursor-pointer">
+            <input type="checkbox" v-model="form.is_bestseller" class="mr-2"> Hiển thị ở trang Bán chạy
           </label>
         </div>
 

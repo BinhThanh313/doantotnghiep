@@ -21,7 +21,7 @@ Route::get('/shop/{id}', [ShopController::class, 'show'])->name('shop.show');
 Route::get('/vouchers', [ShopController::class, 'vouchers'])->name('shop.vouchers');
 
 Route::get('/contact', fn() => view('contact'))->name('contact');
-Route::get('/bestseller', fn() => view('shop.bestseller'))->name('bestseller');
+Route::get('/bestseller', [ShopController::class, 'bestsellers'])->name('bestseller');
 
 Route::post('/checkout/shipping-fee', [CheckoutController::class, 'calculateShipping'])->name('checkout.shipping-fee');
 Auth::routes();
