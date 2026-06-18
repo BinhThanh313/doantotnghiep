@@ -14,6 +14,8 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Admin\ProductVariantController;
+use App\Http\Controllers\Admin\FlashSaleController;
+use App\Http\Controllers\Api\FlashSaleController as PublicFlashSaleController;
 
 // ==================== PUBLIC ROUTES ====================
 
@@ -21,6 +23,7 @@ Route::post('/admin/login', [AuthController::class, 'login']);
 Route::post('/shipping/calculate', [ShippingController::class, 'calculateFee']);
 Route::post('/voucher/apply', [CheckoutController::class, 'applyVoucher']);
 Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
+Route::get('/flash-sales/current', [PublicFlashSaleController::class, 'current']);
 
 // ==================== ADMIN ROUTES ====================
 
@@ -81,6 +84,17 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::post('/payments/{id}/verify-bank', [\App\Http\Controllers\Admin\PaymentController::class, 'verifyBank']);
     Route::post('/payments/{id}/reject-bank', [\App\Http\Controllers\Admin\PaymentController::class, 'rejectBank']);
     Route::post('/payments/{id}/transition',  [\App\Http\Controllers\Admin\PaymentController::class, 'transition']);
+
+     // Flash Sales
+    Route::get('/flash-sales',                            [FlashSaleController::class, 'index']);
+    Route::post('/flash-sales',                           [FlashSaleController::class, 'store']);
+    Route::get('/flash-sales/{id}',                       [FlashSaleController::class, 'show']);
+    Route::put('/flash-sales/{id}',                       [FlashSaleController::class, 'update']);
+    Route::delete('/flash-sales/{id}',                    [FlashSaleController::class, 'destroy']);
+    Route::post('/flash-sales/{id}/items',                [FlashSaleController::class, 'addItem']);
+    Route::put('/flash-sales/{saleId}/items/{itemId}',    [FlashSaleController::class, 'updateItem']);
+    Route::delete('/flash-sales/{saleId}/items/{itemId}', [FlashSaleController::class, 'removeItem']);
+    Route::get('/flash-sales/{id}/available-products',    [FlashSaleController::class, 'availableProducts']);
 });
 
 // ==================== CUSTOMER API ROUTES ====================

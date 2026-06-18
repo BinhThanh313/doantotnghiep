@@ -18,7 +18,8 @@ export const menuAsideMain = [
   { to: '/products',   icon: mdiPackageVariant,     label: 'Sản phẩm'      },
   { to: '/categories', icon: mdiFormatListBulleted, label: 'Danh mục'      },
   { to: '/orders',     icon: mdiCartOutline,        label: 'Đơn hàng'      },
-  { to: '/payments',   icon: mdiCreditCardOutline,  label: 'Thanh toán'    }, // ← thêm
+  { to: '/payments',   icon: mdiCreditCardOutline,  label: 'Thanh toán'    },
+  { to: '/flash-sales',  icon: mdiBolt,               label: 'Flash Sale'    }, // ← thêm
   { to: '/vouchers',   icon: mdiTicketPercent,      label: 'Voucher'       },
   { to: '/reviews',    icon: mdiStarOutline,        label: 'Đánh giá'      },
   { to: '/shipping',   icon: mdiTruck,              label: 'Vận chuyển'    },

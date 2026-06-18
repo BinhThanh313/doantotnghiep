@@ -40,6 +40,7 @@ import ReviewDetailView from '@/views/manage/reviews/ReviewDetailView.vue'
 import ShippingView from '@/views/manage/shipping/ShippingView.vue'
 
 import PaymentListView from '@/views/manage/payment/PaymentListView.vue'
+import FlashSaleView from '@/views/manage/flash-sales/FlashSaleView.vue'
 const routes = [
   // ==================== DEFAULT REDIRECT ====================
   {
@@ -169,7 +170,12 @@ const routes = [
     name: 'payments.index',
     component: PaymentListView,
   },
-
+  {
+  meta: { title: 'Flash Sale' },
+  path: '/flash-sales',
+  name: 'flash-sales.index',
+  component: FlashSaleView,
+},
   // ==================== DEMO PAGES ====================
   {
     meta: { title: 'Tables' },

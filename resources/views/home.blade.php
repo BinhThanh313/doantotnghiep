@@ -127,7 +127,7 @@
         </div>
     </div>
 </div>
-
+@include('shop.partials.flash-sale-widget')
 {{-- Middle Offer Banners --}}
 <div class="container-fluid bg-light py-5">
     <div class="container">
