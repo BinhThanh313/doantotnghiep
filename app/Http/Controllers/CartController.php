@@ -66,7 +66,7 @@ class CartController extends Controller
             'success' => true,
             'message' => 'Đã thêm vào giỏ hàng',
             'cart_count' => count($cart)
-        ]);
+        ], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
     public function update(Request $request, $id)

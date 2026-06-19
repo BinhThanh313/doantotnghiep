@@ -168,7 +168,9 @@
                             <a href="{{ route('bestseller') }}" class="nav-item nav-link {{ request()->routeIs('bestseller') ? 'active' : '' }}">Bán chạy</a>
                             {{-- Thêm điều kiện active riêng cho mã giảm giá --}}
                             <a href="{{ route('shop.vouchers') }}" class="nav-item nav-link {{ request()->routeIs('shop.vouchers') ? 'active' : '' }}">Mã giảm giá</a>
-                            
+                            <a href="{{ route('flash-sale') }}" class="nav-item nav-link {{ request()->routeIs('flash-sale') ? 'active' : '' }}">
+                                ⚡ Flash Sale
+                            </a>
                             <a href="{{ route('contact') }}" class="nav-item nav-link {{ request()->routeIs('contact') ? 'active' : '' }} me-2">Liên hệ</a>
                         </div>
                         </div>
@@ -259,7 +261,7 @@
     </div>
 
     {{-- Copyright (Giữ nguyên) --}}
-    <div class="container-fluid copyright py-4">
+    {{-- <div class="container-fluid copyright py-4">
         <div class="container">
             <div class="row g-4 align-items-center">
                 <div class="col-md-6 text-center text-md-start mb-md-0">
@@ -272,7 +274,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </div> --}}
 
     {{-- Back to Top (Giữ nguyên) --}}
     <a href="#" class="btn btn-primary btn-lg-square back-to-top"><i class="fa fa-arrow-up"></i></a>

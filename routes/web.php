@@ -6,6 +6,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
+use App\Http\Controllers\FlashSalePageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,7 +23,7 @@ Route::get('/vouchers', [ShopController::class, 'vouchers'])->name('shop.voucher
 
 Route::get('/contact', fn() => view('contact'))->name('contact');
 Route::get('/bestseller', [ShopController::class, 'bestsellers'])->name('bestseller');
-
+Route::get('/flash-sale', [FlashSalePageController::class, 'index'])->name('flash-sale');
 Route::post('/checkout/shipping-fee', [CheckoutController::class, 'calculateShipping'])->name('checkout.shipping-fee');
 Auth::routes();
 

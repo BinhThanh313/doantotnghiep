@@ -19,6 +19,11 @@
                 <span class="badge bg-white text-danger fw-bold fs-6">
                     {{ $flashSale->name }}
                 </span>
+                
+                {{-- Thêm vào cuối phần header của widget --}}
+                <a href="{{ route('flash-sale') }}" class="btn btn-outline-light btn-sm rounded-pill">
+                    Xem tất cả →
+                </a>
             </div>
             <div class="d-flex align-items-center gap-2 text-white">
                 <span class="small opacity-75">Kết thúc sau:</span>
@@ -35,7 +40,6 @@
                 </div>
             </div>
         </div>
-
         <!-- Products -->
         <div class="row g-3">
             @foreach($flashSale->items->take(6) as $item)
@@ -84,16 +88,17 @@
                         @endif
                     </div>
 
+                    {{-- Thay thế toàn bộ phần card-footer --}}
                     <div class="card-footer p-1 bg-white border-0">
-                        <form action="{{ route('cart.add') }}" method="POST">
-                            @csrf
-                            <input type="hidden" name="product_id" value="{{ $product->id }}">
-                            <button type="submit"
-                                    class="btn btn-danger btn-sm w-100 rounded-pill"
-                                    {{ $item->isSoldOut() ? 'disabled' : '' }}>
-                                {{ $item->isSoldOut() ? 'Hết hàng' : 'Mua ngay' }}
-                            </button>
-                        </form>
+                        @if($item->isSoldOut())
+                        <button class="btn btn-danger btn-sm w-100 rounded-pill" disabled>Hết hàng</button>
+                        @else
+                        <button type="button"
+                                class="btn btn-danger btn-sm w-100 rounded-pill flash-add-cart"
+                                data-id="{{ $product->id }}">
+                            Mua ngay
+                        </button>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -102,7 +107,71 @@
         </div>
     </div>
 </div>
+<script>
+(function () {
+    // Countdown
+    const el = document.getElementById('flash-sale-countdown')
+    if (!el) return
+    const ends = new Date(el.dataset.ends).getTime()
+    function tick () {
+        const diff = Math.max(0, Math.floor((ends - Date.now()) / 1000))
+        const h = Math.floor(diff / 3600)
+        const m = Math.floor((diff % 3600) / 60)
+        const s = diff % 60
+        const pad = n => String(n).padStart(2, '0')
+        el.querySelector('.countdown-hours').textContent = pad(h)
+        el.querySelector('.countdown-mins').textContent  = pad(m)
+        el.querySelector('.countdown-secs').textContent  = pad(s)
+        if (diff > 0) setTimeout(tick, 1000)
+        else el.closest('.flash-sale-section')?.remove()
+    }
+    tick()
 
+    // Add to cart AJAX
+    document.querySelectorAll('.flash-add-cart').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const productId = this.dataset.id
+            const originalText = this.innerHTML
+            this.disabled = true
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'
+
+            fetch('{{ route("cart.add") }}', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ product_id: productId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    this.innerHTML = '✓ Đã thêm'
+                    this.classList.remove('btn-danger')
+                    this.classList.add('btn-success')
+                    setTimeout(() => {
+                        this.innerHTML = originalText
+                        this.classList.remove('btn-success')
+                        this.classList.add('btn-danger')
+                        this.disabled = false
+                    }, 2000)
+                } else {
+                    alert(data.message || 'Có lỗi xảy ra')
+                    this.innerHTML = originalText
+                    this.disabled = false
+                }
+            })
+            .catch(() => {
+                alert('Lỗi kết nối!')
+                this.innerHTML = originalText
+                this.disabled = false
+            })
+        })
+    })
+})()
+</script>
 <script>
 (function () {
     const el   = document.getElementById('flash-sale-countdown')
