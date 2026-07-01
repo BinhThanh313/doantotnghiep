@@ -4,10 +4,12 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Voucher;
+use App\Services\RecommendationService;
+use Illuminate\Support\Facades\Auth;
 
 class HomeController extends Controller
 {
-    public function index()
+    public function index(RecommendationService $recommendationService)
     {
         // 8 sản phẩm mới nhất cho trang chủ
         $products = Product::with('category')
@@ -26,6 +28,11 @@ class HomeController extends Controller
 
         $categories = Category::withCount('products')->get();
 
-        return view('home', compact('products', 'bestsellers', 'categories'));
+        // Gợi ý cá nhân hóa: user đăng nhập -> theo lịch sử mua/xem, khách -> fallback rỗng (ẩn block)
+        $forYou = Auth::check()
+            ? $recommendationService->forUser(Auth::user(), 8)
+            : collect();
+
+        return view('home', compact('products', 'bestsellers', 'categories', 'forYou'));
     }
 }

@@ -3,8 +3,11 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Product;
+use App\Models\ProductView;
 use Illuminate\Http\Request;
-use App\Models\Voucher; 
+use App\Models\Voucher;
+use App\Services\RecommendationService;
+use Illuminate\Support\Facades\Auth;
 
 class ShopController extends Controller
 {
@@ -51,19 +54,24 @@ class ShopController extends Controller
         return view('shop.shop', compact('products', 'categories'));
     }
 
-    public function show($id)
+    public function show($id, RecommendationService $recommendationService)
     {
         $product    = Product::with('category')->findOrFail($id);
         $categories = Category::withCount('products')->get();
 
-        // Sản phẩm liên quan cùng danh mục
-        $related = Product::where('category_id', $product->category_id)
-                          ->where('id', '!=', $product->id)
-                          ->where('is_active', true)
-                          ->limit(4)
-                          ->get();
+        // Tăng lượt xem + ghi log lịch sử xem (dùng cho gợi ý cá nhân hóa)
+        $product->increment('view_count');
+        ProductView::create([
+            'user_id'    => Auth::id(), // <-- Sửa auth()->id() thành Auth::id()
+            'session_id' => Auth::check() ? null : session()->getId(), // <-- Sửa auth()->check()
+            'product_id' => $product->id,
+            'viewed_at'  => now(),
+        ]);
 
-        return view('shop.show', compact('product', 'categories', 'related'));
+        // Gợi ý sản phẩm: liên quan / khách hàng cũng mua / dành riêng cho bạn
+        // Sửa auth()->user() thành Auth::user()
+        $recommendations = $recommendationService->forProductPage($product, Auth::user());
+        return view('shop.show', compact('product', 'categories', 'recommendations'));
     }
 
     public function vouchers()

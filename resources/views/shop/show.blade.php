@@ -138,7 +138,9 @@
                                     @endpush
                             </div>
                         </div>
-                        
+
+                        @include('shop.partials.recommendations')
+
                     </div>
                 </div>
             </div>
