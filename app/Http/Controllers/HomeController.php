@@ -4,12 +4,12 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\Voucher;
-use App\Services\RecommendationService;
+use App\Services\ItemBasedRecommendationService;
 use Illuminate\Support\Facades\Auth;
 
 class HomeController extends Controller
 {
-    public function index(RecommendationService $recommendationService)
+    public function index(ItemBasedRecommendationService $recommendationService)
     {
         // 8 sản phẩm mới nhất cho trang chủ
         $products = Product::with('category')
@@ -28,7 +28,9 @@ class HomeController extends Controller
 
         $categories = Category::withCount('products')->get();
 
-        // Gợi ý cá nhân hóa: user đăng nhập -> theo lịch sử mua/xem, khách -> fallback rỗng (ẩn block)
+        // Gợi ý cá nhân hóa bằng Item-based Collaborative Filtering (product_similarities):
+        // user đăng nhập -> lan điểm từ sản phẩm đã mua/xem sang sản phẩm tương đồng,
+        // khách -> fallback rỗng (ẩn block)
         $forYou = Auth::check()
             ? $recommendationService->forUser(Auth::user(), 8)
             : collect();

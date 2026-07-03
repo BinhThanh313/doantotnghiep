@@ -57,26 +57,61 @@ class ItemBasedRecommendationService
             return $this->bestsellerFallback($boughtIds, $limit);
         }
 
-        $topIds = $scores->sortDesc()->take($limit)->keys();
+        // Lấy dư ứng viên (không chỉ đúng $limit) để còn "vốn" bù thêm sau khi
+        // lọc is_active, tránh trường hợp vài id trong top bị inactive làm hụt kết quả.
+        $topIds = $scores->sortDesc()->take($limit * 3)->keys();
 
         $products = Product::whereIn('id', $topIds)
             ->where('is_active', true)
             ->get()
             ->keyBy('id');
 
-        $results = $topIds->map(fn ($id) => $products[$id] ?? null)->filter()->values();
+        $results = $topIds->map(fn ($id) => $products[$id] ?? null)
+            ->filter()
+            ->take($limit)
+            ->values();
 
         if ($results->count() < $limit) {
-            $existingIds = $results->pluck('id')->merge($boughtIds);
-            $extra = Product::whereNotIn('id', $existingIds)
-                ->where('is_active', true)
-                ->where('is_bestseller', true)
-                ->limit($limit - $results->count())
-                ->get();
-            $results = $results->concat($extra);
+            $results = $this->topUp($results, $boughtIds, $limit);
         }
 
         return $results->values();
+    }
+
+    /**
+     * Bù thêm cho đủ $limit khi kết quả cá nhân hóa (CF) chưa đủ:
+     *   1. Ưu tiên sản phẩm bestseller (tín hiệu "đáng tin" nhất khi thiếu dữ liệu cá nhân hóa).
+     *   2. Nếu vẫn thiếu, bù tiếp bằng sản phẩm có view_count cao nhất còn lại —
+     *      đảm bảo hầu như luôn lấp đầy $limit miễn là catalog còn đủ sản phẩm,
+     *      thay vì phụ thuộc hoàn toàn vào cờ is_bestseller (dễ bị quá ít/quá hẹp).
+     */
+    private function topUp(Collection $results, Collection $boughtIds, int $limit): Collection
+    {
+        $existingIds = $results->pluck('id')->merge($boughtIds);
+
+        if ($results->count() < $limit) {
+            $bestsellers = Product::whereNotIn('id', $existingIds)
+                ->where('is_active', true)
+                ->where('is_bestseller', true)
+                ->orderByDesc('view_count')
+                ->limit($limit - $results->count())
+                ->get();
+
+            $results = $results->concat($bestsellers);
+            $existingIds = $existingIds->merge($bestsellers->pluck('id'));
+        }
+
+        if ($results->count() < $limit) {
+            $popular = Product::whereNotIn('id', $existingIds)
+                ->where('is_active', true)
+                ->orderByDesc('view_count')
+                ->limit($limit - $results->count())
+                ->get();
+
+            $results = $results->concat($popular);
+        }
+
+        return $results;
     }
 
     /**
@@ -110,11 +145,6 @@ class ItemBasedRecommendationService
 
     private function bestsellerFallback(Collection $excludeIds, int $limit): Collection
     {
-        return Product::whereNotIn('id', $excludeIds)
-            ->where('is_active', true)
-            ->where('is_bestseller', true)
-            ->orderByDesc('view_count')
-            ->limit($limit)
-            ->get();
+        return $this->topUp(collect(), $excludeIds, $limit)->values();
     }
 }
