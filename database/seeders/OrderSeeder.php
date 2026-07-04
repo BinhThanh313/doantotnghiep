@@ -14,9 +14,21 @@ class OrderSeeder extends Seeder
     {
         $faker = Faker::create('vi_VN');
 
-        // Lấy user IDs thực tế
-        $userIds  = DB::table('users')->pluck('id')->toArray();
-        if (empty($userIds)) $userIds = [null];
+        // Lấy user IDs thực tế — CHỦ Ý loại admin và tài khoản demo
+        // (test@example.com) ra khỏi danh sách gán đơn ngẫu nhiên. 2 tài
+        // khoản này cần giữ hành vi "sạch" (admin = cold-start thật sự,
+        // test = chỉ có dữ liệu do RecommendationDemoSeeder tạo) để phần
+        // demo recommendation không bị nhiễu bởi đơn hàng ngẫu nhiên ở đây.
+        // Nếu không loại trừ, các đơn ngẫu nhiên này sẽ vô tình rơi hết vào
+        // admin/test vì tại thời điểm OrderSeeder chạy (trong DatabaseSeeder),
+        // đó là 2 user DUY NHẤT tồn tại — RecommendationBenchmarkSeeder (tạo
+        // thêm user) chỉ chạy SAU đó, tách biệt.
+        $userIds = DB::table('users')
+            ->where('role', '!=', 'admin')
+            ->where('email', '!=', 'test@example.com')
+            ->pluck('id')
+            ->toArray();
+        if (empty($userIds)) $userIds = [null]; // không có user nào khác -> coi là khách vãng lai
 
         // Lấy product IDs thực tế
         $products = DB::table('products')->select('id', 'name', 'price', 'stock')->get();

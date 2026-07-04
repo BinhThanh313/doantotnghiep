@@ -23,6 +23,15 @@ const mainStore = useMainStore(pinia)
  * rồi mới fetch (như cách làm cũ ở App.vue::onMounted), Vue sẽ render giá
  * trị mặc định "John Doe" trước, rồi mới re-render đè lên khi API trả về
  * → gây hiện tượng chớp tên sai dù rất nhanh.
+ *
+ * Trường hợp token không còn hợp lệ (hết hạn, hoặc DB vừa bị seed lại
+ * bằng migrate:fresh khiến bảng personal_access_tokens bị xóa sạch) thì
+ * KHÔNG được im lặng bỏ qua rồi mount app — vì window.location.href ở
+ * interceptor không dừng code ngay lập tức, nên app vẫn mount và gọi các
+ * API khác bằng token đã chết trong lúc chờ trình duyệt chuyển trang,
+ * gây hiện tượng "chớp John Doe + mất dữ liệu mọi trang" cho tới khi
+ * người dùng F5 thủ công. Ở đây ta chủ động dừng hẳn và điều hướng ngay,
+ * không mount app với state rỗng/giả nữa.
  */
 async function bootstrap() {
   const token = localStorage.getItem('admin_token')
@@ -35,9 +44,9 @@ async function bootstrap() {
         email: res.data.email,
       })
     } catch (e) {
-      // Token không hợp lệ / hết quyền -> interceptor trong api.js đã lo việc
-      // xóa token & điều hướng về /login (401), hoặc hiện toast (403).
-      // Không cần xử lý thêm ở đây, cứ tiếp tục mount bình thường.
+      localStorage.removeItem('admin_token')
+      window.location.replace('/doantotnghiep/public/admin/login#/login')
+      return // dừng hẳn, không mount app với dữ liệu cũ/rỗng
     }
   }
 
