@@ -100,7 +100,7 @@ class DashboardController extends Controller
             ->where('stock', '>', 0) // Loại trừ các sản phẩm đã hết hàng hẳn (out of stock)
             ->orderBy('stock')
             ->limit(10)
-            ->get(['id', 'name', 'sku', 'stock', 'price', 'image']);
+            ->get(['id', 'name', 'stock', 'price', 'image']);
 
         return response()->json([
             'widgets' => [
@@ -112,10 +112,8 @@ class DashboardController extends Controller
                 'low_stock'       => $lowStockProducts->count(),
                 'out_of_stock'    => $outOfStock,
             ],
-            'today' => [
-                'today_orders'  => $todayOrders,
-                'today_revenue' => $todayRevenue,
-            ],
+            'today_orders'  => $todayOrders,
+            'today_revenue' => $todayRevenue,
             'chart' => [
                 'labels' => $chartLabels,
                 'data'   => $chartData,
