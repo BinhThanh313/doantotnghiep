@@ -14,23 +14,28 @@ class AuthController extends Controller
             'password' => 'required|string',
         ]);
 
-        if (!Auth::attempt($credentials)) {
+        // QUAN TRỌNG: dùng Auth::validate() thay vì Auth::attempt() — chỉ
+        // kiểm tra đúng email/mật khẩu, KHÔNG đăng nhập session 'web'.
+        // Admin panel là SPA thuần token (Sanctum Bearer token), tách biệt
+        // hoàn toàn với session 'web' mà storefront khách hàng đang dùng.
+        // Trước đây dùng Auth::attempt() vô tình ghi đè session 'web' của
+        // trình duyệt sang admin, khiến khách đang đăng nhập ở storefront
+        // bị "biến thành" admin khi F5 lại trang.
+        if (!Auth::validate($credentials)) {
             return response()->json([
                 'message' => 'Email hoặc mật khẩu không đúng'
             ], 401);
         }
 
         /** @var \App\Models\User $user */
-        $user  = Auth::user();
-        if ($user->role !== 'admin') { 
-            // Nếu không phải admin, thu hồi phiên đăng nhập vừa tạo
-            Auth::logout(); 
+        $user = \App\Models\User::where('email', $credentials['email'])->first();
+
+        if ($user->role !== 'admin') {
             return response()->json([
                 'message' => 'Tài khoản của bạn không có quyền truy cập trang quản trị!'
             ], 403);
         }
 
-        // 3. Nếu là Admin, tạo token
         $token = $user->createToken('admin-token')->plainTextToken;
 
         return response()->json([

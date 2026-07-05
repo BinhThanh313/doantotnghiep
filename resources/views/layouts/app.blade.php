@@ -287,5 +287,6 @@
     <script src="{{ asset('js/main.js') }}"></script>
 
     @stack('scripts')
+    @include('shop.partials.chatbot-widget')
 </body>
 </html>

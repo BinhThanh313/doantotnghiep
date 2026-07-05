@@ -110,6 +110,9 @@
                             <nav>
                                 <div class="nav nav-tabs mb-3">
                                     <button class="nav-link active border-white border-bottom-0" type="button" role="tab" id="nav-about-tab" data-bs-toggle="tab" data-bs-target="#nav-about" aria-controls="nav-about" aria-selected="true">Mô tả sản phẩm</button>
+                                    @if($product->specifications->isNotEmpty())
+                                    <button class="nav-link border-white border-bottom-0" type="button" role="tab" id="nav-specs-tab" data-bs-toggle="tab" data-bs-target="#nav-specs" aria-controls="nav-specs" aria-selected="false">Thông số kỹ thuật</button>
+                                    @endif
                                     <button class="nav-link border-white border-bottom-0" type="button" role="tab" id="nav-mission-tab" data-bs-toggle="tab" data-bs-target="#nav-mission" aria-controls="nav-mission" aria-selected="false">Đánh giá (0)</button>
                                 </div>
                             </nav>
@@ -117,6 +120,23 @@
                                 <div class="tab-pane active" id="nav-about" role="tabpanel" aria-labelledby="nav-about-tab">
                                     <p>{!! $product->description ?? 'Chưa có mô tả cho sản phẩm này.' !!}</p>
                                 </div>
+                                @if($product->specifications->isNotEmpty())
+                                <div class="tab-pane" id="nav-specs" role="tabpanel" aria-labelledby="nav-specs-tab">
+                                    @foreach($product->specifications_grouped as $groupName => $items)
+                                        <h6 class="fw-bold text-primary mt-4 mb-2">{{ $groupName }}</h6>
+                                        <table class="table table-bordered table-striped align-middle mb-0">
+                                            <tbody>
+                                                @foreach($items as $item)
+                                                <tr>
+                                                    <td style="width: 35%;" class="fw-semibold">{{ $item['label'] }}</td>
+                                                    <td style="white-space: pre-line;">{{ $item['value'] }}{{ $item['unit'] ? ' ' . $item['unit'] : '' }}</td>
+                                                </tr>
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    @endforeach
+                                </div>
+                                @endif
                                 <div class="tab-pane" id="nav-mission" role="tabpanel" aria-labelledby="nav-mission-tab">
                                         @include('shop.partials.review-list')
                                         

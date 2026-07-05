@@ -52,6 +52,11 @@ class Product extends Model
         return $this->hasMany(InventoryLog::class);
     }
 
+    public function specifications()
+    {
+        return $this->hasMany(ProductSpecification::class)->orderBy('sort_order');
+    }
+
     // ==================== ACCESSORS ====================
 
     /**
@@ -68,6 +73,21 @@ class Product extends Model
     public function getReviewCountAttribute(): int
     {
         return $this->reviews()->where('is_visible', true)->count();
+    }
+
+    /**
+     * Gom thông số kỹ thuật theo nhóm để hiển thị, dạng:
+     * ['Màn hình' => [['label' => ..., 'value' => ..., 'unit' => ...], ...], ...]
+     */
+    public function getSpecificationsGroupedAttribute(): \Illuminate\Support\Collection
+    {
+        return $this->specifications
+            ->groupBy('group_name')
+            ->map(fn ($items) => $items->map(fn ($s) => [
+                'label' => $s->label,
+                'value' => $s->value,
+                'unit'  => $s->unit,
+            ])->values());
     }
 
     // ==================== SCOPES ====================

@@ -11,8 +11,8 @@ import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
 import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
 import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.vue'
-// ── Import component biến thể (cùng thư mục) ──────────────────
-import ProductVariantManager from './ProductVariantManager.vue'
+// ── Import component thông số kỹ thuật (cùng thư mục) ──────────
+import ProductSpecificationManager from './ProductSpecificationManager.vue'
 import api from '@/services/api'
 
 const route = useRoute()
@@ -163,15 +163,15 @@ onMounted(() => {
         </template>
       </CardBox>
 
-      <!-- ── Panel biến thể: chỉ hiện khi đang SỬA sản phẩm ── -->
-      <ProductVariantManager
+      <!-- ── Panel thông số kỹ thuật: chỉ hiện khi đang SỬA sản phẩm ── -->
+      <ProductSpecificationManager
         v-if="isEditMode && route.params.id"
         :product-id="Number(route.params.id)"
       />
 
       <!-- Hint khi tạo mới -->
       <div v-else class="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm text-blue-600 dark:text-blue-400">
-        💡 Sau khi lưu sản phẩm, bạn có thể quay lại trang <strong>Sửa</strong> để thêm biến thể (Size, Màu sắc…).
+        💡 Sau khi lưu sản phẩm, bạn có thể quay lại trang <strong>Sửa</strong> để chỉnh thông số kỹ thuật (đã được sinh tự động theo danh mục + giá).
       </div>
 
     </SectionMain>

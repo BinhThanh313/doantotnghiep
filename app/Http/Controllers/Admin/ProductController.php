@@ -153,6 +153,8 @@ class ProductController extends Controller
                         ]);
                     }
 
+                    $this->generateDefaultSpecifications($product);
+
                     $created++;
                 }
             }
@@ -219,6 +221,10 @@ class ProductController extends Controller
 
         $product = Product::create($data);
 
+        // Tự động sinh thông số kỹ thuật mặc định theo danh mục + giá,
+        // admin có thể chỉnh sửa lại sau qua API specifications bên dưới.
+        $this->generateDefaultSpecifications($product);
+
         return response()->json($product->load('category'), 201);
     }
 
@@ -270,5 +276,119 @@ class ProductController extends Controller
         $product->delete();
 
         return response()->json(['message' => 'Đã xóa sản phẩm']);
+    }
+
+    /**
+     * Sinh thông số kỹ thuật mặc định cho 1 sản phẩm dựa theo danh mục +
+     * giá (dùng chung cho create() thủ công và import Excel hàng loạt).
+     * Không ghi đè nếu sản phẩm đã có specs sẵn.
+     */
+    private function generateDefaultSpecifications(Product $product): void
+    {
+        if ($product->specifications()->exists()) {
+            return;
+        }
+
+        $generator = new \App\Services\ProductSpecificationGenerator();
+        $rows = $generator->generate(
+            $product->category?->name ?? '',
+            $product->name,
+            (float) $product->price
+        );
+
+        if (empty($rows)) {
+            return;
+        }
+
+        $now = now();
+        $insert = [];
+        foreach ($rows as $order => $row) {
+            $insert[] = [
+                'product_id' => $product->id,
+                'group_name' => $row['group'],
+                'label'      => $row['label'],
+                'value'      => $row['value'],
+                'unit'       => $row['unit'],
+                'sort_order' => $order,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+
+        DB::table('product_specifications')->insert($insert);
+    }
+
+    /**
+     * GET /api/admin/products/{id}/specifications
+     */
+    public function getSpecifications($id)
+    {
+        $product = Product::findOrFail($id);
+
+        return response()->json(
+            $product->specifications()->orderBy('sort_order')->get()
+        );
+    }
+
+    /**
+     * PUT /api/admin/products/{id}/specifications
+     * Ghi đè toàn bộ danh sách thông số kỹ thuật của 1 sản phẩm (admin sửa
+     * lại từ dữ liệu tự sinh, hoặc thêm/xoá dòng tuỳ ý).
+     * Body: { specifications: [{ group_name, label, value, unit }, ...] }
+     */
+    public function updateSpecifications(Request $request, $id)
+    {
+        $product = Product::findOrFail($id);
+
+        $data = $request->validate([
+            'specifications'             => 'array',
+            'specifications.*.group_name' => 'required|string|max:255',
+            'specifications.*.label'      => 'required|string|max:255',
+            'specifications.*.value'      => 'required|string',
+            'specifications.*.unit'       => 'nullable|string|max:50',
+        ]);
+
+        DB::transaction(function () use ($product, $data) {
+            $product->specifications()->delete();
+
+            $now = now();
+            $insert = [];
+            foreach ($data['specifications'] ?? [] as $order => $row) {
+                $insert[] = [
+                    'product_id' => $product->id,
+                    'group_name' => $row['group_name'],
+                    'label'      => $row['label'],
+                    'value'      => $row['value'],
+                    'unit'       => $row['unit'] ?? null,
+                    'sort_order' => $order,
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ];
+            }
+
+            if (!empty($insert)) {
+                DB::table('product_specifications')->insert($insert);
+            }
+        });
+
+        return response()->json(
+            $product->specifications()->orderBy('sort_order')->get()
+        );
+    }
+
+    /**
+     * POST /api/admin/products/{id}/specifications/regenerate
+     * Xoá specs hiện tại và sinh lại từ đầu theo danh mục + giá — hữu ích
+     * khi admin đổi danh mục/giá và muốn làm mới bộ thông số mặc định.
+     */
+    public function regenerateSpecifications($id)
+    {
+        $product = Product::findOrFail($id);
+        $product->specifications()->delete();
+        $this->generateDefaultSpecifications($product);
+
+        return response()->json(
+            $product->specifications()->orderBy('sort_order')->get()
+        );
     }
 }

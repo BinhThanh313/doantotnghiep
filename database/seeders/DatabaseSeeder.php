@@ -25,6 +25,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             CategorySeeder::class,
             ProductSeeder::class,
+            ProductSpecificationSeeder::class, // sinh thông số kỹ thuật demo cho toàn bộ sản phẩm
             ShippingCarrierSeeder::class, // ← phải trước OrderSeeder
             PaymentMethodSeeder::class,
             OrderSeeder::class,

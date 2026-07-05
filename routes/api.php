@@ -16,6 +16,8 @@ use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Admin\ProductVariantController;
 use App\Http\Controllers\Admin\FlashSaleController;
 use App\Http\Controllers\Api\FlashSaleController as PublicFlashSaleController;
+use App\Http\Controllers\Api\ChatbotController;
+use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 // ==================== PUBLIC ROUTES ====================
 
@@ -24,6 +26,16 @@ Route::post('/shipping/calculate', [ShippingController::class, 'calculateFee']);
 Route::post('/voucher/apply', [CheckoutController::class, 'applyVoucher']);
 Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
 Route::get('/flash-sales/current', [PublicFlashSaleController::class, 'current']);
+
+// Chatbot — công khai, không bắt buộc đăng nhập (khách vãng lai vẫn hỏi
+// được về sản phẩm/giá; tra cứu đơn hàng thì cần đăng nhập). Bọc riêng
+// bằng EnsureFrontendRequestsAreStateful ở ĐÚNG group này thay vì bật
+// statefulApi() toàn cục — để admin panel (xác thực bằng Bearer token
+// thuần) không bị Sanctum ưu tiên nhầm sang session 'web' của storefront.
+Route::middleware(EnsureFrontendRequestsAreStateful::class)->group(function () {
+    Route::post('/chatbot/message', [ChatbotController::class, 'handle']);
+    Route::get('/chatbot/history/{sessionToken}', [ChatbotController::class, 'history']);
+});
 
 // ==================== ADMIN ROUTES ====================
 
@@ -47,6 +59,9 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     // Products, Categories, Users, Vouchers
     Route::post('/products/import', [ProductController::class, 'import']);
     Route::patch('/products/{id}/toggle-bestseller', [ProductController::class, 'toggleBestseller']);
+    Route::get('/products/{id}/specifications', [ProductController::class, 'getSpecifications']);
+    Route::put('/products/{id}/specifications', [ProductController::class, 'updateSpecifications']);
+    Route::post('/products/{id}/specifications/regenerate', [ProductController::class, 'regenerateSpecifications']);
     Route::apiResource('products', ProductController::class);
     Route::apiResource('categories', CategoryController::class);
     Route::apiResource('users', UserController::class);
@@ -99,7 +114,10 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 
 // ==================== CUSTOMER API ROUTES ====================
 
-Route::middleware('auth:sanctum')->group(function () {
+// Nhóm này dùng session 'web' của storefront (khách hàng không có Bearer
+// token, chỉ đăng nhập qua session) — cần EnsureFrontendRequestsAreStateful
+// để Sanctum chấp nhận session làm phương thức xác thực hợp lệ ở đây.
+Route::middleware([EnsureFrontendRequestsAreStateful::class, 'auth:sanctum'])->group(function () {
     Route::post('/products/{productId}/reviews', [ReviewController::class, 'store']);
     Route::post('/reviews/{reviewId}/helpful',   [ReviewController::class, 'helpful']);
     Route::get('/reviews/{reviewId}',            [ReviewController::class, 'show']);
