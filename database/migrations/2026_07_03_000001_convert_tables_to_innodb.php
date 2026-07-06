@@ -18,6 +18,13 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Chỉ MySQL/MariaDB mới có khái niệm storage engine (MyISAM/InnoDB).
+        // SQLite (dùng khi chạy test với DB in-memory) không có information_schema
+        // theo cú pháp này và không cần chuyển đổi engine — bỏ qua an toàn.
+        if (DB::connection()->getDriverName() !== 'mysql') {
+            return;
+        }
+
         $database = DB::getDatabaseName();
 
         $tables = DB::select(

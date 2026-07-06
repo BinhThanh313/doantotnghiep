@@ -299,9 +299,11 @@ class ChatbotResponseService
             return strtoupper($m[0]);
         }
 
-        // Fallback: khách chỉ gõ số ID (VD "đơn hàng 3") — trả về dạng
-        // đặc biệt "ID:3" để handleOrderLookup phân biệt với invoice_number
-        if (preg_match('/#?(\d+)/u', $text, $m)) {
+        // Fallback: khách chỉ gõ số ID, nhưng CHỈ khi số đó đứng ngay sau
+        // "đơn hàng"/"don hang" hoặc sau dấu "#" — tránh bắt nhầm số bất kỳ
+        // xuất hiện ở chỗ khác trong câu (VD: "đơn hàng của tôi có 3 sản
+        // phẩm được không" không phải là tra cứu đơn hàng #3).
+        if (preg_match('/(?:đơn hàng|don hang)\D{0,10}?#?(\d+)/u', $text, $m)) {
             return 'ID:' . $m[1];
         }
         return null;

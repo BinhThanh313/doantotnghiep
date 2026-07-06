@@ -178,7 +178,7 @@ class ProductQueryParser
      */
     private function detectRam(string $text): array
     {
-        if (preg_match('/ram\D{0,15}?(\d+)\s*gb?/u', $text, $m)) {
+        if (preg_match('/ram\D{0,15}?(\d+)\s*(?:gb)?/u', $text, $m)) {
             return [['label' => 'RAM', 'operator' => '>=', 'value' => (int) $m[1]]];
         }
         return [];

@@ -92,7 +92,7 @@
         input.value = '';
 
         try {
-            const res = await fetch('/doantotnghiep/public/api/chatbot/message', {
+            const res = await fetch('{{ url('/api/chatbot/message') }}', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify({ message: text, session_token: sessionToken }),
