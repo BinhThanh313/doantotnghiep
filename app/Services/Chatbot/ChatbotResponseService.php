@@ -38,7 +38,7 @@ class ChatbotResponseService
         // mục (VD: "laptop nào tốt hơn" chứa chữ "laptop"). Ưu tiên kiểm tra
         // trước khi chạy parser.
         if ($this->isFollowUpComparison($message) && !empty($history)) {
-            $context = $this->buildContextFromRecentProducts($history);
+            $context = $this->buildContextFromRecentProducts($history, $message);
             return [
                 'intent' => 'llm_fallback',
                 'reply'  => $this->llm->reply($message, $context),
@@ -78,7 +78,7 @@ class ChatbotResponseService
      * câu hỏi cảm tính), tránh trường hợp bot "quên" sản phẩm thật đang bàn
      * và tự chuyển sang nói về sản phẩm bestseller không liên quan.
      */
-    private function buildContextFromRecentProducts(array $history): string
+    private function buildContextFromRecentProducts(array $history, string $currentMessage = ''): string
     {
         $recentBotText = collect($history)
             ->filter(fn ($m) => $m['sender'] === 'bot')
@@ -107,7 +107,7 @@ class ChatbotResponseService
             ->whereIn('name', $matchedNames)
             ->get();
 
-        $productContext = $this->buildProductContextWithSpecs($products);
+        $productContext = $this->buildProductContextWithSpecs($products, $currentMessage);
 
         return "Đây là các sản phẩm ĐANG được bàn tới trong cuộc hội thoại này (chỉ so sánh/nhận xét trong phạm vi các sản phẩm này, không nhắc sản phẩm khác):\n{$productContext}\n\n"
              . $this->formatHistory($history);
@@ -130,19 +130,28 @@ class ChatbotResponseService
     // ==================== CHÀO HỎI ====================
 
     private function isFollowUpComparison(string $message): bool
-    {
-        $text = mb_strtolower($message);
-        $patterns = [
-            'tốt hơn', 'tốt nhất', 'ngon hơn', 'cái nào', 'con nào',
-            'sản phẩm nào', 'so sánh', 'đáng mua hơn', 'nên chọn cái',
-        ];
-        foreach ($patterns as $p) {
-            if (str_contains($text, $p)) {
-                return true;
-            }
+{
+    $text = mb_strtolower($message);
+
+    $patterns = [
+        'tốt hơn', 'tốt nhất', 'ngon hơn', 'cái nào', 'con nào',
+        'sản phẩm nào', 'so sánh', 'đáng mua hơn', 'nên chọn cái',
+    ];
+    foreach ($patterns as $p) {
+        if (str_contains($text, $p)) {
+            return true;
         }
-        return false;
     }
+
+    // Bắt cấu trúc chung: "<cái/con/đứa/thằng/em/chiếc> nào ... hơn/nhất"
+    // để không phải liệt kê hết biến thể tiếng lóng (VD: "đứa nào trâu hơn",
+    // "con nào bền hơn", "thằng nào xịn hơn"...)
+    if (preg_match('/\b(cái|con|đứa|thằng|em|chiếc)\s+nào\b.*\b(hơn|nhất)\b/u', $text)) {
+        return true;
+    }
+
+    return false;
+}
 
     private function isGreeting(string $message): bool
     {
@@ -220,7 +229,7 @@ class ChatbotResponseService
         $isSubjective = $this->hasSubjectiveQualifier($originalMessage);
 
         if ($isSubjective && $this->llm->isEnabled()) {
-            $context = $this->buildProductContextWithSpecs($products);
+            $context = $this->buildProductContextWithSpecs($products, $originalMessage);
             $llmReply = $this->llm->reply($originalMessage, $context);
             return ['intent' => 'product_search', 'reply' => $llmReply];
         }
@@ -270,21 +279,32 @@ class ChatbotResponseService
         return '';
     }
 
-    /** Ngữ cảnh đầy đủ (kèm vài thông số nổi bật) để LLM xếp hạng/diễn giải, không tự bịa sản phẩm ngoài danh sách này */
+    /**
+     * Ngữ cảnh đầy đủ (kèm thông số nổi bật) để LLM xếp hạng/diễn giải, không
+     * tự bịa sản phẩm ngoài danh sách này.
+     *
+     * QUAN TRỌNG: mỗi sản phẩm có thể có 12-15 thông số (màn hình, camera,
+     * CPU, RAM, pin, kết nối...), nhưng trước đây hàm này luôn lấy 6 thông
+     * số ĐẦU TIÊN theo thứ tự lưu trong DB — nếu khách hỏi về thông số nằm
+     * ở nhóm sau (VD: "Pin"/"Dung lượng pin" thường đứng sau CPU/RAM), LLM
+     * sẽ không thấy thông tin đó trong ngữ cảnh và trả lời "chưa có thông
+     * tin", dù dữ liệu thực sự đã có trong DB. Giờ ưu tiên đưa thông số
+     * KHỚP với từ khoá trong câu hỏi hiện tại lên đầu danh sách trước,
+     * trước khi cắt theo giới hạn.
+     */
     private function buildProductContextWithSpecs($products): string
-    {
-        return $products->map(function (Product $p) {
-            $specs = $p->specifications
-                ->take(6)
-                ->map(fn ($s) => "{$s->label}: {$s->value}" . ($s->unit ? " {$s->unit}" : ''))
-                ->implode(', ');
+{
+    return $products->map(function (Product $p) {
+        $specs = $p->specifications
+            ->take(20) // cap an toàn — category nhiều spec nhất hiện tại (điện thoại) có 15
+            ->map(fn ($s) => "{$s->label}: {$s->value}" . ($s->unit ? " {$s->unit}" : ''))
+            ->implode(', ');
 
-            return "- {$p->name} — " . number_format($p->price, 0, ',', '.') . 'đ'
-                 . ($p->category ? " ({$p->category->name})" : '')
-                 . ($specs ? "\n  Thông số: {$specs}" : '');
-        })->implode("\n");
-    }
-
+        return "- {$p->name} — " . number_format($p->price, 0, ',', '.') . 'đ'
+             . ($p->category ? " ({$p->category->name})" : '')
+             . ($specs ? "\n  Thông số: {$specs}" : '');
+    })->implode("\n");
+}
     // ==================== TRA CỨU ĐƠN HÀNG ====================
 
     private function extractOrderId(string $message): ?string
