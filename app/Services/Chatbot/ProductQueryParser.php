@@ -79,6 +79,9 @@ class ProductQueryParser
     {
         $text = mb_strtolower(trim($text));
 
+        $ramMatches = $this->detectRam($text);
+        $ramValue = $ramMatches[0]['value'] ?? null;
+
         return [
             'category'  => $this->detectCategory($text),
             'brand'     => $this->detectBrand($text),
@@ -86,8 +89,8 @@ class ProductQueryParser
             'price_max' => $this->detectPriceMax($text),
             'specs'     => array_merge(
                 $this->detectCpu($text),
-                $this->detectRam($text),
-                $this->detectStorage($text),
+                $ramMatches,
+                $this->detectStorage($text, $ramValue),
             ),
         ];
     }
@@ -128,33 +131,62 @@ class ProductQueryParser
 
     /**
      * Nhận diện khoảng giá dạng: "15 đến 20 triệu", "15-20tr", "dưới 20 triệu",
-     * "trên 10 triệu", "khoảng 15 triệu". Số tiền mặc định hiểu là ĐƠN VỊ TRIỆU.
+     * "trên 10 triệu", "khoảng 15 triệu", "dưới 500k", "trên 2 tỷ", "dưới
+     * 500000đ". Đơn vị được nhận diện tường minh (tr/triệu/k/nghìn/tỷ) thay
+     * vì mặc định luôn là triệu, tránh hiểu sai giá phụ kiện/tai nghe rẻ.
      */
+    private const PRICE_UNIT_PATTERN = '(?:tr|triệu|k|nghìn|tỷ)';
+
     private function detectPriceMin(string $text): ?int
     {
-        if (preg_match('/(\d+(?:[.,]\d+)?)\s*(?:-|đến|toi|tới)\s*(\d+(?:[.,]\d+)?)\s*(?:tr|triệu)/u', $text, $m)) {
-            return (int) round(((float) str_replace(',', '.', $m[1])) * 1_000_000);
+        if (preg_match('/(\d+(?:[.,]\d+)?)\s*(?:-|đến|toi|tới)\s*(\d+(?:[.,]\d+)?)\s*' . self::PRICE_UNIT_PATTERN . '/u', $text, $m)) {
+            return $this->toVnd($m[1], $this->extractUnit($m[0]));
         }
-        if (preg_match('/trên\s*(\d+(?:[.,]\d+)?)\s*(?:tr|triệu)/u', $text, $m)) {
-            return (int) round(((float) str_replace(',', '.', $m[1])) * 1_000_000);
+        if (preg_match('/trên\s*(\d+(?:[.,]\d+)?)\s*(' . self::PRICE_UNIT_PATTERN . ')/u', $text, $m)) {
+            return $this->toVnd($m[1], $m[2]);
         }
         return null;
     }
 
     private function detectPriceMax(string $text): ?int
     {
-        if (preg_match('/(\d+(?:[.,]\d+)?)\s*(?:-|đến|toi|tới)\s*(\d+(?:[.,]\d+)?)\s*(?:tr|triệu)/u', $text, $m)) {
-            return (int) round(((float) str_replace(',', '.', $m[2])) * 1_000_000);
+        if (preg_match('/(\d+(?:[.,]\d+)?)\s*(?:-|đến|toi|tới)\s*(\d+(?:[.,]\d+)?)\s*(' . self::PRICE_UNIT_PATTERN . ')/u', $text, $m)) {
+            return $this->toVnd($m[2], $m[3]);
         }
-        if (preg_match('/(?:dưới|duoi|tối đa|toi da)\s*(\d+(?:[.,]\d+)?)\s*(?:tr|triệu)/u', $text, $m)) {
-            return (int) round(((float) str_replace(',', '.', $m[1])) * 1_000_000);
+        if (preg_match('/(?:dưới|duoi|tối đa|toi da)\s*(\d+(?:[.,]\d+)?)\s*(' . self::PRICE_UNIT_PATTERN . ')/u', $text, $m)) {
+            return $this->toVnd($m[1], $m[2]);
         }
-        if (preg_match('/khoảng\s*(\d+(?:[.,]\d+)?)\s*(?:tr|triệu)/u', $text, $m)) {
-            // "khoảng X triệu" -> hiểu là +-15%
-            $mid = ((float) str_replace(',', '.', $m[1])) * 1_000_000;
+        if (preg_match('/khoảng\s*(\d+(?:[.,]\d+)?)\s*(' . self::PRICE_UNIT_PATTERN . ')/u', $text, $m)) {
+            // "khoảng X ..." -> hiểu là +-15%
+            $mid = $this->toVnd($m[1], $m[2]);
             return (int) round($mid * 1.15);
         }
+        // Số tiền tuyệt đối kèm "đ"/"vnd"/"đồng", VD "dưới 500000đ", "tối đa
+        // 15.000.000 vnd" — không quy về triệu, giữ nguyên giá trị thật.
+        if (preg_match('/(?:dưới|duoi|tối đa|toi da)\s*(\d[\d.,]*)\s*(?:đ\b|vnd\b|đồng)/u', $text, $m)) {
+            return (int) preg_replace('/[.,]/', '', $m[1]);
+        }
         return null;
+    }
+
+    /** Trích đơn vị giá (tr/triệu/k/nghìn/tỷ) từ đoạn khớp khoảng giá "X-Y đơn_vị" */
+    private function extractUnit(string $matched): string
+    {
+        preg_match('/(' . self::PRICE_UNIT_PATTERN . ')$/u', trim($matched), $m);
+        return $m[1] ?? 'triệu';
+    }
+
+    /** Quy đổi số + đơn vị tiếng Việt về VNĐ */
+    private function toVnd(string $numStr, string $unit): int
+    {
+        $num = (float) str_replace(',', '.', $numStr);
+        $multiplier = match (mb_strtolower($unit)) {
+            'tr', 'triệu' => 1_000_000,
+            'k', 'nghìn'  => 1_000,
+            'tỷ'          => 1_000_000_000,
+            default        => 1_000_000,
+        };
+        return (int) round($num * $multiplier);
     }
 
     /** Nhận diện chip: i3/i5/i7/i9, ryzen 3/5/7/9, m1/m2/m3, snapdragon, apple a-series */
@@ -178,7 +210,13 @@ class ProductQueryParser
      */
     private function detectRam(string $text): array
     {
-        if (preg_match('/ram\D{0,15}?(\d+)\s*(?:gb)?/u', $text, $m)) {
+        // Từ khoá "ram" đứng TRƯỚC số (cách nói phổ biến nhất)
+        if (preg_match('/ram\D{0,15}?(\d+)\s*gb?/u', $text, $m)) {
+            return [['label' => 'RAM', 'operator' => '>=', 'value' => (int) $m[1]]];
+        }
+        // Số đứng TRƯỚC từ khoá "ram", VD "16gb ram", "8 gb ram" — bổ sung
+        // vì khách hàng cũng hay liệt kê thông số theo chiều này.
+        if (preg_match('/(\d+)\s*gb\b\D{0,10}?ram\b/u', $text, $m)) {
             return [['label' => 'RAM', 'operator' => '>=', 'value' => (int) $m[1]]];
         }
         return [];
@@ -187,14 +225,40 @@ class ProductQueryParser
     /** "1tb", "512gb ổ cứng", "dung lượng 256gb" -> tối thiểu (>=)
      *  Marker 'STORAGE' vì nhãn thật trong DB là "Ổ cứng" (laptop) hoặc
      *  "Bộ nhớ trong" (điện thoại/tablet) — ChatbotResponseService sẽ tự
-     *  OR cả 2 nhãn này khi gặp marker STORAGE. */
-    private function detectStorage(string $text): array
+     *  OR cả 2 nhãn này khi gặp marker STORAGE.
+     *
+     * @param int|null $ramValue Giá trị RAM đã nhận diện được ở detectRam()
+     *  (nếu có), để loại trừ khỏi nhánh đoán "số + gb đứng riêng lẻ" bên
+     *  dưới, tránh nhầm "ram 8gb" thành dung lượng lưu trữ 8.
+     */
+    private function detectStorage(string $text, ?int $ramValue = null): array
     {
         if (preg_match('/(\d+)\s*tb\b/u', $text, $m)) {
             return [['label' => 'STORAGE', 'operator' => '>=', 'value' => (int) $m[1] * 1000]];
         }
+        // Từ khoá đứng TRƯỚC số: "ổ cứng 512gb", "dung lượng 256 gb"
         if (preg_match('/(?:ổ cứng|dung lượng|storage|bộ nhớ trong)\D{0,15}?(\d+)\s*gb\b/u', $text, $m)) {
             return [['label' => 'STORAGE', 'operator' => '>=', 'value' => (int) $m[1]]];
+        }
+        // Từ khoá đứng SAU số: "512gb ổ cứng", "256gb bộ nhớ trong" — bổ
+        // sung vì đây cũng là cách nói phổ biến.
+        if (preg_match('/(\d+)\s*gb\b\D{0,15}?(?:ổ cứng|dung lượng|storage|bộ nhớ trong)/u', $text, $m)) {
+            return [['label' => 'STORAGE', 'operator' => '>=', 'value' => (int) $m[1]]];
+        }
+        // "iphone 128gb", "laptop 512gb" — số + "gb" đứng riêng lẻ, không
+        // kèm từ khoá nào cả. Đây là cách nói phổ biến NHẤT khi hỏi mua
+        // điện thoại/laptop theo dung lượng, nên mặc định hiểu là lưu trữ —
+        // trừ khi số này đã được detectRam() nhận là RAM hoặc đi kèm chữ
+        // "ram" ở gần đó.
+        if (preg_match('/(\d+)\s*gb\b/u', $text, $m)) {
+            $value = (int) $m[1];
+            $looksLikeRam = $value === $ramValue
+                || preg_match('/ram\D{0,10}?' . $value . '\s*gb?\b/u', $text) === 1
+                || preg_match('/\b' . $value . '\s*gb\b\D{0,10}?ram\b/u', $text) === 1;
+
+            if (!$looksLikeRam) {
+                return [['label' => 'STORAGE', 'operator' => '>=', 'value' => $value]];
+            }
         }
         return [];
     }

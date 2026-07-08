@@ -38,7 +38,7 @@ class ChatbotResponseService
         // mục (VD: "laptop nào tốt hơn" chứa chữ "laptop"). Ưu tiên kiểm tra
         // trước khi chạy parser.
         if ($this->isFollowUpComparison($message) && !empty($history)) {
-            $context = $this->buildContextFromRecentProducts($history, $message);
+            $context = $this->buildContextFromRecentProducts($history);
             return [
                 'intent' => 'llm_fallback',
                 'reply'  => $this->llm->reply($message, $context),
@@ -78,7 +78,7 @@ class ChatbotResponseService
      * câu hỏi cảm tính), tránh trường hợp bot "quên" sản phẩm thật đang bàn
      * và tự chuyển sang nói về sản phẩm bestseller không liên quan.
      */
-    private function buildContextFromRecentProducts(array $history, string $currentMessage = ''): string
+    private function buildContextFromRecentProducts(array $history): string
     {
         $recentBotText = collect($history)
             ->filter(fn ($m) => $m['sender'] === 'bot')
@@ -107,7 +107,7 @@ class ChatbotResponseService
             ->whereIn('name', $matchedNames)
             ->get();
 
-        $productContext = $this->buildProductContextWithSpecs($products, $currentMessage);
+        $productContext = $this->buildProductContextWithSpecs($products);
 
         return "Đây là các sản phẩm ĐANG được bàn tới trong cuộc hội thoại này (chỉ so sánh/nhận xét trong phạm vi các sản phẩm này, không nhắc sản phẩm khác):\n{$productContext}\n\n"
              . $this->formatHistory($history);
@@ -130,36 +130,40 @@ class ChatbotResponseService
     // ==================== CHÀO HỎI ====================
 
     private function isFollowUpComparison(string $message): bool
-{
-    $text = mb_strtolower($message);
-
-    $patterns = [
-        'tốt hơn', 'tốt nhất', 'ngon hơn', 'cái nào', 'con nào',
-        'sản phẩm nào', 'so sánh', 'đáng mua hơn', 'nên chọn cái',
-    ];
-    foreach ($patterns as $p) {
-        if (str_contains($text, $p)) {
-            return true;
+    {
+        $text = mb_strtolower($message);
+        $patterns = [
+            'tốt hơn', 'tốt nhất', 'ngon hơn', 'cái nào', 'con nào',
+            'sản phẩm nào', 'so sánh', 'đáng mua hơn', 'nên chọn cái',
+            'so với nhau', 'so với cái', 'giữa hai', 'giữa 2', 'hai cái này',
+            'cái này với cái kia', 'nên mua cái nào', 'khác nhau thế nào',
+            'khác nhau chỗ nào', 'khác gì nhau', 'ưu nhược điểm', 'nên lấy cái',
+        ];
+        foreach ($patterns as $p) {
+            if (str_contains($text, $p)) {
+                return true;
+            }
         }
+        return false;
     }
-
-    // Bắt cấu trúc chung: "<cái/con/đứa/thằng/em/chiếc> nào ... hơn/nhất"
-    // để không phải liệt kê hết biến thể tiếng lóng (VD: "đứa nào trâu hơn",
-    // "con nào bền hơn", "thằng nào xịn hơn"...)
-    if (preg_match('/\b(cái|con|đứa|thằng|em|chiếc)\s+nào\b.*\b(hơn|nhất)\b/u', $text)) {
-        return true;
-    }
-
-    return false;
-}
 
     private function isGreeting(string $message): bool
     {
         $text = trim(mb_strtolower($message));
-        // Chỉ coi là chào hỏi khi câu NGẮN và khớp nguyên cụm, tránh nhận
-        // nhầm câu dài có chứa "hi" ở giữa từ khác (VD: "thích")
+
+        // Bỏ các từ đệm phổ biến ở CUỐI câu ("ơi", "nhé", "nha", "bạn",
+        // "shop", "ạ") trước khi so khớp, để nhận ra được các biến thể như
+        // "chào shop ơi", "hi bạn nhé" — vẫn giữ nguyên tắc so khớp NGUYÊN
+        // CỤM sau khi bỏ đệm, không đoán mò nội dung câu, nên không tăng
+        // rủi ro nhận nhầm câu dài chứa "hi" ở giữa (VD "thích").
+        $normalized = $text;
+        do {
+            $before = $normalized;
+            $normalized = trim(preg_replace('/\s*(ơi|nhé|nha|bạn|shop|ạ)\b\s*$/u', '', $normalized) ?? $normalized);
+        } while ($normalized !== $before);
+
         $greetings = ['hi', 'hello', 'hey', 'chào', 'xin chào', 'alo', 'chào bạn', 'chào shop'];
-        return in_array($text, $greetings, true);
+        return in_array($text, $greetings, true) || in_array($normalized, $greetings, true);
     }
 
     // ==================== TÌM SẢN PHẨM ====================
@@ -229,7 +233,7 @@ class ChatbotResponseService
         $isSubjective = $this->hasSubjectiveQualifier($originalMessage);
 
         if ($isSubjective && $this->llm->isEnabled()) {
-            $context = $this->buildProductContextWithSpecs($products, $originalMessage);
+            $context = $this->buildProductContextWithSpecs($products);
             $llmReply = $this->llm->reply($originalMessage, $context);
             return ['intent' => 'product_search', 'reply' => $llmReply];
         }
@@ -279,38 +283,39 @@ class ChatbotResponseService
         return '';
     }
 
-    /**
-     * Ngữ cảnh đầy đủ (kèm thông số nổi bật) để LLM xếp hạng/diễn giải, không
-     * tự bịa sản phẩm ngoài danh sách này.
-     *
-     * QUAN TRỌNG: mỗi sản phẩm có thể có 12-15 thông số (màn hình, camera,
-     * CPU, RAM, pin, kết nối...), nhưng trước đây hàm này luôn lấy 6 thông
-     * số ĐẦU TIÊN theo thứ tự lưu trong DB — nếu khách hỏi về thông số nằm
-     * ở nhóm sau (VD: "Pin"/"Dung lượng pin" thường đứng sau CPU/RAM), LLM
-     * sẽ không thấy thông tin đó trong ngữ cảnh và trả lời "chưa có thông
-     * tin", dù dữ liệu thực sự đã có trong DB. Giờ ưu tiên đưa thông số
-     * KHỚP với từ khoá trong câu hỏi hiện tại lên đầu danh sách trước,
-     * trước khi cắt theo giới hạn.
-     */
+    /** Ngữ cảnh đầy đủ (kèm vài thông số nổi bật) để LLM xếp hạng/diễn giải, không tự bịa sản phẩm ngoài danh sách này */
     private function buildProductContextWithSpecs($products): string
-{
-    return $products->map(function (Product $p) {
-        $specs = $p->specifications
-            ->take(20) // cap an toàn — category nhiều spec nhất hiện tại (điện thoại) có 15
-            ->map(fn ($s) => "{$s->label}: {$s->value}" . ($s->unit ? " {$s->unit}" : ''))
-            ->implode(', ');
+    {
+        return $products->map(function (Product $p) {
+            $specs = $p->specifications
+                ->take(6)
+                ->map(fn ($s) => "{$s->label}: {$s->value}" . ($s->unit ? " {$s->unit}" : ''))
+                ->implode(', ');
 
-        return "- {$p->name} — " . number_format($p->price, 0, ',', '.') . 'đ'
-             . ($p->category ? " ({$p->category->name})" : '')
-             . ($specs ? "\n  Thông số: {$specs}" : '');
-    })->implode("\n");
-}
+            return "- {$p->name} — " . number_format($p->price, 0, ',', '.') . 'đ'
+                 . ($p->category ? " ({$p->category->name})" : '')
+                 . ($specs ? "\n  Thông số: {$specs}" : '');
+        })->implode("\n");
+    }
+
     // ==================== TRA CỨU ĐƠN HÀNG ====================
 
     private function extractOrderId(string $message): ?string
     {
         $text = mb_strtolower($message);
-        if (!str_contains($text, 'đơn hàng') && !str_contains($text, 'don hang')) {
+
+        // Mở rộng thêm vài cách hỏi phổ biến khác ngoài "đơn hàng"/"don
+        // hang" (mã đơn, tra cứu đơn, mã vận đơn, "order" tiếng Anh). Dùng
+        // \b cho "order" để tránh khớp nhầm vào giữa từ khác (VD "border").
+        $hasOrderKeyword = str_contains($text, 'đơn hàng')
+            || str_contains($text, 'don hang')
+            || str_contains($text, 'mã đơn')
+            || str_contains($text, 'ma don')
+            || str_contains($text, 'tra cứu đơn')
+            || str_contains($text, 'mã vận đơn')
+            || preg_match('/\border\b/u', $text) === 1;
+
+        if (!$hasOrderKeyword) {
             return null;
         }
 
@@ -319,11 +324,9 @@ class ChatbotResponseService
             return strtoupper($m[0]);
         }
 
-        // Fallback: khách chỉ gõ số ID, nhưng CHỈ khi số đó đứng ngay sau
-        // "đơn hàng"/"don hang" hoặc sau dấu "#" — tránh bắt nhầm số bất kỳ
-        // xuất hiện ở chỗ khác trong câu (VD: "đơn hàng của tôi có 3 sản
-        // phẩm được không" không phải là tra cứu đơn hàng #3).
-        if (preg_match('/(?:đơn hàng|don hang)\D{0,10}?#?(\d+)/u', $text, $m)) {
+        // Fallback: khách chỉ gõ số ID (VD "đơn hàng 3") — trả về dạng
+        // đặc biệt "ID:3" để handleOrderLookup phân biệt với invoice_number
+        if (preg_match('/#?(\d+)/u', $text, $m)) {
             return 'ID:' . $m[1];
         }
         return null;
@@ -387,13 +390,13 @@ class ChatbotResponseService
         $text = mb_strtolower($message);
 
         $faqs = [
-            ['keywords' => ['đổi trả', 'doi tra', 'trả hàng'], 'reply' =>
+            ['keywords' => ['đổi trả', 'doi tra', 'trả hàng', 'tra hang', 'hoàn tiền', 'hoan tien', 'trả lại hàng'], 'reply' =>
                 'Electro Shop hỗ trợ đổi trả trong vòng 7 ngày kể từ khi nhận hàng, với điều kiện sản phẩm còn nguyên tem, chưa qua sử dụng.'],
-            ['keywords' => ['bảo hành', 'bao hanh'], 'reply' =>
+            ['keywords' => ['bảo hành', 'bao hanh', 'warranty'], 'reply' =>
                 'Tất cả sản phẩm tại Electro Shop đều được bảo hành chính hãng 12 tháng kể từ ngày mua.'],
-            ['keywords' => ['vận chuyển', 'ship', 'giao hàng', 'phí ship'], 'reply' =>
+            ['keywords' => ['vận chuyển', 'van chuyen', 'ship', 'giao hàng', 'giao hang', 'phí ship', 'phi ship', 'giao nhận'], 'reply' =>
                 'Thời gian giao hàng dự kiến 2-5 ngày tuỳ khu vực. Phí vận chuyển được tính cụ thể ở bước thanh toán dựa theo địa chỉ nhận hàng.'],
-            ['keywords' => ['thanh toán', 'thanh toan'], 'reply' =>
+            ['keywords' => ['thanh toán', 'thanh toan', 'payment'], 'reply' =>
                 'Electro Shop hỗ trợ thanh toán khi nhận hàng (COD) và chuyển khoản ngân hàng qua mã QR.'],
         ];
 

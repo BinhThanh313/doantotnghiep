@@ -32,10 +32,9 @@ Route::get('/flash-sales/current', [PublicFlashSaleController::class, 'current']
 // bằng EnsureFrontendRequestsAreStateful ở ĐÚNG group này thay vì bật
 // statefulApi() toàn cục — để admin panel (xác thực bằng Bearer token
 // thuần) không bị Sanctum ưu tiên nhầm sang session 'web' của storefront.
-Route::middleware(EnsureFrontendRequestsAreStateful::class)->group(function () {
-    // throttle:20,1 -> tối đa 20 request/phút/IP, tránh spam gọi LLM (tốn quota + chi phí API)
-    Route::post('/chatbot/message', [ChatbotController::class, 'handle'])->middleware('throttle:20,1');
-    Route::get('/chatbot/history/{sessionToken}', [ChatbotController::class, 'history'])->middleware('throttle:60,1');
+Route::middleware([EnsureFrontendRequestsAreStateful::class, 'throttle:chatbot'])->group(function () {
+    Route::post('/chatbot/message', [ChatbotController::class, 'handle']);
+    Route::get('/chatbot/history/{sessionToken}', [ChatbotController::class, 'history']);
 });
 
 // ==================== ADMIN ROUTES ====================

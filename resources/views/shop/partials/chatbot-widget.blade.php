@@ -58,6 +58,9 @@
     const messages  = document.getElementById('chatbot-messages');
 
     const STORAGE_KEY = 'chatbot_session_token';
+    // Dùng url() của Laravel thay vì gõ chết "/doantotnghiep/public/..." —
+    // để widget vẫn chạy đúng nếu deploy ở domain/subfolder khác APP_URL.
+    const CHATBOT_ENDPOINT = @json(url('/api/chatbot/message'));
     let sessionToken = localStorage.getItem(STORAGE_KEY) || null;
 
     function appendMessage(sender, text) {
@@ -92,7 +95,7 @@
         input.value = '';
 
         try {
-            const res = await fetch('{{ url('/api/chatbot/message') }}', {
+            const res = await fetch(CHATBOT_ENDPOINT, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
                 body: JSON.stringify({ message: text, session_token: sessionToken }),
