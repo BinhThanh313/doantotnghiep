@@ -223,16 +223,16 @@
                     </div>
                 </div>
             </div>
-            <div class="row g-5">
-                <div class="col-md-6 col-lg-6 col-xl-3">
+            <div class="row justify-content-center g-5">
+                {{-- <div class="col-md-6 col-lg-6 col-xl-3">
                     <h4 class="text-primary mb-4">Nhận Bản Tin</h4>
                     <p class="mb-3">Đăng ký nhận thông tin khuyến mãi mới nhất từ chúng tôi.</p>
                     <div class="position-relative mx-auto rounded-pill">
                         <input class="form-control rounded-pill w-100 py-3 ps-4 pe-5" type="text" placeholder="Nhập email của bạn">
                         <button type="button" class="btn btn-primary rounded-pill position-absolute top-0 end-0 py-2 mt-2 me-2">Đăng ký</button>
                     </div>
-                </div>
-                <div class="col-md-6 col-lg-6 col-xl-3">
+                </div> --}}
+                <div class="col-md-6 col-lg-4">
                     <h4 class="text-primary mb-4">Chăm Sóc Khách Hàng</h4>
                     <a href="{{ route('contact') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Liên hệ chúng tôi</a>
                     <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Chính sách đổi trả</a>
@@ -243,17 +243,17 @@
                         <a href="{{ route('login') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Đăng nhập</a>
                     @endauth
                 </div>
-                <div class="col-md-6 col-lg-6 col-xl-3">
+                <div class="col-md-6 col-lg-4">
                     <h4 class="text-primary mb-4">Thông Tin</h4>
                     <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Về chúng tôi</a>
                     <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Chính sách bảo mật</a>
                     <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Điều khoản & Điều kiện</a>
                     <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Câu hỏi thường gặp</a>
                 </div>
-                <div class="col-md-6 col-lg-6 col-xl-3">
+                <div class="col-md-6 col-lg-4">
                     <h4 class="text-primary mb-4">Tiện Ích Khác</h4>
                     <a href="{{ route('shop.index') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Tất cả sản phẩm</a>
-                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Danh sách yêu thích</a>
+                    {{-- <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Danh sách yêu thích</a> --}}
                     <a href="{{ route('cart.index') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Giỏ hàng</a>
                 </div>
             </div>
