@@ -3,7 +3,7 @@
     <tr>
         <th scope="row">
             <div class="d-flex align-items-center">
-                <img src="{{ asset($item['image'] ?? 'img/default.jpg') }}" 
+                <img src="{{ !empty($item['image']) ? asset('storage/' . $item['image']) : asset('img/product-3.png') }}" 
                      class="img-fluid me-5 rounded-circle" 
                      style="width: 80px; height: 80px;" alt="{{ $item['name'] }}">
             </div>

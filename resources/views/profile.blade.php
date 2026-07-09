@@ -27,7 +27,7 @@
                         <div class="col-sm-3 fw-bold">Ngày tham gia:</div>
                         <div class="col-sm-9">{{ Auth::user()->created_at->format('d/m/Y') }}</div>
                     </div>
-                <div class="card shadow mt-4">
+                <div class="card shadow mt-4" id="order-history">
     <div class="card-header bg-primary text-white">
         <h5 class="mb-0 text-white">Lịch sử đơn hàng</h5>
     </div>

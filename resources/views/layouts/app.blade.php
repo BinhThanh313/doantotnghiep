@@ -259,20 +259,21 @@
                 <div class="col-md-6 col-lg-4">
                     <h4 class="text-primary mb-4">Chăm Sóc Khách Hàng</h4>
                     <a href="{{ route('contact') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Liên hệ chúng tôi</a>
-                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Chính sách đổi trả</a>
-                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Lịch sử đơn hàng</a>
+                    <a href="{{ route('return-policy') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Chính sách đổi trả</a>
                     @auth
+                        <a href="{{ route('profile') }}#order-history" class="d-block"><i class="fas fa-angle-right me-2"></i> Lịch sử đơn hàng</a>
                         <a href="{{ route('profile') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Tài khoản của tôi</a>
                     @else
+                        <a href="{{ route('login') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Lịch sử đơn hàng</a>
                         <a href="{{ route('login') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Đăng nhập</a>
                     @endauth
                 </div>
                 <div class="col-md-6 col-lg-4">
                     <h4 class="text-primary mb-4">Thông Tin</h4>
-                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Về chúng tôi</a>
-                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Chính sách bảo mật</a>
-                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Điều khoản & Điều kiện</a>
-                    <a href="#" class="d-block"><i class="fas fa-angle-right me-2"></i> Câu hỏi thường gặp</a>
+                    <a href="{{ route('about') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Về chúng tôi</a>
+                    <a href="{{ route('privacy-policy') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Chính sách bảo mật</a>
+                    <a href="{{ route('terms') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Điều khoản & Điều kiện</a>
+                    <a href="{{ route('faq') }}" class="d-block"><i class="fas fa-angle-right me-2"></i> Câu hỏi thường gặp</a>
                 </div>
                 <div class="col-md-6 col-lg-4">
                     <h4 class="text-primary mb-4">Tiện Ích Khác</h4>

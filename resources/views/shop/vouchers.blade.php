@@ -66,7 +66,7 @@
 </div>
 @endsection
 
-@section('scripts')
+@push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const copyButtons = document.querySelectorAll('.btn-copy');
@@ -95,4 +95,4 @@
         });
     });
 </script>
-@endsection
+@endpush

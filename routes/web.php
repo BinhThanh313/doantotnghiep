@@ -22,6 +22,11 @@ Route::get('/shop/{id}', [ShopController::class, 'show'])->name('shop.show');
 Route::get('/vouchers', [ShopController::class, 'vouchers'])->name('shop.vouchers');
 
 Route::get('/contact', fn() => view('contact'))->name('contact');
+Route::get('/about', fn() => view('about'))->name('about');
+Route::get('/privacy-policy', fn() => view('privacy-policy'))->name('privacy-policy');
+Route::get('/terms', fn() => view('terms'))->name('terms');
+Route::get('/faq', fn() => view('faq'))->name('faq');
+Route::get('/return-policy', fn() => view('return-policy'))->name('return-policy');
 Route::get('/bestseller', [ShopController::class, 'bestsellers'])->name('bestseller');
 Route::get('/flash-sale', [FlashSalePageController::class, 'index'])->name('flash-sale');
 Route::post('/checkout/shipping-fee', [CheckoutController::class, 'calculateShipping'])->name('checkout.shipping-fee');
