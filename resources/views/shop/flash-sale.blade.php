@@ -187,19 +187,22 @@
                 if (data.success) {
                     this.innerHTML = '<i class="fas fa-check me-2"></i>Đã thêm!';
                     this.classList.replace('btn-danger', 'btn-success');
+                    if (typeof showCartToast === 'function') showCartToast(data.message || 'Đã thêm vào giỏ hàng!', true);
                     setTimeout(() => {
                         this.innerHTML = originalHTML;
                         this.classList.replace('btn-success', 'btn-danger');
                         this.disabled = false;
                     }, 2000);
                 } else {
-                    alert(data.message || 'Có lỗi xảy ra!');
+                    if (typeof showCartToast === 'function') showCartToast(data.message || 'Có lỗi xảy ra!', false);
+                    else alert(data.message || 'Có lỗi xảy ra!');
                     this.innerHTML = originalHTML;
                     this.disabled = false;
                 }
             })
             .catch(() => {
-                alert('Lỗi kết nối!');
+                if (typeof showCartToast === 'function') showCartToast('Lỗi kết nối!', false);
+                else alert('Lỗi kết nối!');
                 this.innerHTML = originalHTML;
                 this.disabled = false;
             });

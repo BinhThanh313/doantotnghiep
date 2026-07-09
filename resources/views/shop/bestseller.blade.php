@@ -87,7 +87,7 @@
         <div class="container">
             <div class="row g-4">
                 <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.2s">
-                    <a href="#" class="d-flex align-items-center justify-content-between border bg-white rounded p-4">
+                    <a href="{{ route('flash-sale') }}" class="d-flex align-items-center justify-content-between border bg-white rounded p-4">
                         <div>
                             <p class="text-muted mb-3">Săn deal Camera cực chất!</p>
                             <h3 class="text-primary">Camera Thông minh</h3>
@@ -97,7 +97,7 @@
                     </a>
                 </div>
                 <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.3s">
-                    <a href="#" class="d-flex align-items-center justify-content-between border bg-white rounded p-4">
+                    <a href="{{ route('flash-sale') }}" class="d-flex align-items-center justify-content-between border bg-white rounded p-4">
                         <div>
                             <p class="text-muted mb-3">Đồng hồ thông minh hiện đại!</p>
                             <h3 class="text-primary">Đồng hồ Thông minh</h3>
@@ -195,37 +195,38 @@
                 <div class="tab-content">
                     <div id="tab-1" class="tab-pane fade show p-0 active">
                         <div class="row g-4">
-                            @for ($i = 4; $i <= 7; $i++)
-                            <div class="col-md-6 col-lg-4 col-xl-3">
-                                <div class="product-item rounded wow fadeInUp" data-wow-delay="0.1s">
-                                    <div class="product-item-inner border rounded">
-                                        <div class="product-item-inner-item">
-                                            <img src="{{ asset('img/product-'.$i.'.png') }}" class="img-fluid w-100 rounded-top" alt="Sản phẩm công nghệ">
-                                            <div class="product-new">Mới</div>
-                                        </div>
-                                        <div class="text-center rounded-bottom p-4">
-                                            <a href="#" class="d-block mb-2 text-muted">Điện thoại / Laptop</a>
-                                            <a href="#" class="d-block h4">Mẫu Thiết Bị {{ $i }}</a>
-                                            <del class="me-2 fs-6 text-muted">12.500.000đ</del>
-                                            <span class="text-primary fs-5 fw-bold">10.500.000đ</span>
-                                        </div>
-                                    </div>
-                                    <div class="product-item-add border border-top-0 rounded-bottom text-center p-4 pt-0">
-                                        <a href="#" class="btn btn-primary border-secondary rounded-pill py-2 px-4 mb-4"><i class="fas fa-shopping-cart me-2"></i> Thêm Vào Giỏ</a>
-                                        <div class="d-flex justify-content-center">
-                                            <div class="d-flex text-primary">
-                                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                                            </div>
-                                        </div>
-                                    </div>
+                            @forelse($allProducts ?? [] as $product)
+                                @include('shop.partials.tab-product-card', ['product' => $product])
+                            @empty
+                                <div class="col-12 text-center py-5">
+                                    <p class="text-muted">Chưa có sản phẩm nào.</p>
                                 </div>
-                            </div>
-                            @endfor
+                            @endforelse
                         </div>
                     </div>
-                    
-                    <div id="tab-2" class="tab-pane fade show p-0"><div class="row g-4"><p class="text-center py-5">Đang cập nhật hàng mới...</p></div></div>
-                    <div id="tab-3" class="tab-pane fade show p-0"><div class="row g-4"><p class="text-center py-5">Đang cập nhật hàng nổi bật...</p></div></div>
+
+                    <div id="tab-2" class="tab-pane fade p-0">
+                        <div class="row g-4">
+                            @forelse($newArrivals ?? [] as $product)
+                                @include('shop.partials.tab-product-card', ['product' => $product])
+                            @empty
+                                <div class="col-12 text-center py-5">
+                                    <p class="text-muted">Chưa có hàng mới về.</p>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
+                    <div id="tab-3" class="tab-pane fade p-0">
+                        <div class="row g-4">
+                            @forelse($featuredProducts ?? [] as $product)
+                                @include('shop.partials.tab-product-card', ['product' => $product])
+                            @empty
+                                <div class="col-12 text-center py-5">
+                                    <p class="text-muted">Chưa có sản phẩm nổi bật.</p>
+                                </div>
+                            @endforelse
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -235,19 +236,18 @@
         <div class="container pb-5">
             <div class="row g-4">
                 <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.1s">
-                    <a href="#">
+                    <a href="{{ $cameraCategory ? route('shop.index', ['category' => $cameraCategory->id]) : route('shop.index') }}">
                         <div class="bg-primary rounded position-relative">
                             <img src="{{ asset('img/product-banner.jpg') }}" class="img-fluid w-100 rounded" alt="Banner máy ảnh">
                             <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center rounded p-4" style="background: rgba(255, 255, 255, 0.5);">
                                 <h3 class="display-5 text-primary">Máy Ảnh Chuyên Nghiệp <br> <span>Kèm Phụ Kiện</span></h3>
-                                <p class="fs-4 text-dark fw-bold">8.990.000đ</p>
                                 <span class="btn btn-primary rounded-pill align-self-start py-2 px-4">Mua Ngay</span>
                             </div>
                         </div>
                     </a>
                 </div>
                 <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.2s">
-                    <a href="#">
+                    <a href="{{ route('flash-sale') }}">
                         <div class="text-center bg-primary rounded position-relative">
                             <img src="{{ asset('img/product-banner-2.jpg') }}" class="img-fluid w-100" alt="Banner khuyến mãi">
                             <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center rounded p-4" style="background: rgba(242, 139, 0, 0.5);">

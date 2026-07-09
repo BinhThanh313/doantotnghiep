@@ -179,6 +179,30 @@
         </div>
     </div>
 
+    {{-- Container cho thông báo popup (toast) góc phải trên - dùng chung cho mọi trang --}}
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 1080;">
+        @if(session('cart_message'))
+            <div id="cart-toast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-check-circle me-2"></i>{{ session('cart_message') }}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        @endif
+    </div>
+    @if(session('cart_message'))
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var toastEl = document.getElementById('cart-toast');
+                if (toastEl) {
+                    new bootstrap.Toast(toastEl, { delay: 3000 }).show();
+                }
+            });
+        </script>
+    @endif
+
     {{-- Nội dung từng trang (Giữ nguyên) --}}
     @yield('content')
 
@@ -285,6 +309,74 @@
     <script src="{{ asset('lib/wow/wow.min.js') }}"></script>
     <script src="{{ asset('lib/owlcarousel/owl.carousel.min.js') }}"></script>
     <script src="{{ asset('js/main.js') }}"></script>
+
+    {{-- Thêm vào giỏ hàng (AJAX) dùng chung cho toàn bộ site + hiển thị popup góc phải trên --}}
+    <script>
+        function showCartToast(message, isSuccess = true) {
+            var container = document.querySelector('.toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container position-fixed top-0 end-0 p-3';
+                container.style.zIndex = 1080;
+                document.body.appendChild(container);
+            }
+
+            var toastEl = document.createElement('div');
+            toastEl.className = 'toast align-items-center text-white ' + (isSuccess ? 'bg-success' : 'bg-danger') + ' border-0';
+            toastEl.setAttribute('role', 'alert');
+            toastEl.setAttribute('aria-live', 'assertive');
+            toastEl.setAttribute('aria-atomic', 'true');
+            toastEl.innerHTML = '<div class="d-flex">' +
+                    '<div class="toast-body"><i class="fas ' + (isSuccess ? 'fa-check-circle' : 'fa-exclamation-circle') + ' me-2"></i>' + message + '</div>' +
+                    '<button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>' +
+                '</div>';
+
+            container.appendChild(toastEl);
+            var toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+            toast.show();
+            toastEl.addEventListener('hidden.bs.toast', function () { toastEl.remove(); });
+        }
+
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.add-to-cart')) return;
+
+            var btn = e.target.closest('.add-to-cart');
+            var productId = btn.getAttribute('data-id');
+            if (!productId) return;
+
+            var originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Đang thêm...';
+
+            fetch("{{ route('cart.add') }}", {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ product_id: productId })
+            })
+            .then(function (response) { return response.json(); })
+            .then(function (data) {
+                if (data.success) {
+                    showCartToast(data.message || 'Đã thêm vào giỏ hàng!', true);
+                    if (typeof updateCartCount === 'function') updateCartCount(data.cart_count);
+                } else {
+                    showCartToast(data.message || 'Có lỗi xảy ra!', false);
+                }
+            })
+            .catch(function (error) {
+                console.error(error);
+                showCartToast('Có lỗi kết nối. Vui lòng thử lại!', false);
+            })
+            .finally(function () {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            });
+        });
+    </script>
 
     @stack('scripts')
     @include('shop.partials.chatbot-widget')

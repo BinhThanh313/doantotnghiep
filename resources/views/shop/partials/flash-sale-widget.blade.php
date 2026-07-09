@@ -151,6 +151,7 @@
                     this.innerHTML = '✓ Đã thêm'
                     this.classList.remove('btn-danger')
                     this.classList.add('btn-success')
+                    if (typeof showCartToast === 'function') showCartToast(data.message || 'Đã thêm vào giỏ hàng!', true)
                     setTimeout(() => {
                         this.innerHTML = originalText
                         this.classList.remove('btn-success')
@@ -158,13 +159,15 @@
                         this.disabled = false
                     }, 2000)
                 } else {
-                    alert(data.message || 'Có lỗi xảy ra')
+                    if (typeof showCartToast === 'function') showCartToast(data.message || 'Có lỗi xảy ra', false)
+                    else alert(data.message || 'Có lỗi xảy ra')
                     this.innerHTML = originalText
                     this.disabled = false
                 }
             })
             .catch(() => {
-                alert('Lỗi kết nối!')
+                if (typeof showCartToast === 'function') showCartToast('Lỗi kết nối!', false)
+                else alert('Lỗi kết nối!')
                 this.innerHTML = originalText
                 this.disabled = false
             })

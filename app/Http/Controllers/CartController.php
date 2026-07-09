@@ -62,6 +62,12 @@ class CartController extends Controller
 
         session()->put('cart', $cart);
 
+        // Form submit bình thường (không phải AJAX) -> quay lại trang trước kèm thông báo,
+        // tránh hiện thẳng JSON ra màn hình. Chỉ trả JSON khi gọi bằng fetch/AJAX (vd: nút .add-to-cart ở trang shop).
+        if (! ($request->ajax() || $request->wantsJson())) {
+            return redirect()->back()->with('cart_message', 'Đã thêm "' . $product->name . '" vào giỏ hàng!');
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Đã thêm vào giỏ hàng',

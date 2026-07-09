@@ -42,14 +42,27 @@
                 </div>
                 <div class="carousel-banner">
                     <div class="carousel-banner-content text-center p-4">
-                        <a href="#" class="d-block mb-2 text-primary">Máy tính bảng</a>
-                        <a href="#" class="d-block text-white fs-3">Apple iPad Mini <br> G2356</a>
-                        <del class="me-2 text-white fs-5">15.000.000đ</del>
-                        <span class="text-primary fs-5">13.800.000đ</span>
+                        @if($heroProduct)
+                            <a href="{{ route('shop.index', ['category' => $heroProduct->category_id]) }}" class="d-block mb-2 text-primary">{{ $heroProduct->category->name ?? 'Sản phẩm' }}</a>
+                            <a href="{{ route('shop.show', $heroProduct->id) }}" class="d-block text-white fs-3">{{ $heroProduct->name }}</a>
+                            @if($heroProduct->original_price)
+                                <del class="me-2 text-white fs-5">{{ number_format($heroProduct->original_price, 0, ',', '.') }}đ</del>
+                            @endif
+                            <span class="text-primary fs-5">{{ number_format($heroProduct->price, 0, ',', '.') }}đ</span>
+                        @else
+                            <a href="{{ route('shop.index') }}" class="d-block mb-2 text-primary">Máy tính bảng</a>
+                            <span class="d-block text-white fs-3">Đang cập nhật</span>
+                        @endif
                     </div>
-                    <a href="#" class="btn btn-primary rounded-pill py-2 px-4">
-                        <i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ
-                    </a>
+                    @if($heroProduct)
+                        <form action="{{ route('cart.add') }}" method="POST" class="d-inline">
+                            @csrf
+                            <input type="hidden" name="product_id" value="{{ $heroProduct->id }}">
+                            <button type="submit" class="btn btn-primary rounded-pill py-2 px-4">
+                                <i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
         </div>
@@ -133,7 +146,7 @@
     <div class="container">
         <div class="row g-4">
             <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.2s">
-                <a href="#" class="d-flex align-items-center justify-content-between border bg-white rounded p-4">
+                <a href="{{ route('flash-sale') }}" class="d-flex align-items-center justify-content-between border bg-white rounded p-4">
                     <div>
                         <p class="text-muted mb-3">Săn deal Camera cực chất!</p>
                         <h3 class="text-primary">Máy ảnh thông minh</h3>
@@ -143,7 +156,7 @@
                 </a>
             </div>
             <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.3s">
-                <a href="#" class="d-flex align-items-center justify-content-between border bg-white rounded p-4">
+                <a href="{{ route('flash-sale') }}" class="d-flex align-items-center justify-content-between border bg-white rounded p-4">
                     <div>
                         <p class="text-muted mb-3">Đồng hồ hiện đại cho bạn!</p>
                         <h3 class="text-primary">Đồng hồ thông minh</h3>
@@ -185,54 +198,40 @@
                 </div>
             </div>
             <div class="tab-content">
+                {{-- Tab 1: Tất cả sản phẩm mới nhất --}}
                 <div id="tab-1" class="tab-pane fade show p-0 active">
                     <div class="row g-4 mt-2">
                         @forelse($products ?? [] as $product)
-                            <div class="col-md-6 col-lg-4 col-xl-3">
-                                <div class="product-item rounded wow fadeInUp">
-                                    <div class="product-item-inner border rounded">
-                                        <div class="product-item-inner-item">
-                                            <img src="{{ $product->image ? asset('storage/' . $product->image) : asset('img/product-3.png') }}"
-                                                class="img-fluid w-100 rounded-top" alt="{{ $product->name }}">
-                                            @if($product->is_new)
-                                                <div class="product-new">Mới</div>
-                                            @endif
-                                            <div class="product-details">
-                                                <a href="{{ route('shop.show', $product->id) }}">
-                                                    <i class="fa fa-eye fa-1x"></i>
-                                                </a>
-                                            </div>
-                                        </div>
-                                        <div class="text-center rounded-bottom p-4">
-                                            <a href="{{ route('shop.index', ['category' => $product->category_id]) }}"
-                                                class="d-block mb-2 text-muted">{{ $product->category->name ?? '' }}</a>
-                                            <a href="{{ route('shop.show', $product->id) }}"
-                                                class="d-block h4">{{ $product->name }}</a>
-                                            @if($product->original_price)
-                                                <del class="me-2 fs-5 text-muted">{{ number_format($product->original_price, 0, ',', '.') }}đ</del>
-                                            @endif
-                                            <span class="text-primary fs-5 fw-bold">{{ number_format($product->price, 0, ',', '.') }}đ</span>
-                                        </div>
-                                    </div>
-                                    <div class="product-item-add border border-top-0 rounded-bottom text-center p-4 pt-0">
-                                        <form action="{{ route('cart.add') }}" method="POST">
-                                            @csrf
-                                            <input type="hidden" name="product_id" value="{{ $product->id }}">
-                                            <button type="submit" class="btn btn-primary border-secondary rounded-pill py-2 px-4 mb-4 w-100">
-                                                <i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ
-                                            </button>
-                                        </form>
-                                        <div class="d-flex justify-content-center">
-                                            <div class="d-flex text-primary">
-                                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            @include('shop.partials.tab-product-card', ['product' => $product])
                         @empty
                             <div class="col-12 text-center py-5">
                                 <p class="text-muted">Chưa có sản phẩm nào.</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                {{-- Tab 2: Hàng mới về (is_new = true) --}}
+                <div id="tab-2" class="tab-pane fade p-0">
+                    <div class="row g-4 mt-2">
+                        @forelse($newArrivals ?? [] as $product)
+                            @include('shop.partials.tab-product-card', ['product' => $product])
+                        @empty
+                            <div class="col-12 text-center py-5">
+                                <p class="text-muted">Chưa có hàng mới về.</p>
+                            </div>
+                        @endforelse
+                    </div>
+                </div>
+
+                {{-- Tab 3: Nổi bật (xếp theo lượt xem) --}}
+                <div id="tab-3" class="tab-pane fade p-0">
+                    <div class="row g-4 mt-2">
+                        @forelse($featuredProducts ?? [] as $product)
+                            @include('shop.partials.tab-product-card', ['product' => $product])
+                        @empty
+                            <div class="col-12 text-center py-5">
+                                <p class="text-muted">Chưa có sản phẩm nổi bật.</p>
                             </div>
                         @endforelse
                     </div>
@@ -247,19 +246,18 @@
     <div class="container pb-5">
         <div class="row g-4">
             <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.1s">
-                <a href="#">
+                <a href="{{ $cameraCategory ? route('shop.index', ['category' => $cameraCategory->id]) : route('shop.index') }}">
                     <div class="bg-primary rounded position-relative">
                         <img src="{{ asset('img/product-banner.jpg') }}" class="img-fluid w-100 rounded" alt="Promo">
                         <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center rounded p-4" style="background: rgba(255, 255, 255, 0.5);">
                             <h3 class="display-5 text-primary">Máy Ảnh EOS Rebel <br> <span>Kèm phụ kiện</span></h3>
-                            <p class="fs-4 text-dark fw-bold">18.990.000đ</p>
                             <span class="btn btn-primary rounded-pill align-self-start py-2 px-4">Mua ngay</span>
                         </div>
                     </div>
                 </a>
             </div>
             <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.2s">
-                <a href="#">
+                <a href="{{ route('flash-sale') }}">
                     <div class="text-center bg-primary rounded position-relative">
                         <img src="{{ asset('img/product-banner-2.jpg') }}" class="img-fluid w-100" alt="Sale">
                         <div class="position-absolute top-0 start-0 w-100 h-100 d-flex flex-column justify-content-center rounded p-4" style="background: rgba(242, 139, 0, 0.5);">
@@ -282,38 +280,45 @@
             <p class="mb-0">Những sản phẩm được khách hàng tin dùng và lựa chọn nhiều nhất tại Electro Shop.</p>
         </div>
         <div class="row g-4">
-            {{-- Sau này lặp @foreach($bestsellers as $item) --}}
-            @for ($i = 3; $i <= 8; $i++) 
+            @forelse($bestsellers ?? [] as $item)
             <div class="col-md-6 col-lg-6 col-xl-4 wow fadeInUp" data-wow-delay="0.1s">
                 <div class="products-mini-item border rounded">
                     <div class="row g-0">
                         <div class="col-5">
                             <div class="products-mini-img border-end h-100">
-                                <img src="{{ asset('img/product-'.$i.'.png') }}" class="img-fluid w-100 h-100" style="object-fit: cover;" alt="Bestseller">
+                                <img src="{{ $item->image ? asset('storage/' . $item->image) : asset('img/product-3.png') }}" class="img-fluid w-100 h-100" style="object-fit: cover;" alt="{{ $item->name }}">
                                 <div class="products-mini-icon rounded-circle bg-primary">
-                                    <a href="#"><i class="fa fa-eye text-white"></i></a>
+                                    <a href="{{ route('shop.show', $item->id) }}"><i class="fa fa-eye text-white"></i></a>
                                 </div>
                             </div>
                         </div>
                         <div class="col-7">
                             <div class="products-mini-content p-3">
-                                <a href="#" class="d-block mb-2 text-muted small">Điện tử</a>
-                                <a href="#" class="d-block h5">Sản phẩm Bán chạy {{ $i }}</a>
+                                <a href="{{ route('shop.index', ['category' => $item->category_id]) }}" class="d-block mb-2 text-muted small">{{ $item->category->name ?? '' }}</a>
+                                <a href="{{ route('shop.show', $item->id) }}" class="d-block h5">{{ $item->name }}</a>
                                 <div class="d-flex mb-2 text-primary small">
                                     <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
                                 </div>
-                                <h5 class="text-primary fw-bold">2.500.000đ</h5>
+                                <h5 class="text-primary fw-bold">{{ number_format($item->price, 0, ',', '.') }}đ</h5>
                             </div>
                         </div>
                     </div>
                     <div class="products-mini-add border-top p-2 text-center">
-                        <a href="#" class="btn btn-primary btn-sm rounded-pill px-3">
-                            <i class="fas fa-shopping-cart me-2"></i>Thêm vào giỏ
-                        </a>
+                        <form action="{{ route('cart.add') }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="product_id" value="{{ $item->id }}">
+                            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">
+                                <i class="fas fa-shopping-cart me-2"></i>Thêm vào giỏ
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
-            @endfor
+            @empty
+            <div class="col-12 text-center py-5">
+                <p class="text-muted">Chưa có sản phẩm bán chạy nào được đánh dấu.</p>
+            </div>
+            @endforelse
         </div>
     </div>
 </div>
@@ -345,29 +350,36 @@
             <h1 class="mb-0 display-4">Tất cả sản phẩm</h1>
         </div>
         <div class="productList-carousel owl-carousel pt-4 wow fadeInUp" data-wow-delay="0.3s">
-            {{-- Lặp sản phẩm ở đây --}}
-            @for ($i = 4; $i <= 10; $i++)
+            @forelse($exploreProducts ?? [] as $product)
             <div class="productImg-item products-mini-item border rounded mx-2">
                 <div class="row g-0">
                     <div class="col-5">
                         <div class="products-mini-img border-end h-100">
-                            <img src="{{ asset('img/product-'.$i.'.png') }}" class="img-fluid w-100 h-100" alt="Product">
+                            <img src="{{ $product->image ? asset('storage/' . $product->image) : asset('img/product-3.png') }}" class="img-fluid w-100 h-100" alt="{{ $product->name }}">
                         </div>
                     </div>
                     <div class="col-7">
                         <div class="products-mini-content p-3">
-                            <a href="#" class="d-block mb-1 text-muted small">Công nghệ</a>
-                            <a href="#" class="d-block h6">Thiết bị đời mới {{ $i }}</a>
-                            <del class="text-muted small">5.000.000đ</del>
-                            <span class="text-primary d-block fw-bold">4.200.000đ</span>
+                            <a href="{{ route('shop.index', ['category' => $product->category_id]) }}" class="d-block mb-1 text-muted small">{{ $product->category->name ?? '' }}</a>
+                            <a href="{{ route('shop.show', $product->id) }}" class="d-block h6">{{ $product->name }}</a>
+                            @if($product->original_price)
+                                <del class="text-muted small">{{ number_format($product->original_price, 0, ',', '.') }}đ</del>
+                            @endif
+                            <span class="text-primary d-block fw-bold">{{ number_format($product->price, 0, ',', '.') }}đ</span>
                         </div>
                     </div>
                 </div>
                 <div class="products-mini-add border-top p-2 text-center">
-                    <a href="#" class="text-primary"><i class="fas fa-shopping-cart me-2"></i>Giỏ hàng</a>
+                    <form action="{{ route('cart.add') }}" method="POST">
+                        @csrf
+                        <input type="hidden" name="product_id" value="{{ $product->id }}">
+                        <button type="submit" class="btn btn-link text-primary p-0"><i class="fas fa-shopping-cart me-2"></i>Giỏ hàng</button>
+                    </form>
                 </div>
             </div>
-            @endfor
+            @empty
+            <p class="text-muted text-center w-100">Chưa có sản phẩm nào.</p>
+            @endforelse
         </div>
     </div>
 </div>

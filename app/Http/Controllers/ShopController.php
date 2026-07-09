@@ -106,6 +106,37 @@ class ShopController extends Controller
         $products   = $query->latest()->paginate(12)->withQueryString();
         $categories = Category::withCount('products')->get();
 
-        return view('shop.bestseller', compact('products', 'categories'));
+        // Tab "Tất cả" trong khối "Sản Phẩm Của Chúng Tôi"
+        $allProducts = Product::with('category')
+            ->where('is_active', true)
+            ->latest()
+            ->limit(8)
+            ->get();
+
+        // Tab "Hàng Mới Về"
+        $newArrivals = Product::with('category')
+            ->where('is_active', true)
+            ->where('is_new', true)
+            ->latest()
+            ->limit(8)
+            ->get();
+
+        // Tab "Nổi Bật"
+        $featuredProducts = Product::with('category')
+            ->where('is_active', true)
+            ->orderByDesc('view_count')
+            ->orderByDesc('is_bestseller')
+            ->latest()
+            ->limit(8)
+            ->get();
+
+        // Danh mục dùng để trỏ link cho các banner quảng cáo
+        $cameraCategory = Category::where('name', 'Máy ảnh')->first();
+        $watchCategory  = Category::where('name', 'Đồng hồ thông minh')->first();
+
+        return view('shop.bestseller', compact(
+            'products', 'categories', 'allProducts', 'newArrivals', 'featuredProducts',
+            'cameraCategory', 'watchCategory'
+        ));
     }
 }

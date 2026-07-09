@@ -105,44 +105,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ==================== THÊM VÀO GIỎ HÀNG (AJAX) ====================
-    document.addEventListener('click', function (e) {
-        if (e.target.closest('.add-to-cart')) {
-            const btn = e.target.closest('.add-to-cart');
-            const productId = btn.getAttribute('data-id');
-            
-            // Disable button tạm thời
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin me-2"></i> Đang thêm...`;
-
-            fetch("{{ route('cart.add') }}", {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ product_id: productId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert('✅ Đã thêm sản phẩm vào giỏ hàng!');
-                    // Có thể cập nhật số lượng giỏ hàng ở header nếu bạn có
-                    if (typeof updateCartCount === 'function') updateCartCount(data.cart_count);
-                } else {
-                    alert(data.message || 'Có lỗi xảy ra!');
-                }
-            })
-            .catch(error => {
-                console.error(error);
-                alert('Có lỗi kết nối. Vui lòng thử lại!');
-            })
-            .finally(() => {
-                btn.disabled = false;
-                btn.innerHTML = `<i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ hàng`;
-            });
-        }
-    });
+    // Đã chuyển sang xử lý dùng chung cho toàn site trong resources/views/layouts/app.blade.php
+    // (hiển thị popup thông báo góc phải trên thay vì alert()).
 
     // Hàm load sản phẩm
     function loadProducts(params = {}) {
