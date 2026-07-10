@@ -161,20 +161,24 @@
                             </table>
                         </div>
 
-                        <!-- Voucher -->
+                        <!-- Voucher: có thể áp dụng NHIỀU mã cùng lúc -->
                         <div class="mb-4">
                             <label for="checkout-voucher" class="form-label fw-bold">Mã giảm giá</label>
                             <div class="input-group">
                                 <input type="text" id="checkout-voucher" 
                                        class="form-control" 
-                                       placeholder="Nhập mã voucher"
+                                       placeholder="Nhập mã voucher (có thể áp nhiều mã)"
                                        style="text-transform: uppercase;">
                                 <button class="btn btn-outline-primary" type="button" id="apply-voucher-checkout"
-                                        data-url="{{ route('checkout.apply-voucher') }}">
+                                        data-url="{{ route('checkout.apply-voucher') }}"
+                                        data-remove-url="{{ route('checkout.remove-voucher') }}">
                                     Áp dụng
                                 </button>
                             </div>
                             <div id="checkout-voucher-message" class="mt-2 small"></div>
+
+                            <!-- Danh sách các mã đã áp dụng -->
+                            <div id="applied-vouchers-list" class="d-flex flex-wrap gap-2 mt-2"></div>
                         </div>
 
                         <!-- Tóm tắt tiền -->
@@ -190,7 +194,7 @@
                             </div>
                             
                             <div id="discount-row" class="d-flex justify-content-between mb-3 text-success" style="display: none;">
-                                <span>Giảm giá (<span id="voucher-name"></span>):</span>
+                                <span>Giảm giá (<span id="voucher-count">0</span> mã):</span>
                                 <span id="discount-amount">- 0đ</span>
                             </div>
 
@@ -275,18 +279,53 @@ document.addEventListener('DOMContentLoaded', function () {
     const finalTotalEl   = document.getElementById('final-total');
     const discountRow    = document.getElementById('discount-row');
     const discountAmountEl = document.getElementById('discount-amount');
-    const voucherNameEl    = document.getElementById('voucher-name');
+    const voucherCountEl   = document.getElementById('voucher-count');
+    const appliedListEl     = document.getElementById('applied-vouchers-list');
     const shippingFeeEl    = document.getElementById('shipping-fee-display');
 
     // Lấy subtotal từ PHP, truyền qua data attribute để tránh lỗi syntax JS
     const subtotalEl = document.getElementById('subtotal-display');
     const currentSubtotal = parseFloat(subtotalEl ? subtotalEl.dataset.value : '0') || 0;
 
-    let appliedVoucherCode = null;
+    let appliedVouchers    = []; // [{code, name, discount}, ...] - danh sách mã đang áp dụng
     let currentShippingFee = 0;
     let currentDiscount    = 0;
 
-    // ==================== VOUCHER ====================
+    // ==================== VOUCHER (hỗ trợ áp nhiều mã cùng lúc) ====================
+
+    // Vẽ lại danh sách chip voucher + cập nhật số tiền giảm dựa trên breakdown server trả về
+    function renderAppliedVouchers(breakdown) {
+        appliedVouchers = breakdown || [];
+        currentDiscount = appliedVouchers.reduce((sum, v) => sum + (parseFloat(v.discount) || 0), 0);
+
+        if (appliedListEl) {
+            appliedListEl.innerHTML = appliedVouchers.map(v => `
+                <span class="badge bg-success-subtle text-success border border-success d-inline-flex align-items-center gap-2 py-2 px-3">
+                    ${escapeHtml(v.code)} (-${Number(v.discount).toLocaleString('vi-VN')}đ)
+                    <button type="button" class="btn-close btn-close-sm remove-voucher-btn" data-code="${escapeHtml(v.code)}" style="font-size:0.6rem;" aria-label="Gỡ mã"></button>
+                </span>
+            `).join('');
+        }
+
+        if (voucherCountEl) voucherCountEl.textContent = appliedVouchers.length;
+        if (discountAmountEl) discountAmountEl.textContent = '- ' + currentDiscount.toLocaleString('vi-VN') + 'đ';
+        if (discountRow) discountRow.style.display = appliedVouchers.length > 0 ? 'flex' : 'none';
+
+        recalcTotal();
+    }
+
+    function applyVoucherCode(code) {
+        return fetch(applyBtn.dataset.url, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ code: code, amount: currentSubtotal })
+        }).then(r => r.json());
+    }
+
     if (applyBtn) {
         applyBtn.addEventListener('click', function () {
             const code = voucherInput.value.trim().toUpperCase();
@@ -298,7 +337,44 @@ document.addEventListener('DOMContentLoaded', function () {
             applyBtn.disabled = true;
             applyBtn.textContent = 'Đang áp dụng...';
 
-            fetch(applyBtn.dataset.url, {
+            applyVoucherCode(code)
+                .then(data => {
+                    if (data.success) {
+                        renderAppliedVouchers(data.vouchers);
+                        showMessage(data.message, 'success');
+                        voucherInput.value = '';
+                    } else {
+                        showMessage(data.message || 'Mã voucher không hợp lệ', 'danger');
+                    }
+                })
+                .catch(() => showMessage('Lỗi kết nối server!', 'danger'))
+                .finally(() => {
+                    applyBtn.disabled = false;
+                    applyBtn.textContent = 'Áp dụng';
+                });
+        });
+
+        // Cho phép nhấn Enter trong ô nhập để áp mã, thay vì phải bấm nút
+        if (voucherInput) {
+            voucherInput.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    applyBtn.click();
+                }
+            });
+        }
+    }
+
+    // Gỡ một mã voucher khỏi danh sách (event delegation vì các chip được vẽ động)
+    if (appliedListEl) {
+        appliedListEl.addEventListener('click', function (e) {
+            const btn = e.target.closest('.remove-voucher-btn');
+            if (!btn) return;
+
+            const code = btn.dataset.code;
+            btn.disabled = true;
+
+            fetch(applyBtn.dataset.removeUrl, {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -310,23 +386,13 @@ document.addEventListener('DOMContentLoaded', function () {
             .then(r => r.json())
             .then(data => {
                 if (data.success) {
-                    currentDiscount = parseFloat(data.discount) || 0;
-                    appliedVoucherCode = code;
-                    voucherNameEl.textContent = code;
-                    discountAmountEl.textContent = '- ' + currentDiscount.toLocaleString('vi-VN') + 'đ';
-                    discountRow.style.display = 'flex';
-                    recalcTotal();
-                    showMessage(data.message, 'success');
-                    voucherInput.value = '';
+                    renderAppliedVouchers(data.vouchers);
+                    showMessage('Đã gỡ mã "' + code + '"', 'success');
                 } else {
-                    showMessage(data.message || 'Mã voucher không hợp lệ', 'danger');
+                    showMessage(data.message || 'Không gỡ được mã này', 'danger');
                 }
             })
-            .catch(() => showMessage('Lỗi kết nối server!', 'danger'))
-            .finally(() => {
-                applyBtn.disabled = false;
-                applyBtn.textContent = 'Áp dụng';
-            });
+            .catch(() => showMessage('Lỗi kết nối server!', 'danger'));
         });
     }
 
@@ -509,7 +575,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 payment_method: selectedPayment.value,
                 carrier_id:     parseInt(carrierId),
                 shipping_fee:   parseFloat(shippingFeeInput.value || 0),
-                voucher_code:   appliedVoucherCode || '',
+                voucher_codes:  appliedVouchers.map(v => v.code),
                 _token:         document.querySelector('meta[name="csrf-token"]').content,
             };
 

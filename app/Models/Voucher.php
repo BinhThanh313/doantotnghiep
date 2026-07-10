@@ -83,4 +83,48 @@ class Voucher extends Model
         $count = $this->usages()->where('user_id', $userId)->count();
         return $count >= $this->max_uses_per_user;
     }
+
+    // ==================== STACKING NHIỀU VOUCHER ====================
+
+    /**
+     * Tính tổng tiền giảm khi áp dụng NHIỀU voucher cùng lúc cho 1 đơn hàng.
+     *
+     * Áp dụng tuần tự theo thứ tự trong $vouchers: voucher sau được tính
+     * trên phần tiền CÒN LẠI sau khi đã trừ các voucher trước đó. Cách này
+     * đảm bảo tổng giảm giá không bao giờ vượt quá giá trị đơn hàng, kể cả
+     * khi có nhiều voucher percent stack với nhau.
+     *
+     * @param  \Illuminate\Support\Collection<int, Voucher>|array<int, Voucher>  $vouchers
+     * @param  float  $subtotal
+     * @return array{total: float, remaining: float, breakdown: array<int, array{voucher_id:int, code:string, name:string, discount:float}>}
+     */
+    public static function calculateStackedDiscount($vouchers, float $subtotal): array
+    {
+        $remaining     = max($subtotal, 0);
+        $totalDiscount = 0.0;
+        $breakdown     = [];
+
+        foreach ($vouchers as $voucher) {
+            $discount = $voucher->calculateDiscount($remaining);
+            $discount = min($discount, $remaining);
+
+            $breakdown[] = [
+                'voucher_id' => $voucher->id,
+                'code'       => $voucher->code,
+                'name'       => $voucher->name ?? $voucher->code,
+                'discount'   => $discount,
+            ];
+
+            if ($discount > 0) {
+                $totalDiscount += $discount;
+                $remaining     -= $discount;
+            }
+        }
+
+        return [
+            'total'     => $totalDiscount,
+            'remaining' => $remaining,
+            'breakdown' => $breakdown,
+        ];
+    }
 }

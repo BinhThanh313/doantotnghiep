@@ -52,9 +52,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/cart/update/{id}', [CartController::class, 'update'])->name('cart.update');
     Route::post('/cart/remove/{id}', [CartController::class, 'remove'])->name('cart.remove');
     
-    // Thêm route xóa voucher ở đây
+    // Xóa TOÀN BỘ voucher đang áp dụng (danh sách nhiều mã)
     Route::post('/cart/clear-voucher', function() {
-        session()->forget('applied_voucher');
+        session()->forget('applied_vouchers');
         return response()->json(['success' => true]);
     })->name('cart.clear-voucher');
 
@@ -63,8 +63,9 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
     Route::get('/checkout/success/{id}', [CheckoutController::class, 'success'])->name('checkout.success');
 
-    // AJAX: apply voucher & calculate shipping (từ checkout blade)
+    // AJAX: áp dụng / gỡ voucher (hỗ trợ nhiều mã cùng lúc) & tính phí ship (từ checkout blade)
     Route::post('/checkout/apply-voucher', [CheckoutController::class, 'applyVoucher'])->name('checkout.apply-voucher');
+    Route::post('/checkout/remove-voucher', [CheckoutController::class, 'removeVoucher'])->name('checkout.remove-voucher');
 
     // routes/web.php — thêm vào group middleware(['auth'])
     Route::get('/payment/return', fn() => view('payment-return'))->name('payment.return');

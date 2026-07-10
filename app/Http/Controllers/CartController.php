@@ -22,20 +22,26 @@ class CartController extends Controller
         $total += $item['price'] * $item['quantity'];
     }
 
-    // Lấy discount từ session nếu có voucher
-    if (session('applied_voucher')) {
-        $voucher = \App\Models\Voucher::where('code', session('applied_voucher'))->first();
-        if ($voucher) {
-            $discount = $voucher->calculateDiscount($total);
-        }
+    // Lấy discount từ session nếu có voucher (hỗ trợ nhiều mã cùng lúc)
+    $appliedVoucherCodes = session('applied_vouchers', []);
+    $appliedVouchers = [];
+    if (!empty($appliedVoucherCodes)) {
+        $vouchers = \App\Models\Voucher::whereIn('code', $appliedVoucherCodes)
+            ->get()
+            ->sortBy(fn($v) => array_search($v->code, $appliedVoucherCodes))
+            ->values();
+
+        $result = \App\Models\Voucher::calculateStackedDiscount($vouchers, $total);
+        $discount = $result['total'];
+        $appliedVouchers = $result['breakdown'];
     }
 
     if ($request->ajax() || $request->get('ajax')) {
         return view('shop.cart-items', compact('cart'))->render() . 
-               view('shop.cart-summary', compact('cart', 'total', 'discount'))->render();
+               view('shop.cart-summary', compact('cart', 'total', 'discount', 'appliedVouchers'))->render();
     }
 
-    return view('shop.cart', compact('cart', 'total', 'discount'));
+    return view('shop.cart', compact('cart', 'total', 'discount', 'appliedVouchers'));
 }
 
     public function add(Request $request)

@@ -32,6 +32,11 @@ class CheckoutController extends Controller
         return view('shop.checkout', compact('cart', 'subtotal', 'carriers'));
     }
 
+    /**
+     * Áp dụng THÊM một mã voucher vào danh sách mã đang áp dụng trong session.
+     * Cho phép áp nhiều mã cùng lúc — mã mới được cộng dồn vào danh sách,
+     * không thay thế các mã đã áp trước đó.
+     */
     public function applyVoucher(Request $request)
     {
         $request->validate([
@@ -39,7 +44,14 @@ class CheckoutController extends Controller
             'amount' => 'required|numeric|min:0',
         ]);
 
-        $voucher = Voucher::where('code', strtoupper($request->code))->first();
+        $code         = strtoupper(trim($request->code));
+        $appliedCodes = session('applied_vouchers', []);
+
+        if (in_array($code, $appliedCodes, true)) {
+            return response()->json(['success' => false, 'message' => 'Mã "' . $code . '" đã được áp dụng rồi'], 422);
+        }
+
+        $voucher = Voucher::where('code', $code)->first();
 
         if (!$voucher || !$voucher->isValid()) {
             return response()->json(['success' => false, 'message' => 'Mã giảm giá không hợp lệ hoặc đã hết hạn'], 422);
@@ -49,21 +61,71 @@ class CheckoutController extends Controller
             return response()->json(['success' => false, 'message' => 'Bạn đã sử dụng mã này rồi'], 422);
         }
 
-        $discount = $voucher->calculateDiscount($request->amount);
+        // Tính lại discount cho TOÀN BỘ danh sách (mã cũ + mã mới) theo đúng
+        // thứ tự áp dụng, để đảm bảo mã mới còn tác dụng khi stack với các mã trước.
+        $newAppliedCodes = [...$appliedCodes, $code];
+        $vouchers        = $this->loadVouchersInOrder($newAppliedCodes);
+        $result          = Voucher::calculateStackedDiscount($vouchers, $request->amount);
 
-        if ($discount <= 0) {
-            return response()->json(['success' => false, 'message' => "Đơn hàng tối thiểu " . number_format($voucher->min_amount, 0, ',', '.') . "đ để sử dụng mã này"], 422);
+        $newVoucherEntry = collect($result['breakdown'])->firstWhere('code', $code);
+
+        if (!$newVoucherEntry || $newVoucherEntry['discount'] <= 0) {
+            return response()->json([
+                'success' => false,
+                'message' => "Mã \"{$code}\" không áp dụng được (chưa đạt đơn tối thiểu "
+                    . number_format($voucher->min_amount, 0, ',', '.')
+                    . "đ, hoặc phần đơn hàng còn lại sau các mã khác không đủ điều kiện)",
+            ], 422);
         }
 
-        session(['applied_voucher' => $voucher->code]);
+        session(['applied_vouchers' => $newAppliedCodes]);
 
         return response()->json([
-            'success'      => true,
-            'discount'     => $discount,
-            'voucher_id'   => $voucher->id,
-            'voucher_name' => $voucher->name ?? $voucher->code,
-            'message'      => 'Áp dụng mã thành công! Giảm ' . number_format($discount, 0, ',', '.') . 'đ',
+            'success'  => true,
+            'message'  => 'Áp dụng mã "' . $code . '" thành công! Giảm thêm ' . number_format($newVoucherEntry['discount'], 0, ',', '.') . 'đ',
+            'discount' => $result['total'],
+            'vouchers' => $result['breakdown'],
         ]);
+    }
+
+    /**
+     * Gỡ một mã voucher khỏi danh sách mã đang áp dụng, tính lại discount
+     * cho các mã còn lại.
+     */
+    public function removeVoucher(Request $request)
+    {
+        $request->validate([
+            'code'   => 'required|string',
+            'amount' => 'required|numeric|min:0',
+        ]);
+
+        $code         = strtoupper(trim($request->code));
+        $appliedCodes = array_values(array_diff(session('applied_vouchers', []), [$code]));
+
+        session(['applied_vouchers' => $appliedCodes]);
+
+        $result = empty($appliedCodes)
+            ? ['total' => 0, 'breakdown' => []]
+            : Voucher::calculateStackedDiscount($this->loadVouchersInOrder($appliedCodes), $request->amount);
+
+        return response()->json([
+            'success'  => true,
+            'discount' => $result['total'],
+            'vouchers' => $result['breakdown'],
+        ]);
+    }
+
+    /**
+     * Lấy các Voucher theo đúng thứ tự mã trong $codes (whereIn không đảm bảo thứ tự).
+     */
+    private function loadVouchersInOrder(array $codes)
+    {
+        $codes = array_map('strtoupper', $codes);
+
+        return Voucher::whereIn('code', $codes)
+            ->get()
+            ->sortBy(fn($v) => array_search($v->code, $codes))
+            ->values();
     }
 
     public function calculateShipping(Request $request)
@@ -96,8 +158,9 @@ class CheckoutController extends Controller
             'city'           => 'required|string|max:100',
             'address'        => 'required|string|max:255',
             'payment_method' => 'required|in:cod,bank',
-            'carrier_id'     => 'nullable|exists:shipping_carriers,id',
-            'voucher_code'   => 'nullable|string',
+            'carrier_id'      => 'nullable|exists:shipping_carriers,id',
+            'voucher_codes'   => 'nullable|array',
+            'voucher_codes.*' => 'string',
         ]);
 
         $cart = session()->get('cart', []);
@@ -127,22 +190,32 @@ class CheckoutController extends Controller
                     $shippingFee = $zone ? $zone->fee : ($carrier?->base_fee ?? 0);
                 }
 
-                // 4. Áp dụng voucher
-                $discountAmount = 0;
-                $voucher        = null;
-                $voucherCode    = $request->voucher_code ?? session('applied_voucher');
+                // 4. Áp dụng voucher (hỗ trợ nhiều mã cùng lúc, tính tuần tự)
+                $discountAmount  = 0;
+                $appliedVouchers = []; // [['voucher' => Voucher, 'discount' => float], ...]
+                $voucherCodes    = $request->input('voucher_codes') ?: session('applied_vouchers', []);
+                $voucherCodes    = array_values(array_unique(array_map('strtoupper', $voucherCodes)));
 
-                if ($voucherCode) {
-                    $voucher = Voucher::where('code', strtoupper($voucherCode))
-                                     ->lockForUpdate()
-                                     ->first();
+                if (!empty($voucherCodes)) {
+                    $vouchers = Voucher::whereIn('code', $voucherCodes)
+                        ->lockForUpdate()
+                        ->get()
+                        ->sortBy(fn($v) => array_search($v->code, $voucherCodes))
+                        ->values();
 
-                    if ($voucher && $voucher->isValid()) {
-                        if ($voucher->max_uses === null || $voucher->used_count < $voucher->max_uses) {
-                            $discountAmount = $voucher->calculateDiscount($subtotal);
-                            if ($discountAmount > 0) {
-                                $voucher->increment('used_count');
-                            }
+                    $remaining = $subtotal;
+
+                    foreach ($vouchers as $voucher) {
+                        if (!$voucher->isValid()) continue;
+                        if ($voucher->max_uses !== null && $voucher->used_count >= $voucher->max_uses) continue;
+                        if (Auth::check() && $voucher->hasBeenUsedByUser(Auth::id())) continue;
+
+                        $discount = min($voucher->calculateDiscount($remaining), $remaining);
+                        if ($discount > 0) {
+                            $discountAmount += $discount;
+                            $remaining      -= $discount;
+                            $voucher->increment('used_count');
+                            $appliedVouchers[] = ['voucher' => $voucher, 'discount' => $discount];
                         }
                     }
                 }
@@ -178,13 +251,13 @@ class CheckoutController extends Controller
                     Product::find($item['id'])->decreaseStock($item['quantity'], $order->id);
                 }
 
-                // 7. Lưu voucher usage
-                if ($voucher && $discountAmount > 0) {
-                    $order->vouchers()->attach($voucher->id, ['discount_amount' => $discountAmount]);
+                // 7. Lưu voucher usage (từng mã trong danh sách đã áp dụng)
+                foreach ($appliedVouchers as $entry) {
+                    $order->vouchers()->attach($entry['voucher']->id, ['discount_amount' => $entry['discount']]);
 
                     if (Auth::check()) {
                         VoucherUsage::create([
-                            'voucher_id' => $voucher->id,
+                            'voucher_id' => $entry['voucher']->id,
                             'user_id'    => Auth::id(),
                             'order_id'   => $order->id,
                         ]);
@@ -225,7 +298,7 @@ class CheckoutController extends Controller
                 return $order;
             });
 
-            session()->forget(['cart', 'applied_voucher']);
+            session()->forget(['cart', 'applied_vouchers']);
 
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([

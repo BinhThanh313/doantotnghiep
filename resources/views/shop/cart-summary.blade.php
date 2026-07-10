@@ -8,10 +8,16 @@
         <p class="mb-0">{{ number_format($total ?? 0, 0, ',', '.') }}đ</p>
     </div>
 
-    @if(session('applied_voucher'))
-    <div class="d-flex justify-content-between mb-3 text-success">
-        <h5 class="mb-0">Giảm giá ({{ session('applied_voucher') }}):</h5>
-        <p class="mb-0">- {{ number_format($discount ?? 0, 0, ',', '.') }}đ</p>
+    @if(!empty($appliedVouchers))
+    <div class="mb-3 text-success">
+        @foreach($appliedVouchers as $v)
+            @if(($v['discount'] ?? 0) > 0)
+            <div class="d-flex justify-content-between">
+                <h5 class="mb-0 small">Giảm giá ({{ $v['code'] }}):</h5>
+                <p class="mb-0 small">- {{ number_format($v['discount'], 0, ',', '.') }}đ</p>
+            </div>
+            @endif
+        @endforeach
     </div>
     @endif
 
