@@ -27,14 +27,19 @@ function renderReviews(reviews) {
     let html = '';
     reviews.forEach(r => {
         let stars = '⭐'.repeat(r.rating);
-        let imagesHtml = '';
-        
-        if (r.images && r.images.length > 0) {
-            imagesHtml = '<div class="d-flex flex-wrap gap-2 mt-3">';
-            r.images.forEach(img => {
-                imagesHtml += `<img src="/storage/${img.image_url}" class="rounded border" style="width: 80px; height: 80px; object-fit: cover;">`;
-            });
-            imagesHtml += '</div>';
+        let mediaHtml = '';
+
+        if ((r.images && r.images.length > 0) || r.video_url) {
+            mediaHtml = '<div class="d-flex flex-wrap gap-2 mt-3">';
+            if (r.images && r.images.length > 0) {
+                r.images.forEach(img => {
+                    mediaHtml += `<img src="${appBaseUrl}/storage/${img.image_url}" class="rounded border" style="width: 80px; height: 80px; object-fit: cover;">`;
+                });
+            }
+            if (r.video_url) {
+                mediaHtml += `<video src="${appBaseUrl}/storage/${r.video_url}" controls class="rounded border" style="width: 160px; height: 90px; object-fit: cover;"></video>`;
+            }
+            mediaHtml += '</div>';
         }
 
         let verifiedTag = r.verified_purchase ? '<span class="badge bg-success ms-2"><i class="fa fa-check-circle"></i> Đã mua hàng</span>' : '';
@@ -51,7 +56,7 @@ function renderReviews(reviews) {
                 <div class="text-warning mb-2">${stars}</div>
                 ${r.title ? `<h6 class="fw-bold mb-1">${r.title}</h6>` : ''}
                 <p class="mb-0 text-dark">${r.comment || ''}</p>
-                ${imagesHtml}
+                ${mediaHtml}
             </div>
         `;
     });
@@ -101,7 +106,6 @@ async function submitReview(e) {
         const data = await response.json();
         
         if (response.ok) {
-            msg.innerHTML = '<div class="alert alert-success">Gửi đánh giá thành công!</div>';
             form.reset();
             fetchReviews(currentProductId, 1);
         } else {

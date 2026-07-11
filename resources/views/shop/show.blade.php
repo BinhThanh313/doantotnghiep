@@ -161,8 +161,9 @@
 
                                     @push('scripts')
                                     <script>
-                                        // Truyền biến productId từ Blade sang JS
+                                        // Truyền biến productId và base URL từ Blade sang JS
                                         const currentProductId = {{ $product->id }};
+                                        const appBaseUrl = "{{ rtrim(asset('/'), '/') }}";
                                     </script>
                                     <script src="{{ asset('js/review.js') }}"></script>
                                     @endpush

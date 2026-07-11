@@ -23,8 +23,12 @@
             <textarea name="comment" id="review-comment" class="form-control" rows="4" placeholder="Chia sẻ cảm nhận của bạn về sản phẩm..."></textarea>
         </div>
         <div class="mb-3">
-            <label class="form-label">Hình ảnh đính kèm (Tối đa 2MB/ảnh)</label>
+            <label class="form-label">Hình ảnh đính kèm (Tối đa 5 ảnh, 5MB/ảnh)</label>
             <input type="file" name="images[]" id="review-images" class="form-control" multiple accept="image/*">
+        </div>
+        <div class="mb-3">
+            <label class="form-label">Video đánh giá (Không bắt buộc, tối đa 20MB)</label>
+            <input type="file" name="video" id="review-video" class="form-control" accept="video/*">
         </div>
         
         <button type="submit" class="btn btn-primary text-white rounded-pill px-4 py-2" id="submit-review-btn">

@@ -69,20 +69,16 @@ class ReviewController extends Controller
         $user = Auth::user();
         Product::findOrFail($productId);
 
-        // Kiểm tra đã review chưa
-        $existing = Review::where('product_id', $productId)
-                          ->where('user_id', $user->id)
-                          ->first();
-        if ($existing) {
-            return response()->json(['message' => 'Bạn đã đánh giá sản phẩm này rồi'], 422);
-        }
+        // Cho phép mỗi user đánh giá sản phẩm nhiều lần (bỏ giới hạn 1 lần/sản phẩm)
 
         $data = $request->validate([
             'rating'   => 'required|integer|min:1|max:5',
             'title'    => 'nullable|string|max:255',
             'comment'  => 'nullable|string|max:2000',
             'order_id' => 'nullable|exists:orders,id',
-            'images.*' => 'nullable|image|max:2048',
+            'images'   => 'nullable|array|max:5',
+            'images.*' => 'nullable|image|mimes:jpg,jpeg,png,gif,webp,bmp|max:5120',
+            'video'    => 'nullable|mimes:mp4,mov,avi,wmv,webm|max:20480',
         ]);
 
         // Kiểm tra verified purchase
@@ -114,6 +110,12 @@ class ReviewController extends Controller
                     'image_url' => $path,
                 ]);
             }
+        }
+
+        // Upload video nếu có
+        if ($request->hasFile('video')) {
+            $videoPath = $request->file('video')->store('reviews/videos', 'public');
+            $review->update(['video_url' => $videoPath]);
         }
 
         return response()->json($review->load('images', 'user:id,name'), 201);

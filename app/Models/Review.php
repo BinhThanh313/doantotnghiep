@@ -8,7 +8,7 @@ class Review extends Model
 {
     protected $fillable = [
         'product_id', 'user_id', 'order_id', 'rating',
-        'title', 'comment', 'verified_purchase', 'helpful_count', 'is_visible',
+        'title', 'comment', 'video_url', 'verified_purchase', 'helpful_count', 'is_visible',
     ];
 
     protected $casts = [
