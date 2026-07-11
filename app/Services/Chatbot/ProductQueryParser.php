@@ -210,8 +210,11 @@ class ProductQueryParser
      */
     private function detectRam(string $text): array
     {
-        // Từ khoá "ram" đứng TRƯỚC số (cách nói phổ biến nhất)
-        if (preg_match('/ram\D{0,15}?(\d+)\s*gb?/u', $text, $m)) {
+        // Từ khoá "ram" đứng TRƯỚC số (cách nói phổ biến nhất). Đơn vị "gb"
+        // là TÙY CHỌN — khách có thể chỉ nói "ram tối thiểu 12" mà không kèm
+        // đơn vị (đặc biệt khi câu còn có dung lượng ổ cứng đứng sau, VD
+        // "ram tối thiểu 12 ổ cứng 512gb"), nên không được bắt buộc chữ "g".
+        if (preg_match('/ram\D{0,15}?(\d+)(?:\s*gb)?/u', $text, $m)) {
             return [['label' => 'RAM', 'operator' => '>=', 'value' => (int) $m[1]]];
         }
         // Số đứng TRƯỚC từ khoá "ram", VD "16gb ram", "8 gb ram" — bổ sung

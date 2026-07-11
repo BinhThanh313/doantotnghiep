@@ -86,21 +86,26 @@ class ChatbotResponseService
             ->pluck('message')
             ->implode(' ');
 
-        $noContextNote = 'KHÔNG xác định được rõ sản phẩm nào đang được bàn tới trong lịch sử hội '
-            . 'thoại gần đây. TUYỆT ĐỐI không được tự đưa ra tên sản phẩm khác để thay thế — hãy '
-            . 'thành thật nói rằng bạn chưa rõ khách đang so sánh sản phẩm nào, và hỏi lại khách '
-            . 'muốn so sánh cụ thể sản phẩm nào.';
-
-        if ($recentBotText === '') {
-            return $noContextNote . "\n\n" . $this->formatHistory($history);
-        }
-
         // Chỉ cần so khớp trong phạm vi ~58 sản phẩm active, chi phí không đáng kể
         $allNames = Product::where('is_active', true)->pluck('name');
-        $matchedNames = $allNames->filter(fn ($name) => str_contains($recentBotText, $name));
+        $matchedNames = $recentBotText !== ''
+            ? $allNames->filter(fn ($name) => str_contains($recentBotText, $name))
+            : collect();
 
         if ($matchedNames->isEmpty()) {
-            return $noContextNote . "\n\n" . $this->formatHistory($history);
+            // Không xác định được sản phẩm CỤ THỂ nào đang bàn tới — có thể
+            // vì câu hỏi thực ra là 1 câu hỏi MỚI (VD "sản phẩm nào đang
+            // hot") bị nhận nhầm là câu hỏi tiếp nối, chứ không phải khách
+            // thực sự đang so sánh 1 sản phẩm cũ. Thay vì để LLM bí và chỉ
+            // biết nói "không có thông tin", đưa luôn danh sách bestseller
+            // thật làm phao cứu sinh để LLM vẫn tư vấn được — vẫn giữ chặt
+            // yêu cầu không được tự bịa sản phẩm ngoài danh sách.
+            $note = 'KHÔNG có sản phẩm cụ thể nào đang được bàn tới trong lịch sử hội thoại gần đây. '
+                . 'Nếu đây là câu hỏi MỚI (không thực sự so sánh/tiếp nối 1 sản phẩm cũ), hãy dùng danh '
+                . 'sách sản phẩm nổi bật dưới đây để tư vấn — TUYỆT ĐỐI không tự bịa sản phẩm ngoài danh '
+                . 'sách này. Nếu câu hỏi thực sự cần biết rõ khách đang nói về sản phẩm nào, hãy hỏi lại khách.';
+            return $note . "\n\nDanh sách sản phẩm nổi bật:\n" . $this->buildFallbackContext()
+                 . "\n\n" . $this->formatHistory($history);
         }
 
         $products = Product::with(['category', 'specifications', 'activeFlashSaleItem'])
@@ -133,11 +138,26 @@ class ChatbotResponseService
     {
         $text = mb_strtolower($message);
         $patterns = [
-            'tốt hơn', 'tốt nhất', 'ngon hơn', 'cái nào', 'con nào',
-            'sản phẩm nào', 'so sánh', 'đáng mua hơn', 'nên chọn cái',
+            // So sánh / xếp hạng giữa nhiều sản phẩm. LƯU Ý: KHÔNG để "cái
+            // nào"/"con nào"/"sản phẩm nào" đứng một mình trong danh sách —
+            // các case cần bắt như "cái nào tốt hơn", "laptop nào tốt nhất"
+            // đã được phủ sẵn bởi 'tốt hơn'/'tốt nhất' bên dưới; để đứng một
+            // mình sẽ khiến câu hỏi MỚI hoàn toàn (VD "sản phẩm nào đang
+            // hot") bị hiểu nhầm thành đang so sánh tiếp sản phẩm cũ.
+            'tốt hơn', 'tốt nhất', 'ngon hơn',
+            'so sánh', 'đáng mua hơn', 'nên chọn cái',
             'so với nhau', 'so với cái', 'giữa hai', 'giữa 2', 'hai cái này',
             'cái này với cái kia', 'nên mua cái nào', 'khác nhau thế nào',
             'khác nhau chỗ nào', 'khác gì nhau', 'ưu nhược điểm', 'nên lấy cái',
+            // Tham chiếu đại từ tới sản phẩm vừa nhắc ("cái đó", "sản phẩm
+            // này"...) — KHÔNG cần yếu tố so sánh, chỉ cần đang hỏi tiếp về
+            // 1 sản phẩm đã nêu trước đó thay vì mở 1 chủ đề mới.
+            'cái đó', 'cái này', 'con đó', 'con này', 'sản phẩm đó', 'sản phẩm này',
+            'hàng đó', 'hàng này', 'món đó', 'món này', 'em đó', 'em này',
+            // Câu hỏi đánh giá 1 sản phẩm (không kèm từ so sánh "hơn") —
+            // thường đi ngay sau khi bot vừa liệt kê/nhắc tới 1 sản phẩm
+            'đáng mua không', 'có đáng mua', 'có nên mua', 'có tốt không',
+            'có ổn không', 'có đáng không', 'mua được không',
         ];
         foreach ($patterns as $p) {
             if (str_contains($text, $p)) {
@@ -352,9 +372,12 @@ class ChatbotResponseService
             return strtoupper($m[0]);
         }
 
-        // Fallback: khách chỉ gõ số ID (VD "đơn hàng 3") — trả về dạng
-        // đặc biệt "ID:3" để handleOrderLookup phân biệt với invoice_number
-        if (preg_match('/#?(\d+)/u', $text, $m)) {
+        // Fallback: khách gõ số ID NGAY SAU từ khóa đơn hàng (VD "đơn hàng #5",
+        // "đơn hàng số 12", "mã đơn 7") — CHỈ bắt số nằm SÁT từ khóa (cho phép
+        // xen "số"/"so"/"#"/khoảng trắng ở giữa), để tránh tra nhầm một con số
+        // bất kỳ xuất hiện ở đâu đó xa trong câu (VD "đơn hàng của tôi có 3
+        // sản phẩm" không được hiểu là tra đơn ID 3).
+        if (preg_match('/(?:đơn hàng|don hang|mã đơn|ma don|tra cứu đơn|mã vận đơn|order)\s*(?:số|so)?\s*#?\s*(\d+)/u', $text, $m)) {
             return 'ID:' . $m[1];
         }
         return null;
