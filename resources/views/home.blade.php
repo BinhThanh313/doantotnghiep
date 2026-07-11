@@ -45,10 +45,16 @@
                         @if($heroProduct)
                             <a href="{{ route('shop.index', ['category' => $heroProduct->category_id]) }}" class="d-block mb-2 text-primary">{{ $heroProduct->category->name ?? 'Sản phẩm' }}</a>
                             <a href="{{ route('shop.show', $heroProduct->id) }}" class="d-block text-white fs-3">{{ $heroProduct->name }}</a>
-                            @if($heroProduct->original_price)
-                                <del class="me-2 text-white fs-5">{{ number_format($heroProduct->original_price, 0, ',', '.') }}đ</del>
+                            @if($heroProduct->is_flash_sale)
+                                <span class="badge bg-danger mb-1"><i class="fas fa-bolt me-1"></i>Flash Sale -{{ $heroProduct->flash_sale_discount_percent }}%</span><br>
+                                <del class="me-2 text-white fs-5">{{ number_format($heroProduct->price, 0, ',', '.') }}đ</del>
+                                <span class="text-danger fs-5 fw-bold">{{ number_format($heroProduct->flash_sale_price, 0, ',', '.') }}đ</span>
+                            @else
+                                @if($heroProduct->original_price)
+                                    <del class="me-2 text-white fs-5">{{ number_format($heroProduct->original_price, 0, ',', '.') }}đ</del>
+                                @endif
+                                <span class="text-primary fs-5">{{ number_format($heroProduct->price, 0, ',', '.') }}đ</span>
                             @endif
-                            <span class="text-primary fs-5">{{ number_format($heroProduct->price, 0, ',', '.') }}đ</span>
                         @else
                             <a href="{{ route('shop.index') }}" class="d-block mb-2 text-primary">Máy tính bảng</a>
                             <span class="d-block text-white fs-3">Đang cập nhật</span>
@@ -299,7 +305,13 @@
                                 <div class="d-flex mb-2 text-primary small">
                                     <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
                                 </div>
-                                <h5 class="text-primary fw-bold">{{ number_format($item->price, 0, ',', '.') }}đ</h5>
+                                @if($item->is_flash_sale)
+                                    <span class="badge bg-danger mb-1"><i class="fas fa-bolt me-1"></i>-{{ $item->flash_sale_discount_percent }}%</span><br>
+                                    <del class="text-muted small me-1">{{ number_format($item->price, 0, ',', '.') }}đ</del>
+                                    <h5 class="text-danger fw-bold d-inline">{{ number_format($item->flash_sale_price, 0, ',', '.') }}đ</h5>
+                                @else
+                                    <h5 class="text-primary fw-bold">{{ number_format($item->price, 0, ',', '.') }}đ</h5>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -362,10 +374,16 @@
                         <div class="products-mini-content p-3">
                             <a href="{{ route('shop.index', ['category' => $product->category_id]) }}" class="d-block mb-1 text-muted small">{{ $product->category->name ?? '' }}</a>
                             <a href="{{ route('shop.show', $product->id) }}" class="d-block h6">{{ $product->name }}</a>
-                            @if($product->original_price)
-                                <del class="text-muted small">{{ number_format($product->original_price, 0, ',', '.') }}đ</del>
+                            @if($product->is_flash_sale)
+                                <span class="badge bg-danger">-{{ $product->flash_sale_discount_percent }}%</span>
+                                <del class="text-muted small">{{ number_format($product->price, 0, ',', '.') }}đ</del>
+                                <span class="text-danger d-block fw-bold">{{ number_format($product->flash_sale_price, 0, ',', '.') }}đ</span>
+                            @else
+                                @if($product->original_price)
+                                    <del class="text-muted small">{{ number_format($product->original_price, 0, ',', '.') }}đ</del>
+                                @endif
+                                <span class="text-primary d-block fw-bold">{{ number_format($product->price, 0, ',', '.') }}đ</span>
                             @endif
-                            <span class="text-primary d-block fw-bold">{{ number_format($product->price, 0, ',', '.') }}đ</span>
                         </div>
                     </div>
                 </div>

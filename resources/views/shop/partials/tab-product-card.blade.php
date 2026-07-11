@@ -19,10 +19,18 @@
                     class="d-block mb-2 text-muted">{{ $product->category->name ?? '' }}</a>
                 <a href="{{ route('shop.show', $product->id) }}"
                     class="d-block h4">{{ $product->name }}</a>
-                @if($product->original_price)
-                    <del class="me-2 fs-5 text-muted">{{ number_format($product->original_price, 0, ',', '.') }}đ</del>
+                @if($product->is_flash_sale)
+                    <div class="mb-1">
+                        <span class="badge bg-danger"><i class="fas fa-bolt me-1"></i>Flash Sale -{{ $product->flash_sale_discount_percent }}%</span>
+                    </div>
+                    <del class="me-2 fs-5 text-muted">{{ number_format($product->price, 0, ',', '.') }}đ</del>
+                    <span class="text-danger fs-5 fw-bold">{{ number_format($product->flash_sale_price, 0, ',', '.') }}đ</span>
+                @else
+                    @if($product->original_price)
+                        <del class="me-2 fs-5 text-muted">{{ number_format($product->original_price, 0, ',', '.') }}đ</del>
+                    @endif
+                    <span class="text-primary fs-5 fw-bold">{{ number_format($product->price, 0, ',', '.') }}đ</span>
                 @endif
-                <span class="text-primary fs-5 fw-bold">{{ number_format($product->price, 0, ',', '.') }}đ</span>
             </div>
         </div>
         <div class="product-item-add border border-top-0 rounded-bottom text-center p-4 pt-0">

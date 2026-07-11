@@ -57,7 +57,61 @@ class Product extends Model
         return $this->hasMany(ProductSpecification::class)->orderBy('sort_order');
     }
 
+    /**
+     * Flash sale item đang chạy cho sản phẩm này (nếu có), dùng để đồng bộ
+     * giá flash-sale ở mọi nơi hiển thị sản phẩm (home, shop, chi tiết, giỏ hàng...).
+     * Luôn eager-load quan hệ này (with('activeFlashSaleItem')) ở các query
+     * hiển thị sản phẩm để tránh N+1.
+     */
+    public function activeFlashSaleItem()
+    {
+        return $this->hasOne(FlashSaleItem::class, 'product_id')
+            ->where('is_active', true)
+            ->where(function ($q) {
+                $q->whereNull('qty_limit')
+                  ->orWhereColumn('qty_sold', '<', 'qty_limit');
+            })
+            ->whereHas('flashSale', fn ($q) => $q->running())
+            ->latest('id');
+    }
+
     // ==================== ACCESSORS ====================
+
+    /**
+     * Sản phẩm có đang được Flash Sale hay không.
+     */
+    public function getIsFlashSaleAttribute(): bool
+    {
+        return $this->activeFlashSaleItem !== null;
+    }
+
+    /**
+     * Giá Flash Sale (null nếu không có Flash Sale đang chạy).
+     */
+    public function getFlashSalePriceAttribute(): ?float
+    {
+        return $this->activeFlashSaleItem->sale_price ?? null;
+    }
+
+    /**
+     * Giá thực tế cần dùng để hiển thị / tính vào giỏ hàng: ưu tiên giá
+     * Flash Sale nếu đang chạy, ngược lại dùng giá bán thông thường.
+     */
+    public function getEffectivePriceAttribute(): float
+    {
+        return $this->activeFlashSaleItem->sale_price ?? $this->price;
+    }
+
+    /**
+     * % giảm giá so với giá gốc khi đang Flash Sale.
+     */
+    public function getFlashSaleDiscountPercentAttribute(): int
+    {
+        if (!$this->is_flash_sale || $this->price <= 0) {
+            return 0;
+        }
+        return (int) round((1 - $this->flash_sale_price / $this->price) * 100);
+    }
 
     /**
      * Rating trung bình của sản phẩm

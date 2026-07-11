@@ -103,7 +103,7 @@ class ChatbotResponseService
             return $noContextNote . "\n\n" . $this->formatHistory($history);
         }
 
-        $products = Product::with(['category', 'specifications'])
+        $products = Product::with(['category', 'specifications', 'activeFlashSaleItem'])
             ->whereIn('name', $matchedNames)
             ->get();
 
@@ -175,7 +175,7 @@ class ChatbotResponseService
 
     private function handleProductSearch(array $filters, string $originalMessage): array
     {
-        $query = Product::with(['category', 'specifications'])->where('is_active', true);
+        $query = Product::with(['category', 'specifications', 'activeFlashSaleItem'])->where('is_active', true);
 
         if ($filters['category']) {
             $query->whereHas('category', fn ($q) => $q->where('name', $filters['category']));
@@ -189,11 +189,21 @@ class ChatbotResponseService
                 }
             });
         }
-        if ($filters['price_min']) {
-            $query->where('price', '>=', $filters['price_min']);
-        }
-        if ($filters['price_max']) {
-            $query->where('price', '<=', $filters['price_max']);
+        if ($filters['price_min'] || $filters['price_max']) {
+            $min = $filters['price_min'];
+            $max = $filters['price_max'];
+            // Khớp theo giá thường HOẶC giá Flash Sale đang chạy, để không bỏ
+            // sót sản phẩm đang sale rơi vào khoảng giá khách hỏi dù giá gốc
+            // nằm ngoài khoảng đó (và ngược lại).
+            $query->where(function ($q) use ($min, $max) {
+                $q->where(function ($qq) use ($min, $max) {
+                    if ($min) $qq->where('price', '>=', $min);
+                    if ($max) $qq->where('price', '<=', $max);
+                })->orWhereHas('activeFlashSaleItem', function ($qq) use ($min, $max) {
+                    if ($min) $qq->where('sale_price', '>=', $min);
+                    if ($max) $qq->where('sale_price', '<=', $max);
+                });
+            });
         }
 
         foreach ($filters['specs'] as $spec) {
@@ -239,7 +249,7 @@ class ChatbotResponseService
         }
 
         $lines = $products->map(function (Product $p) {
-            return "- {$p->name} — " . number_format($p->price, 0, ',', '.') . 'đ'
+            return "- {$p->name} — " . $this->formatProductPrice($p)
                  . ($p->category ? " ({$p->category->name})" : '');
         })->implode("\n");
 
@@ -283,6 +293,24 @@ class ChatbotResponseService
         return '';
     }
 
+    /**
+     * Định dạng giá của 1 sản phẩm để đưa vào câu trả lời của chatbot,
+     * đồng bộ với giá hiển thị trên các trang khác: nếu sản phẩm đang
+     * Flash Sale thì ưu tiên giá sale kèm % giảm + giá gốc, ngược lại
+     * dùng giá bán thông thường. Luôn nhớ eager-load 'activeFlashSaleItem'
+     * ở query lấy $p để tránh N+1.
+     */
+    private function formatProductPrice(Product $p): string
+    {
+        if ($p->is_flash_sale) {
+            return number_format($p->flash_sale_price, 0, ',', '.') . 'đ'
+                 . " (⚡Flash Sale -{$p->flash_sale_discount_percent}%, giá gốc "
+                 . number_format($p->price, 0, ',', '.') . 'đ)';
+        }
+
+        return number_format($p->price, 0, ',', '.') . 'đ';
+    }
+
     /** Ngữ cảnh đầy đủ (kèm vài thông số nổi bật) để LLM xếp hạng/diễn giải, không tự bịa sản phẩm ngoài danh sách này */
     private function buildProductContextWithSpecs($products): string
     {
@@ -292,7 +320,7 @@ class ChatbotResponseService
                 ->map(fn ($s) => "{$s->label}: {$s->value}" . ($s->unit ? " {$s->unit}" : ''))
                 ->implode(', ');
 
-            return "- {$p->name} — " . number_format($p->price, 0, ',', '.') . 'đ'
+            return "- {$p->name} — " . $this->formatProductPrice($p)
                  . ($p->category ? " ({$p->category->name})" : '')
                  . ($specs ? "\n  Thông số: {$specs}" : '');
         })->implode("\n");
@@ -418,15 +446,15 @@ class ChatbotResponseService
         $bestsellers = Product::where('is_active', true)
             ->where('is_bestseller', true)
             ->limit(8)
-            ->get(['name', 'price', 'category_id'])
-            ->load('category');
+            ->get(['id', 'name', 'price', 'category_id'])
+            ->load(['category', 'activeFlashSaleItem']);
 
         if ($bestsellers->isEmpty()) {
             return 'Không có dữ liệu sản phẩm nổi bật nào.';
         }
 
         return $bestsellers->map(function (Product $p) {
-            return "- {$p->name} ({$p->category->name}) — " . number_format($p->price, 0, ',', '.') . 'đ';
+            return "- {$p->name} ({$p->category->name}) — " . $this->formatProductPrice($p);
         })->implode("\n");
     }
 }

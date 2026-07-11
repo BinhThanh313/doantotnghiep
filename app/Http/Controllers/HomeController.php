@@ -12,14 +12,14 @@ class HomeController extends Controller
     public function index(ItemBasedRecommendationService $recommendationService)
     {
         // Tab "Tất cả": 8 sản phẩm mới nhất
-        $products = Product::with('category')
+        $products = Product::with(['category', 'activeFlashSaleItem'])
                            ->where('is_active', true)
                            ->latest()
                            ->limit(8)
                            ->get();
 
         // Tab "Hàng mới về": sản phẩm được đánh dấu is_new
-        $newArrivals = Product::with('category')
+        $newArrivals = Product::with(['category', 'activeFlashSaleItem'])
                            ->where('is_active', true)
                            ->where('is_new', true)
                            ->latest()
@@ -27,7 +27,7 @@ class HomeController extends Controller
                            ->get();
 
         // Tab "Nổi bật": xếp theo lượt xem, ưu tiên bán chạy nếu view_count bằng nhau
-        $featuredProducts = Product::with('category')
+        $featuredProducts = Product::with(['category', 'activeFlashSaleItem'])
                            ->where('is_active', true)
                            ->orderByDesc('view_count')
                            ->orderByDesc('is_bestseller')
@@ -36,7 +36,7 @@ class HomeController extends Controller
                            ->get();
 
         // 6 sản phẩm bán chạy (is_bestseller = true)
-        $bestsellers = Product::with('category')
+        $bestsellers = Product::with(['category', 'activeFlashSaleItem'])
                             ->where('is_active', true)
                             ->where('is_bestseller', true)
                             ->latest()
@@ -44,7 +44,7 @@ class HomeController extends Controller
                             ->get();
 
         // Sản phẩm cho carousel "Tất cả sản phẩm" ở cuối trang
-        $exploreProducts = Product::with('category')
+        $exploreProducts = Product::with(['category', 'activeFlashSaleItem'])
                             ->where('is_active', true)
                             ->inRandomOrder()
                             ->limit(10)
@@ -54,13 +54,13 @@ class HomeController extends Controller
 
         // Sản phẩm nổi bật cho banner hero (ưu tiên Máy tính bảng đang giảm giá,
         // fallback sang sản phẩm mới nhất nếu danh mục chưa có dữ liệu)
-        $heroProduct = Product::with('category')
+        $heroProduct = Product::with(['category', 'activeFlashSaleItem'])
                             ->where('is_active', true)
                             ->whereHas('category', fn($q) => $q->where('name', 'Máy tính bảng'))
                             ->whereNotNull('original_price')
                             ->latest()
                             ->first()
-                        ?? Product::with('category')->where('is_active', true)->latest()->first();
+                        ?? Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true)->latest()->first();
 
         // Danh mục dùng để trỏ link cho các banner quảng cáo giữa/cuối trang
         $cameraCategory    = Category::where('name', 'Máy ảnh')->first();

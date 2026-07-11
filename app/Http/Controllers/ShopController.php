@@ -13,7 +13,7 @@ class ShopController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Product::with('category')->where('is_active', true);
+        $query = Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true);
 
         // Lọc theo danh mục
         if ($request->filled('category')) {
@@ -56,7 +56,7 @@ class ShopController extends Controller
 
     public function show($id, RecommendationService $recommendationService)
     {
-        $product    = Product::with(['category', 'specifications'])->findOrFail($id);
+        $product    = Product::with(['category', 'specifications', 'activeFlashSaleItem'])->findOrFail($id);
         $categories = Category::withCount('products')->get();
 
         // Tăng lượt xem + ghi log lịch sử xem (dùng cho gợi ý cá nhân hóa)
@@ -99,7 +99,7 @@ class ShopController extends Controller
 
     public function bestsellers(Request $request)
     {
-        $query = Product::with('category')
+        $query = Product::with(['category', 'activeFlashSaleItem'])
             ->where('is_active', true)
             ->where('is_bestseller', true);
 
@@ -107,14 +107,14 @@ class ShopController extends Controller
         $categories = Category::withCount('products')->get();
 
         // Tab "Tất cả" trong khối "Sản Phẩm Của Chúng Tôi"
-        $allProducts = Product::with('category')
+        $allProducts = Product::with(['category', 'activeFlashSaleItem'])
             ->where('is_active', true)
             ->latest()
             ->limit(8)
             ->get();
 
         // Tab "Hàng Mới Về"
-        $newArrivals = Product::with('category')
+        $newArrivals = Product::with(['category', 'activeFlashSaleItem'])
             ->where('is_active', true)
             ->where('is_new', true)
             ->latest()
@@ -122,7 +122,7 @@ class ShopController extends Controller
             ->get();
 
         // Tab "Nổi Bật"
-        $featuredProducts = Product::with('category')
+        $featuredProducts = Product::with(['category', 'activeFlashSaleItem'])
             ->where('is_active', true)
             ->orderByDesc('view_count')
             ->orderByDesc('is_bestseller')

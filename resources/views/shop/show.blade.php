@@ -66,7 +66,17 @@
                             <p class="mb-3">Danh mục: {{ $product->category->name ?? 'Đang cập nhật' }}</p>
                             
                             {{-- Đã sửa định dạng tiền sang VNĐ --}}
-                            <h5 class="fw-bold mb-3 text-primary">{{ number_format($product->price, 0, ',', '.') }}đ</h5>
+                            @if($product->is_flash_sale)
+                                <div class="mb-2">
+                                    <span class="badge bg-danger fs-6"><i class="fas fa-bolt me-1"></i>Flash Sale -{{ $product->flash_sale_discount_percent }}%</span>
+                                </div>
+                                <div class="d-flex align-items-center gap-2 mb-3">
+                                    <h5 class="fw-bold mb-0 text-danger">{{ number_format($product->flash_sale_price, 0, ',', '.') }}đ</h5>
+                                    <del class="text-muted">{{ number_format($product->price, 0, ',', '.') }}đ</del>
+                                </div>
+                            @else
+                                <h5 class="fw-bold mb-3 text-primary">{{ number_format($product->price, 0, ',', '.') }}đ</h5>
+                            @endif
                             
                             <div class="d-flex mb-4">
                                 <i class="fa fa-star text-secondary"></i>

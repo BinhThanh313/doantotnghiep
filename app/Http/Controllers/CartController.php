@@ -50,7 +50,7 @@ class CartController extends Controller
             'product_id' => 'required|exists:products,id',
         ]);
 
-        $product  = Product::findOrFail($request->product_id);
+        $product  = Product::with('activeFlashSaleItem')->findOrFail($request->product_id);
         $quantity = $request->quantity ?? 1;
         $cart     = $this->getCart();
 
@@ -60,7 +60,7 @@ class CartController extends Controller
             $cart[$product->id] = [
                 'id'       => $product->id,
                 'name'     => $product->name,
-                'price'    => $product->price,
+                'price'    => $product->effective_price, // giá Flash Sale nếu đang chạy, ngược lại giá thường
                 'image'    => $product->image,
                 'quantity' => $quantity,
             ];

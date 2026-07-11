@@ -12,7 +12,15 @@
                 </div>
                 <div class="text-center p-4">
                     <a href="{{ route('shop.show', $product->id) }}" class="h4 d-block">{{ $product->name }}</a>
-                    <span class="text-primary fs-5">{{ number_format($product->price, 0, ',', '.') }}đ</span>
+                    @if($product->is_flash_sale)
+                        <div class="mb-1">
+                            <span class="badge bg-danger"><i class="fas fa-bolt me-1"></i>-{{ $product->flash_sale_discount_percent }}%</span>
+                        </div>
+                        <del class="text-muted me-2">{{ number_format($product->price, 0, ',', '.') }}đ</del>
+                        <span class="text-danger fs-5 fw-bold">{{ number_format($product->flash_sale_price, 0, ',', '.') }}đ</span>
+                    @else
+                        <span class="text-primary fs-5">{{ number_format($product->price, 0, ',', '.') }}đ</span>
+                    @endif
                 </div>
             </div>
             <!-- Trong vòng lặp sản phẩm -->

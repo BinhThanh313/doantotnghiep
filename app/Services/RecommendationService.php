@@ -53,6 +53,7 @@ class RecommendationService
             ->orderByRaw('category_id = ? DESC', [$product->category_id])
             ->orderByDesc('is_bestseller')
             ->orderByDesc('view_count')
+            ->with('activeFlashSaleItem')
             ->limit($limit)
             ->get();
     }
@@ -83,6 +84,7 @@ class RecommendationService
 
         return Product::whereIn('id', $productIds)
             ->where('is_active', true)
+            ->with('activeFlashSaleItem')
             ->get();
     }
 
@@ -182,7 +184,7 @@ class RecommendationService
             $query->where('is_bestseller', true);
         }
 
-        $results = $query->orderByDesc('view_count')->limit($limit)->get();
+        $results = $query->orderByDesc('view_count')->with('activeFlashSaleItem')->limit($limit)->get();
 
         // Nếu lọc theo category cho ra quá ít kết quả, bù thêm bằng bestseller
         if ($results->count() < $limit) {
@@ -190,6 +192,7 @@ class RecommendationService
             $extra = Product::whereNotIn('id', $existingIds)
                 ->where('is_active', true)
                 ->where('is_bestseller', true)
+                ->with('activeFlashSaleItem')
                 ->limit($limit - $results->count())
                 ->get();
             $results = $results->concat($extra);

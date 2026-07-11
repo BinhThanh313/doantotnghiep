@@ -63,6 +63,7 @@ class ItemBasedRecommendationService
 
         $products = Product::whereIn('id', $topIds)
             ->where('is_active', true)
+            ->with('activeFlashSaleItem')
             ->get()
             ->keyBy('id');
 
@@ -95,6 +96,7 @@ class ItemBasedRecommendationService
                 ->where('is_bestseller', true)
                 ->orderByDesc('view_count')
                 ->limit($limit - $results->count())
+                ->with('activeFlashSaleItem')
                 ->get();
 
             $results = $results->concat($bestsellers);
@@ -106,6 +108,7 @@ class ItemBasedRecommendationService
                 ->where('is_active', true)
                 ->orderByDesc('view_count')
                 ->limit($limit - $results->count())
+                ->with('activeFlashSaleItem')
                 ->get();
 
             $results = $results->concat($popular);
