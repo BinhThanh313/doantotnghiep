@@ -4,7 +4,7 @@ import { ref, onMounted, computed } from 'vue'
 import {
   mdiBolt, mdiPlus, mdiPencil, mdiTrashCan, mdiEye,
   mdiClose, mdiRefresh, mdiCheckCircle, mdiClockOutline,
-  mdiStopCircle, mdiPackageVariant,
+  mdiStopCircle, mdiPackageVariant, mdiChevronLeft, mdiChevronRight,
 } from '@mdi/js'
 import SectionMain from '@/components/SectionMain.vue'
 import CardBox from '@/components/CardBox.vue'
@@ -401,15 +401,14 @@ onMounted(() => fetchSales())
         <!-- Pagination -->
         <div class="p-3 border-t border-gray-100 dark:border-slate-800 flex justify-between items-center flex-wrap gap-2">
           <small class="text-gray-500">Tổng {{ totalItems }} Flash Sale | Trang {{ currentPage }}/{{ lastPage }}</small>
-          <div class="flex gap-1">
-            <button v-if="currentPage > 1" @click="fetchSales(currentPage-1)" class="px-2 py-1 text-xs border rounded hover:bg-gray-100">‹</button>
-            <button v-for="pg in visiblePages" :key="pg" @click="fetchSales(pg)"
-                    class="px-3 py-1 text-xs border rounded"
-                    :class="pg === currentPage ? 'bg-red-500 text-white border-red-500' : 'hover:bg-gray-100'">
-              {{ pg }}
-            </button>
-            <button v-if="currentPage < lastPage" @click="fetchSales(currentPage+1)" class="px-2 py-1 text-xs border rounded hover:bg-gray-100">›</button>
-          </div>
+          <BaseButtons no-wrap>
+            <BaseButton v-if="currentPage > 1" :icon="mdiChevronLeft" color="whiteDark" small @click="fetchSales(currentPage-1)" />
+            <BaseButton v-for="pg in visiblePages" :key="pg"
+                        :active="pg === currentPage" :label="pg"
+                        :color="pg === currentPage ? 'lightDark' : 'whiteDark'"
+                        small @click="fetchSales(pg)" />
+            <BaseButton v-if="currentPage < lastPage" :icon="mdiChevronRight" color="whiteDark" small @click="fetchSales(currentPage+1)" />
+          </BaseButtons>
         </div>
       </CardBox>
 

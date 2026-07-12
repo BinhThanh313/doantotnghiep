@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { mdiCreditCardOutline, mdiRefresh, mdiEye, mdiCheckCircle, mdiCloseCircle, mdiCashRefund, mdiFilterOff, mdiFilter } from '@mdi/js'
+import { mdiCreditCardOutline, mdiRefresh, mdiEye, mdiCheckCircle, mdiCloseCircle, mdiCashRefund, mdiFilterOff, mdiFilter, mdiChevronLeft, mdiChevronRight } from '@mdi/js'
 import SectionMain from '@/components/SectionMain.vue'
 import CardBox from '@/components/CardBox.vue'
 import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
@@ -294,15 +294,14 @@ onMounted(() => fetchPayments())
         <!-- Pagination -->
         <div class="p-3 border-t border-gray-100 dark:border-slate-800 flex justify-between items-center flex-wrap gap-2">
           <small class="text-gray-500">Tổng {{ totalItems }} giao dịch | Trang {{ currentPage }}/{{ lastPage }}</small>
-          <div class="flex gap-1">
-            <button v-if="currentPage > 1" @click="fetchPayments(currentPage-1)" class="px-2 py-1 text-xs border rounded hover:bg-gray-100">‹</button>
-            <button v-for="pg in visiblePages" :key="pg" @click="fetchPayments(pg)"
-              class="px-3 py-1 text-xs border rounded"
-              :class="pg === currentPage ? 'bg-blue-600 text-white border-blue-600' : 'hover:bg-gray-100'">
-              {{ pg }}
-            </button>
-            <button v-if="currentPage < lastPage" @click="fetchPayments(currentPage+1)" class="px-2 py-1 text-xs border rounded hover:bg-gray-100">›</button>
-          </div>
+          <BaseButtons no-wrap>
+            <BaseButton v-if="currentPage > 1" :icon="mdiChevronLeft" color="whiteDark" small @click="fetchPayments(currentPage-1)" />
+            <BaseButton v-for="pg in visiblePages" :key="pg"
+                        :active="pg === currentPage" :label="pg"
+                        :color="pg === currentPage ? 'lightDark' : 'whiteDark'"
+                        small @click="fetchPayments(pg)" />
+            <BaseButton v-if="currentPage < lastPage" :icon="mdiChevronRight" color="whiteDark" small @click="fetchPayments(currentPage+1)" />
+          </BaseButtons>
         </div>
       </CardBox>
 

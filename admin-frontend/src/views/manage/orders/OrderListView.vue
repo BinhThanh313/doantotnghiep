@@ -3,7 +3,8 @@ import { ref, onMounted, computed } from 'vue'
 import {
   mdiCartOutline, mdiEye, mdiTrashCan, mdiRefresh, mdiMagnify,
   mdiDownload, mdiCheckAll, mdiSort, mdiSortAscending, mdiSortDescending,
-  mdiCashRefund, mdiClose, mdiCalendarRange, mdiFilter, mdiFilterOff
+  mdiCashRefund, mdiClose, mdiCalendarRange, mdiFilter, mdiFilterOff,
+  mdiChevronLeft, mdiChevronRight, mdiChevronDoubleLeft, mdiChevronDoubleRight,
 } from '@mdi/js'
 import SectionMain from '@/components/SectionMain.vue'
 import CardBox from '@/components/CardBox.vue'
@@ -584,22 +585,16 @@ onMounted(() => fetchOrders())
         <!-- Pagination -->
         <div class="p-3 lg:px-6 border-t border-gray-100 dark:border-slate-800 flex justify-between items-center flex-wrap gap-2">
           <small class="text-gray-500">Tổng {{ totalItems }} đơn hàng | Trang {{ currentPage }}/{{ lastPage }}</small>
-          <div class="flex gap-1">
-            <button v-if="currentPage > 1" @click="fetchOrders(1)"
-                    class="px-2 py-1 text-xs border rounded hover:bg-gray-100">«</button>
-            <button v-if="currentPage > 1" @click="fetchOrders(currentPage - 1)"
-                    class="px-2 py-1 text-xs border rounded hover:bg-gray-100">‹</button>
-            <button v-for="page in visiblePages" :key="page"
-                    @click="fetchOrders(page)"
-                    class="px-3 py-1 text-xs border rounded"
-                    :class="page === currentPage ? 'bg-blue-600 text-white border-blue-600' : 'hover:bg-gray-100'">
-              {{ page }}
-            </button>
-            <button v-if="currentPage < lastPage" @click="fetchOrders(currentPage + 1)"
-                    class="px-2 py-1 text-xs border rounded hover:bg-gray-100">›</button>
-            <button v-if="currentPage < lastPage" @click="fetchOrders(lastPage)"
-                    class="px-2 py-1 text-xs border rounded hover:bg-gray-100">»</button>
-          </div>
+          <BaseButtons no-wrap>
+            <BaseButton v-if="currentPage > 1" :icon="mdiChevronDoubleLeft" color="whiteDark" small @click="fetchOrders(1)" />
+            <BaseButton v-if="currentPage > 1" :icon="mdiChevronLeft" color="whiteDark" small @click="fetchOrders(currentPage - 1)" />
+            <BaseButton v-for="page in visiblePages" :key="page"
+                        :active="page === currentPage" :label="page"
+                        :color="page === currentPage ? 'lightDark' : 'whiteDark'"
+                        small @click="fetchOrders(page)" />
+            <BaseButton v-if="currentPage < lastPage" :icon="mdiChevronRight" color="whiteDark" small @click="fetchOrders(currentPage + 1)" />
+            <BaseButton v-if="currentPage < lastPage" :icon="mdiChevronDoubleRight" color="whiteDark" small @click="fetchOrders(lastPage)" />
+          </BaseButtons>
         </div>
       </CardBox>
 
@@ -631,14 +626,14 @@ onMounted(() => fetchOrders())
           <div class="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
             <p class="text-xs text-gray-500 mb-2 font-semibold uppercase">Cập nhật trạng thái</p>
             <div class="flex flex-wrap gap-2">
-              <button
+              <BaseButton
                 v-for="opt in statusOptions.slice(1)" :key="opt.id"
+                :label="opt.label"
+                :active="selectedOrder.status === opt.id"
+                :color="selectedOrder.status === opt.id ? 'info' : 'whiteDark'"
+                rounded-full small
                 @click="updateStatus(selectedOrder.id, opt.id)"
-                class="px-3 py-1 rounded-full text-xs font-medium border transition-colors"
-                :class="selectedOrder.status === opt.id
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'"
-              >{{ opt.label }}</button>
+              />
             </div>
           </div>
 
