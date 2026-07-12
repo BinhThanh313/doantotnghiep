@@ -7,6 +7,7 @@ use App\Http\Controllers\ShopController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\FlashSalePageController;
+use App\Http\Controllers\ContactController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,6 +23,9 @@ Route::get('/shop/{id}', [ShopController::class, 'show'])->name('shop.show');
 Route::get('/vouchers', [ShopController::class, 'vouchers'])->name('shop.vouchers');
 
 Route::get('/contact', fn() => view('contact'))->name('contact');
+Route::post('/contact', [ContactController::class, 'store'])
+    ->middleware('throttle:5,1')
+    ->name('contact.store');
 Route::get('/about', fn() => view('about'))->name('about');
 Route::get('/privacy-policy', fn() => view('privacy-policy'))->name('privacy-policy');
 Route::get('/terms', fn() => view('terms'))->name('terms');

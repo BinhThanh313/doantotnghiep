@@ -12,6 +12,7 @@ import {
     mdiPalette,
     mdiCreditCardOutline,
     mdiBolt,
+    mdiEmailOutline,
 } from '@mdi/js'
 
 export const menuAsideMain = [
@@ -24,6 +25,7 @@ export const menuAsideMain = [
   { to: '/vouchers',   icon: mdiTicketPercent,      label: 'Voucher'       },
   { to: '/reviews',    icon: mdiStarOutline,        label: 'Đánh giá'      },
   { to: '/shipping',   icon: mdiTruck,              label: 'Vận chuyển'    },
+  { to: '/contact-messages', icon: mdiEmailOutline, label: 'Liên hệ'       },
   { to: '/users',      icon: mdiAccountGroup,       label: 'Người dùng'    },
 ]
 

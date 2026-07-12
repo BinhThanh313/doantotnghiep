@@ -39,6 +39,9 @@ import ReviewDetailView from '@/views/manage/reviews/ReviewDetailView.vue'
 // Manage views - Shipping
 import ShippingView from '@/views/manage/shipping/ShippingView.vue'
 
+// Manage views - Contact Messages
+import ContactMessageListView from '@/views/manage/contact/ContactMessageListView.vue'
+
 import PaymentListView from '@/views/manage/payment/PaymentListView.vue'
 import FlashSaleView from '@/views/manage/flash-sales/FlashSaleView.vue'
 const routes = [
@@ -161,6 +164,14 @@ const routes = [
     path: '/shipping',
     name: 'shipping',
     component: ShippingView,
+  },
+
+  // ==================== MANAGE: CONTACT MESSAGES ====================
+  {
+    meta: { title: 'Tin nhắn liên hệ' },
+    path: '/contact-messages',
+    name: 'contact-messages.index',
+    component: ContactMessageListView,
   },
 
   // ==================== MANAGE: PAYMENTS ====================

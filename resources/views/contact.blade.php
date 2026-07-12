@@ -25,37 +25,47 @@
                         <h1 class="display-5 mb-4 wow fadeInUp" data-wow-delay="0.3s">Bạn cần hỗ trợ gì?</h1>
                         
                         {{-- Form Liên hệ --}}
-                        <form action="#" method="POST">
+                        @if (session('contact_success'))
+                            <div class="alert alert-success wow fadeInUp" data-wow-delay="0.1s">
+                                {{ session('contact_success') }}
+                            </div>
+                        @endif
+                        <form action="{{ route('contact.store') }}" method="POST">
                             @csrf
                             <div class="row g-4 wow fadeInUp" data-wow-delay="0.1s">
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="name" name="name" placeholder="Họ và tên">
+                                        <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" placeholder="Họ và tên" value="{{ old('name') }}" required>
                                         <label for="name">Họ và tên</label>
+                                        @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                     </div>
                                 </div>
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="email" class="form-control" id="email" name="email" placeholder="Email của bạn">
+                                        <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" placeholder="Email của bạn" value="{{ old('email') }}" required>
                                         <label for="email">Email</label>
+                                        @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                     </div>
                                 </div>
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="phone" name="phone" placeholder="Số điện thoại">
+                                        <input type="text" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" placeholder="Số điện thoại" value="{{ old('phone') }}">
                                         <label for="phone">Số điện thoại</label>
+                                        @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                     </div>
                                 </div>
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="subject" name="subject" placeholder="Chủ đề">
+                                        <input type="text" class="form-control @error('subject') is-invalid @enderror" id="subject" name="subject" placeholder="Chủ đề" value="{{ old('subject') }}">
                                         <label for="subject">Chủ đề</label>
+                                        @error('subject')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                     </div>
                                 </div>
                                 <div class="col-12">
                                     <div class="form-floating">
-                                        <textarea class="form-control" placeholder="Nội dung lời nhắn" id="message" name="message" style="height: 160px"></textarea>
+                                        <textarea class="form-control @error('message') is-invalid @enderror" placeholder="Nội dung lời nhắn" id="message" name="message" style="height: 160px" required>{{ old('message') }}</textarea>
                                         <label for="message">Nội dung lời nhắn</label>
+                                        @error('message')<div class="invalid-feedback">{{ $message }}</div>@enderror
                                     </div>
                                 </div>
                                 <div class="col-12">

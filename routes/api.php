@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\AuthController;
 use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\ShippingController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
+use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Api\PaymentController;
@@ -93,6 +94,10 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::patch('/reviews/{id}/toggle-visibility',  [AdminReviewController::class, 'toggleVisibility']);
     Route::delete('/reviews/{id}',                   [AdminReviewController::class, 'destroy']);
 
+    Route::get('/contact-messages',                  [ContactMessageController::class, 'index']);
+    Route::get('/contact-messages/{id}',              [ContactMessageController::class, 'show']);
+    Route::patch('/contact-messages/{id}/toggle-read', [ContactMessageController::class, 'toggleRead']);
+    Route::delete('/contact-messages/{id}',            [ContactMessageController::class, 'destroy']);
     // Payments
     Route::get('/payments',                   [\App\Http\Controllers\Admin\PaymentController::class, 'index']);
     Route::get('/payments/{id}',              [\App\Http\Controllers\Admin\PaymentController::class, 'show']);
