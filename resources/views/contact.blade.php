@@ -24,55 +24,61 @@
                         <h5 class="text-primary wow fadeInUp" data-wow-delay="0.1s">Gửi tin nhắn</h5>
                         <h1 class="display-5 mb-4 wow fadeInUp" data-wow-delay="0.3s">Bạn cần hỗ trợ gì?</h1>
                         
-                        {{-- Form Liên hệ --}}
-                        @if (session('contact_success'))
-                            <div class="alert alert-success wow fadeInUp" data-wow-delay="0.1s">
-                                {{ session('contact_success') }}
+                        {{-- Form Liên hệ: chỉ hiển thị cho người dùng đã đăng nhập --}}
+                        @auth
+                            <form action="{{ route('contact.store') }}" method="POST">
+                                @csrf
+                                <div class="row g-4 wow fadeInUp" data-wow-delay="0.1s">
+                                    <div class="col-lg-12 col-xl-6">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" placeholder="Họ và tên" value="{{ old('name', auth()->user()->name) }}" required>
+                                            <label for="name">Họ và tên</label>
+                                            @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-12 col-xl-6">
+                                        <div class="form-floating">
+                                            <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" placeholder="Email của bạn" value="{{ old('email', auth()->user()->email) }}" required>
+                                            <label for="email">Email</label>
+                                            @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-12 col-xl-6">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" placeholder="Số điện thoại" value="{{ old('phone') }}">
+                                            <label for="phone">Số điện thoại</label>
+                                            @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-12 col-xl-6">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control @error('subject') is-invalid @enderror" id="subject" name="subject" placeholder="Chủ đề" value="{{ old('subject') }}">
+                                            <label for="subject">Chủ đề</label>
+                                            @error('subject')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-floating">
+                                            <textarea class="form-control @error('message') is-invalid @enderror" placeholder="Nội dung lời nhắn" id="message" name="message" style="height: 160px" required>{{ old('message') }}</textarea>
+                                            <label for="message">Nội dung lời nhắn</label>
+                                            @error('message')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <button class="btn btn-primary w-100 py-3" type="submit">Gửi tin nhắn</button>
+                                    </div>
+                                </div>
+                            </form>
+                        @else
+                            <div class="wow fadeInUp" data-wow-delay="0.1s">
+                                <div class="alert alert-warning d-flex align-items-center" role="alert">
+                                    <i class="fas fa-lock me-2"></i>
+                                    <div>Bạn cần <strong>đăng nhập</strong> để gửi tin nhắn liên hệ cho chúng tôi.</div>
+                                </div>
+                                <a href="{{ route('login') }}" class="btn btn-primary py-3 px-4 me-2">Đăng nhập ngay</a>
+                                <a href="{{ route('register') }}" class="btn btn-outline-primary py-3 px-4">Đăng ký tài khoản</a>
                             </div>
-                        @endif
-                        <form action="{{ route('contact.store') }}" method="POST">
-                            @csrf
-                            <div class="row g-4 wow fadeInUp" data-wow-delay="0.1s">
-                                <div class="col-lg-12 col-xl-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control @error('name') is-invalid @enderror" id="name" name="name" placeholder="Họ và tên" value="{{ old('name') }}" required>
-                                        <label for="name">Họ và tên</label>
-                                        @error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                </div>
-                                <div class="col-lg-12 col-xl-6">
-                                    <div class="form-floating">
-                                        <input type="email" class="form-control @error('email') is-invalid @enderror" id="email" name="email" placeholder="Email của bạn" value="{{ old('email') }}" required>
-                                        <label for="email">Email</label>
-                                        @error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                </div>
-                                <div class="col-lg-12 col-xl-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control @error('phone') is-invalid @enderror" id="phone" name="phone" placeholder="Số điện thoại" value="{{ old('phone') }}">
-                                        <label for="phone">Số điện thoại</label>
-                                        @error('phone')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                </div>
-                                <div class="col-lg-12 col-xl-6">
-                                    <div class="form-floating">
-                                        <input type="text" class="form-control @error('subject') is-invalid @enderror" id="subject" name="subject" placeholder="Chủ đề" value="{{ old('subject') }}">
-                                        <label for="subject">Chủ đề</label>
-                                        @error('subject')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <div class="form-floating">
-                                        <textarea class="form-control @error('message') is-invalid @enderror" placeholder="Nội dung lời nhắn" id="message" name="message" style="height: 160px" required>{{ old('message') }}</textarea>
-                                        <label for="message">Nội dung lời nhắn</label>
-                                        @error('message')<div class="invalid-feedback">{{ $message }}</div>@enderror
-                                    </div>
-                                </div>
-                                <div class="col-12">
-                                    <button class="btn btn-primary w-100 py-3" type="submit">Gửi tin nhắn</button>
-                                </div>
-                            </div>
-                        </form>
+                        @endauth
                     </div>
                     
                     {{-- Google Maps iframe đã được fix lại src --}}
@@ -129,4 +135,14 @@
             </div>
         </div>
     </div>
+
+    @if (session('contact_success'))
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                if (typeof showCartToast === 'function') {
+                    showCartToast(@json(session('contact_success')), true);
+                }
+            });
+        </script>
+    @endif
 @endsection

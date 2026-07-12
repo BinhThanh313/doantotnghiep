@@ -24,7 +24,7 @@ Route::get('/vouchers', [ShopController::class, 'vouchers'])->name('shop.voucher
 
 Route::get('/contact', fn() => view('contact'))->name('contact');
 Route::post('/contact', [ContactController::class, 'store'])
-    ->middleware('throttle:5,1')
+    ->middleware(['auth', 'throttle:5,1'])
     ->name('contact.store');
 Route::get('/about', fn() => view('about'))->name('about');
 Route::get('/privacy-policy', fn() => view('privacy-policy'))->name('privacy-policy');
