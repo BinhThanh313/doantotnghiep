@@ -9,6 +9,7 @@ import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.
 import BaseButtons from '@/components/BaseButtons.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import api from '@/services/api'
+import { showToast } from '@/composables/useToast'
 
 const messages = ref([])
 const currentPage = ref(1)
@@ -63,8 +64,9 @@ const deleteMessage = async (id) => {
     await api.delete(`/api/admin/contact-messages/${id}`)
     isModalActive.value = false
     fetchMessages(currentPage.value)
+    showToast('Đã xóa tin nhắn')
   } catch (e) {
-    alert(e.response?.data?.message || 'Không thể xóa tin nhắn!')
+    showToast(e.response?.data?.message || 'Không thể xóa tin nhắn!', 'error')
   }
 }
 

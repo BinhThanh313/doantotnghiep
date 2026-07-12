@@ -12,6 +12,7 @@ import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
 import BaseIcon from '@/components/BaseIcon.vue'
 import api from '@/services/api'
+import { showToast } from '@/composables/useToast'
 
 const vouchers = ref([])
 const isModalActive = ref(false)
@@ -95,19 +96,19 @@ const submit = async () => {
 
     if (isEditMode.value) {
       await api.put(`/api/admin/vouchers/${editingId.value}`, payload)
-      alert('Cập nhật voucher thành công!')
+      showToast('Cập nhật voucher thành công!')
     } else {
       await api.post('/api/admin/vouchers', payload)
-      alert('Tạo voucher thành công!')
+      showToast('Tạo voucher thành công!')
     }
     isModalActive.value = false
     fetchVouchers(currentPage.value)
   } catch (e) {
     const errors = e.response?.data?.errors
     if (errors) {
-      alert(Object.values(errors).flat().join('\n'))
+      showToast(Object.values(errors).flat().join(' | '), 'error')
     } else {
-      alert('Có lỗi xảy ra!')
+      showToast('Có lỗi xảy ra!', 'error')
     }
   }
 }
@@ -126,8 +127,9 @@ const deleteVoucher = async (id) => {
   try {
     await api.delete(`/api/admin/vouchers/${id}`)
     fetchVouchers(currentPage.value)
+    showToast('Đã xóa voucher')
   } catch (e) {
-    alert(e.response?.data?.message || 'Không thể xóa voucher đã được sử dụng!')
+    showToast(e.response?.data?.message || 'Không thể xóa voucher đã được sử dụng!', 'error')
   }
 }
 

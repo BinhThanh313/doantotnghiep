@@ -10,6 +10,7 @@ import BaseButtons from '@/components/BaseButtons.vue'
 import FormControl from '@/components/FormControl.vue'
 import FormField from '@/components/FormField.vue'
 import api from '@/services/api'
+import { showToast } from '@/composables/useToast'
 
 const reviews = ref([])
 const currentPage = ref(1)
@@ -51,8 +52,9 @@ const toggleVisibility = async (id) => {
     const res = await api.patch(`/api/admin/reviews/${id}/toggle-visibility`)
     const idx = reviews.value.findIndex(r => r.id === id)
     if (idx !== -1) reviews.value[idx].is_visible = res.data.is_visible
+    showToast(res.data.is_visible ? 'Đã hiện đánh giá' : 'Đã ẩn đánh giá')
   } catch (e) {
-    alert('Lỗi thay đổi trạng thái!')
+    showToast('Lỗi thay đổi trạng thái!', 'error')
   }
 }
 
@@ -61,8 +63,9 @@ const deleteReview = async (id) => {
   try {
     await api.delete(`/api/admin/reviews/${id}`)
     fetchReviews(currentPage.value)
+    showToast('Đã xóa đánh giá')
   } catch (e) {
-    alert('Lỗi xóa đánh giá!')
+    showToast('Lỗi xóa đánh giá!', 'error')
   }
 }
 

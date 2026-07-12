@@ -33,7 +33,6 @@ Route::get('/faq', fn() => view('faq'))->name('faq');
 Route::get('/return-policy', fn() => view('return-policy'))->name('return-policy');
 Route::get('/bestseller', [ShopController::class, 'bestsellers'])->name('bestseller');
 Route::get('/flash-sale', [FlashSalePageController::class, 'index'])->name('flash-sale');
-Route::post('/checkout/shipping-fee', [CheckoutController::class, 'calculateShipping'])->name('checkout.shipping-fee');
 Auth::routes();
 
 /*

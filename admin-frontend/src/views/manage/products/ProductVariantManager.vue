@@ -11,8 +11,7 @@ import BaseButtons from '@/components/BaseButtons.vue'
 import FormField from '@/components/FormField.vue'
 import FormControl from '@/components/FormControl.vue'
 import api from '@/services/api'
-
-// ── Props ────────────────────────────────────────────────────
+import { showToast } from '@/composables/useToast'
 const props = defineProps({
   productId: { type: [Number, String], required: true },
 })
@@ -38,8 +37,6 @@ const adjustForm = ref({ quantity_change: 0, reason: 'restock', notes: '' })
 const logs       = ref([])
 const selectedVariant = ref(null)
 
-const toast = ref({ show: false, message: '', type: 'success' })
-
 // ── Options ──────────────────────────────────────────────────
 const reasonOptions = [
   { id: 'restock',    label: '📦 Nhập kho' },
@@ -60,11 +57,6 @@ const totalStock = computed(() =>
 )
 
 // ── API helpers ──────────────────────────────────────────────
-const showToast = (msg, type = 'success') => {
-  toast.value = { show: true, message: msg, type }
-  setTimeout(() => { toast.value.show = false }, 3000)
-}
-
 const fetchVariants = async () => {
   loading.value = true
   try {
@@ -164,15 +156,6 @@ const formatDate  = (d) => new Date(d).toLocaleString('vi-VN')
 </script>
 
 <template>
-  <!-- Toast -->
-  <Transition name="slide-fade">
-    <div v-if="toast.show"
-         class="fixed top-4 right-4 z-50 px-5 py-3 rounded-lg shadow-lg text-white text-sm font-medium"
-         :class="toast.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'">
-      {{ toast.message }}
-    </div>
-  </Transition>
-
   <CardBox class="mt-4">
     <!-- Header toggle -->
     <div class="flex items-center justify-between p-4 cursor-pointer select-none"
@@ -366,8 +349,3 @@ const formatDate  = (d) => new Date(d).toLocaleString('vi-VN')
     </div>
   </CardBoxModal>
 </template>
-
-<style scoped>
-.slide-fade-enter-active, .slide-fade-leave-active { transition: all .3s ease; }
-.slide-fade-enter-from, .slide-fade-leave-to { transform: translateX(20px); opacity: 0; }
-</style>

@@ -11,6 +11,7 @@ import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.
 import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
 import api from '@/services/api'
+import { showToast } from '@/composables/useToast'
 
 // ==================== STATE ====================
 const carriers = ref([])
@@ -72,8 +73,9 @@ const saveCarrier = async () => {
     }
     isCarrierModalActive.value = false
     fetchCarriers()
+    showToast(isEditCarrier.value ? 'Cập nhật nhà vận chuyển thành công!' : 'Thêm nhà vận chuyển thành công!')
   } catch (e) {
-    alert(e.response?.data?.message || 'Lỗi lưu nhà vận chuyển')
+    showToast(e.response?.data?.message || 'Lỗi lưu nhà vận chuyển', 'error')
   }
 }
 
@@ -109,8 +111,9 @@ const saveZone = async () => {
     }
     isZoneModalActive.value = false
     selectCarrier(selectedCarrier.value)
+    showToast(isEditZone.value ? 'Cập nhật khu vực thành công!' : 'Thêm khu vực thành công!')
   } catch (e) {
-    alert(e.response?.data?.message || 'Lỗi lưu khu vực')
+    showToast(e.response?.data?.message || 'Lỗi lưu khu vực', 'error')
   }
 }
 

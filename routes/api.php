@@ -12,7 +12,6 @@ use App\Http\Controllers\Admin\ShippingController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\Admin\ContactMessageController;
 use App\Http\Controllers\ReviewController;
-use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Admin\ProductVariantController;
 use App\Http\Controllers\Admin\FlashSaleController;
@@ -24,7 +23,6 @@ use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 Route::post('/admin/login', [AuthController::class, 'login']);
 Route::post('/shipping/calculate', [ShippingController::class, 'calculateFee']);
-Route::post('/voucher/apply', [CheckoutController::class, 'applyVoucher']);
 Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
 Route::get('/flash-sales/current', [PublicFlashSaleController::class, 'current']);
 
@@ -126,7 +124,6 @@ Route::middleware([EnsureFrontendRequestsAreStateful::class, 'auth:sanctum'])->g
     Route::post('/products/{productId}/reviews', [ReviewController::class, 'store']);
     Route::post('/reviews/{reviewId}/helpful',   [ReviewController::class, 'helpful']);
     Route::get('/reviews/{reviewId}',            [ReviewController::class, 'show']);
-    Route::post('/checkout/shipping-fee',        [CheckoutController::class, 'calculateShipping']);
 
     // Payment (COD & Bank only)
     Route::post('/payment/create',      [PaymentController::class, 'create']);

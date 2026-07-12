@@ -11,6 +11,7 @@ import CardBoxModal from '@/components/CardBoxModal.vue'
 import FormField from '@/components/FormField.vue'
 import FormControl from '@/components/FormControl.vue'
 import api from '@/services/api' 
+import { showToast } from '@/composables/useToast'
 
 const categories = ref([])
 const isModalActive = ref(false)
@@ -49,8 +50,9 @@ const saveCategory = async () => {
     }
     isModalActive.value = false
     fetchCategories() // Tải lại danh sách sau khi lưu thành công
+    showToast(isEditing.value ? 'Cập nhật danh mục thành công!' : 'Thêm danh mục thành công!')
   } catch (error) {
-    alert('Có lỗi xảy ra: ' + (error.response?.data?.message || error.message))
+    showToast('Có lỗi xảy ra: ' + (error.response?.data?.message || error.message), 'error')
   }
 }
 
@@ -60,9 +62,10 @@ const deleteCategory = async (id) => {
     try {
       await api.delete(`/api/admin/categories/${id}`)
       fetchCategories()
+      showToast('Đã xóa danh mục')
     } catch (error) {
       // Nhận thông báo lỗi từ Laravel nếu danh mục đang chứa sản phẩm
-      alert(error.response?.data?.message || 'Lỗi khi xóa danh mục')
+      showToast(error.response?.data?.message || 'Lỗi khi xóa danh mục', 'error')
     }
   }
 }

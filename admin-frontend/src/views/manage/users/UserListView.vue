@@ -8,6 +8,7 @@ import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
 import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
+import { showToast } from '@/composables/useToast'
 
 const apiUrl = 'http://localhost/doantotnghiep/public/api/admin/users'
 const users = ref([])
@@ -31,11 +32,11 @@ const deleteUser = async (id) => {
   if (confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
     try {
       await axios.delete(`${apiUrl}/${id}`, { headers: getHeaders() })
-      alert('Đã xóa thành công!')
+      showToast('Đã xóa thành công!')
       fetchUsers()
     } catch (error) {
       console.error("Lỗi khi xóa:", error)
-      alert('Có lỗi xảy ra khi xóa.')
+      showToast('Có lỗi xảy ra khi xóa.', 'error')
     }
   }
 }

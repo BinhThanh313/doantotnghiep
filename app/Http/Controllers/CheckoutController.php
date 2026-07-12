@@ -128,25 +128,6 @@ class CheckoutController extends Controller
             ->values();
     }
 
-    public function calculateShipping(Request $request)
-    {
-        $request->validate([
-            'province'   => 'required|string',
-            'carrier_id' => 'required|exists:shipping_carriers,id',
-        ]);
-
-        $carrier = ShippingCarrier::with('zones')->findOrFail($request->carrier_id);
-        $zone    = $carrier->zones()->where('province', $request->province)->first();
-        $fee     = $zone ? $zone->fee : $carrier->base_fee;
-        $days    = $zone?->estimated_days ?? 3;
-
-        return response()->json([
-            'fee'            => $fee,
-            'estimated_days' => $days,
-            'message'        => "Phí vận chuyển: " . number_format($fee, 0, ',', '.') . "đ (dự kiến {$days} ngày)",
-        ]);
-    }
-
     public function store(Request $request)
     {
         $request->validate([

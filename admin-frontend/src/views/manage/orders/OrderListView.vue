@@ -16,8 +16,7 @@ import CardBoxModal from '@/components/CardBoxModal.vue'
 import FormControl from '@/components/FormControl.vue'
 import FormField from '@/components/FormField.vue'
 import api from '@/services/api'
-
-// ── State ───────────────────────────────────────────────────────
+import { showToast } from '@/composables/useToast'
 const orders      = ref([])
 const currentPage = ref(1)
 const lastPage    = ref(1)
@@ -60,9 +59,6 @@ const exportFormat      = ref('csv')
 const exportStatus      = ref('')
 const exportDateFrom    = ref('')
 const exportDateTo      = ref('')
-
-// Toast
-const toast     = ref({ show: false, message: '', type: 'success' })
 
 // ── Constants ───────────────────────────────────────────────────
 const statusOptions = [
@@ -145,11 +141,6 @@ const isAllSelected = computed(() =>
 )
 
 // ── Methods ─────────────────────────────────────────────────────
-const showToast = (message, type = 'success') => {
-  toast.value = { show: true, message, type }
-  setTimeout(() => { toast.value.show = false }, 3500)
-}
-
 const fetchOrders = async (page = 1) => {
   loading.value = true
   try {
@@ -411,15 +402,6 @@ onMounted(() => fetchOrders())
           <BaseButton :icon="mdiRefresh" color="info" small @click="fetchOrders(currentPage)" />
         </div>
       </SectionTitleLineWithButton>
-
-      <!-- Toast Notification -->
-      <Transition name="slide-fade">
-        <div v-if="toast.show"
-             class="fixed top-4 right-4 z-50 px-5 py-3 rounded-lg shadow-lg text-white text-sm font-medium"
-             :class="toast.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'">
-          {{ toast.message }}
-        </div>
-      </Transition>
 
       <!-- Filters -->
       <CardBox class="mb-4">
@@ -864,8 +846,3 @@ onMounted(() => fetchOrders())
     </SectionMain>
   </LayoutAuthenticated>
 </template>
-
-<style scoped>
-.slide-fade-enter-active, .slide-fade-leave-active { transition: all 0.3s ease; }
-.slide-fade-enter-from, .slide-fade-leave-to { transform: translateX(20px); opacity: 0; }
-</style>

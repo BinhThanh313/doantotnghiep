@@ -11,8 +11,7 @@ import FormControl from '@/components/FormControl.vue'
 import FormField from '@/components/FormField.vue'
 import CardBoxModal from '@/components/CardBoxModal.vue'
 import api from '@/services/api'
-
-// ── State ───────────────────────────────────────────────────
+import { showToast } from '@/composables/useToast'
 const payments     = ref([])
 const loading      = ref(false)
 const currentPage  = ref(1)
@@ -33,8 +32,6 @@ const verifyForm = ref({
   confirmed_amount: 0,
   note:             '',
 })
-
-const toast = ref({ show: false, message: '', type: 'success' })
 
 // ── Options ─────────────────────────────────────────────────
 const statusOptions = [
@@ -80,11 +77,6 @@ const isBankPending = computed(() =>
 )
 
 // ── Methods ─────────────────────────────────────────────────
-const showToast = (msg, type = 'success') => {
-  toast.value = { show: true, message: msg, type }
-  setTimeout(() => { toast.value.show = false }, 3500)
-}
-
 const formatPrice = v => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v)
 const formatDate  = d => d ? new Date(d).toLocaleString('vi-VN') : '—'
 
@@ -180,15 +172,6 @@ onMounted(() => fetchPayments())
       <SectionTitleLineWithButton :icon="mdiCreditCardOutline" title="Quản lý Thanh toán" main>
         <BaseButton :icon="mdiRefresh" color="info" small @click="fetchPayments(currentPage)" />
       </SectionTitleLineWithButton>
-
-      <!-- Toast -->
-      <Transition name="slide-fade">
-        <div v-if="toast.show"
-             class="fixed top-4 right-4 z-50 px-5 py-3 rounded-lg shadow-lg text-white text-sm font-medium"
-             :class="toast.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'">
-          {{ toast.message }}
-        </div>
-      </Transition>
 
       <!-- Filters -->
       <CardBox class="mb-4">
@@ -376,8 +359,3 @@ onMounted(() => fetchPayments())
     </SectionMain>
   </LayoutAuthenticated>
 </template>
-
-<style scoped>
-.slide-fade-enter-active, .slide-fade-leave-active { transition: all .3s ease; }
-.slide-fade-enter-from, .slide-fade-leave-to { transform: translateX(20px); opacity: 0; }
-</style>

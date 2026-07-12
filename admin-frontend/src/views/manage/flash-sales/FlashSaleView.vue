@@ -16,8 +16,7 @@ import BaseButtons from '@/components/BaseButtons.vue'
 import FormField from '@/components/FormField.vue'
 import FormControl from '@/components/FormControl.vue'
 import api from '@/services/api'
-
-// ── State ────────────────────────────────────────────────────
+import { showToast } from '@/composables/useToast'
 const sales       = ref([])
 const loading     = ref(false)
 const currentPage = ref(1)
@@ -38,8 +37,6 @@ const deletingId         = ref(null)
 const availableProducts  = ref([])
 const saleItems          = ref([])
 const detailLoading      = ref(false)
-
-const toast = ref({ show: false, message: '', type: 'success' })
 
 // Forms
 const saleForm = ref({
@@ -80,11 +77,6 @@ const statusLabels = {
 }
 
 // ── Helpers ───────────────────────────────────────────────────
-const showToast = (msg, type = 'success') => {
-  toast.value = { show: true, message: msg, type }
-  setTimeout(() => { toast.value.show = false }, 3500)
-}
-
 const formatPrice = v =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v)
 
@@ -307,15 +299,6 @@ onMounted(() => fetchSales())
       <SectionTitleLineWithButton :icon="mdiBolt" title="Quản lý Flash Sale" main>
         <BaseButton :icon="mdiPlus" color="success" label="Tạo Flash Sale" @click="openCreateSale" />
       </SectionTitleLineWithButton>
-
-      <!-- Toast -->
-      <Transition name="slide-fade">
-        <div v-if="toast.show"
-             class="fixed top-4 right-4 z-50 px-5 py-3 rounded-lg shadow-lg text-white text-sm font-medium"
-             :class="toast.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'">
-          {{ toast.message }}
-        </div>
-      </Transition>
 
       <!-- Filter -->
       <CardBox class="mb-4">
@@ -609,8 +592,3 @@ onMounted(() => fetchSales())
     </SectionMain>
   </LayoutAuthenticated>
 </template>
-
-<style scoped>
-.slide-fade-enter-active, .slide-fade-leave-active { transition: all .3s ease; }
-.slide-fade-enter-from, .slide-fade-leave-to { transform: translateX(20px); opacity: 0; }
-</style>

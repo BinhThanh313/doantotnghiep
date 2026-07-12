@@ -8,6 +8,7 @@ import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
 import FormControl from '@/components/FormControl.vue'
 import api from '@/services/api'
+import { showToast } from '@/composables/useToast'
 
 // ── Props ────────────────────────────────────────────────────
 const props = defineProps({
@@ -19,12 +20,6 @@ const specs      = ref([]) // [{ group_name, label, value, unit }]
 const loading    = ref(false)
 const saving     = ref(false)
 const isExpanded = ref(false)
-const toast      = ref({ show: false, message: '', type: 'success' })
-
-const showToast = (msg, type = 'success') => {
-  toast.value = { show: true, message: msg, type }
-  setTimeout(() => { toast.value.show = false }, 3000)
-}
 
 const fetchSpecs = async () => {
   loading.value = true
@@ -87,15 +82,6 @@ const regenerate = async () => {
 </script>
 
 <template>
-  <!-- Toast -->
-  <Transition name="slide-fade">
-    <div v-if="toast.show"
-         class="fixed top-4 right-4 z-50 px-5 py-3 rounded-lg shadow-lg text-white text-sm font-medium"
-         :class="toast.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'">
-      {{ toast.message }}
-    </div>
-  </Transition>
-
   <CardBox class="mt-4">
     <!-- Header toggle -->
     <div class="flex items-center justify-between p-4 cursor-pointer select-none"
@@ -167,8 +153,3 @@ const regenerate = async () => {
     </div>
   </CardBox>
 </template>
-
-<style scoped>
-.slide-fade-enter-active, .slide-fade-leave-active { transition: all .3s ease; }
-.slide-fade-enter-from, .slide-fade-leave-to { transform: translateX(20px); opacity: 0; }
-</style>

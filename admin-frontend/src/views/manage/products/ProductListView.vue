@@ -8,6 +8,7 @@ import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.
 import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
 import api from '@/services/api'
+import { showToast } from '@/composables/useToast'
 
 const products = ref([])
 const currentPage = ref(1)
@@ -15,12 +16,6 @@ const lastPage = ref(1)
 
 const importing = ref(false)
 const importInput = ref(null)
-const toast = ref({ show: false, message: '', type: 'success' })
-
-const showToast = (message, type = 'success') => {
-  toast.value = { show: true, message, type }
-  setTimeout(() => { toast.value.show = false }, 4000)
-}
 
 const fetchProducts = async (page = 1) => {
   try {
@@ -98,19 +93,6 @@ onMounted(() => {
 <template>
   <LayoutAuthenticated>
     <SectionMain>
-      <!-- Toast -->
-      <Transition name="slide-fade">
-        <div v-if="toast.show"
-             class="fixed top-4 right-4 z-50 px-5 py-3 rounded-lg shadow-lg text-white text-sm font-medium whitespace-pre-line max-w-md"
-             :class="{
-               'bg-emerald-500': toast.type === 'success',
-               'bg-red-500': toast.type === 'error',
-               'bg-orange-500': toast.type === 'warning',
-             }">
-          {{ toast.message }}
-        </div>
-      </Transition>
-
       <SectionTitleLineWithButton :icon="mdiPackageVariant" title="Danh sách sản phẩm" main>
         <div class="flex gap-2">
           <input ref="importInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="handleImportFile" />
@@ -196,8 +178,3 @@ onMounted(() => {
     </SectionMain>
   </LayoutAuthenticated>
 </template>
-
-<style scoped>
-.slide-fade-enter-active, .slide-fade-leave-active { transition: all .3s ease; }
-.slide-fade-enter-from, .slide-fade-leave-to { transform: translateX(20px); opacity: 0; }
-</style>
