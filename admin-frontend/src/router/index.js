@@ -1,49 +1,9 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
-// Demo views (mẫu từ template)
-import StyleView from '@/views/demo/StyleView.vue'
-import TablesView from '@/views/demo/TablesView.vue'
-import FormsView from '@/views/demo/FormsView.vue'
-import UiView from '@/views/demo/UiView.vue'
-import ResponsiveView from '@/views/demo/ResponsiveView.vue'
+// Toàn bộ view được lazy-load (route-level code splitting) để trang nào
+// dùng mới tải JS của trang đó, thay vì gộp hết vào 1 bundle ban đầu
+// (giúp giảm thời gian tải, đặc biệt trang Dashboard/Login khi mở app).
 
-// Auth views
-import LoginView from '@/views/auth/LoginView.vue'
-import ErrorView from '@/views/auth/ErrorView.vue'
-import ProfileView from '@/views/auth/ProfileView.vue'
-
-// Dashboard
-import HomeView from '@/views/dashboard/HomeView.vue'
-
-// Manage views - Products
-import ProductListView from '@/views/manage/products/ProductListView.vue'
-import ProductFormView from '@/views/manage/products/ProductFormView.vue'
-
-// Manage views - Categories
-import CategoryListView from '@/views/manage/categories/CategoryListView.vue'
-
-// Manage views - Users
-import UserListView from '@/views/manage/users/UserListView.vue'
-import UserFormView from '@/views/manage/users/UserFormView.vue'
-
-// Manage views - Orders
-import OrderListView from '@/views/manage/orders/OrderListView.vue'
-
-// Manage views - Vouchers
-import VoucherListView from '@/views/manage/vouchers/VoucherListView.vue'
-
-// Manage views - Reviews
-import ReviewListView from '@/views/manage/reviews/ReviewListView.vue'
-import ReviewDetailView from '@/views/manage/reviews/ReviewDetailView.vue'
-
-// Manage views - Shipping
-import ShippingView from '@/views/manage/shipping/ShippingView.vue'
-
-// Manage views - Contact Messages
-import ContactMessageListView from '@/views/manage/contact/ContactMessageListView.vue'
-
-import PaymentListView from '@/views/manage/payment/PaymentListView.vue'
-import FlashSaleView from '@/views/manage/flash-sales/FlashSaleView.vue'
 const routes = [
   // ==================== DEFAULT REDIRECT ====================
   {
@@ -54,32 +14,24 @@ const routes = [
     }
   },
 
-  // ==================== DEMO & STYLE ====================
-  {
-    meta: { title: 'Select style' },
-    path: '/style',
-    name: 'style',
-    component: StyleView,
-  },
-
   // ==================== AUTH ====================
   {
     meta: { title: 'Login' },
     path: '/login',
     name: 'login',
-    component: LoginView,
+    component: () => import('@/views/auth/LoginView.vue'),
   },
   {
     meta: { title: 'Profile' },
     path: '/profile',
     name: 'profile',
-    component: ProfileView,
+    component: () => import('@/views/auth/ProfileView.vue'),
   },
   {
     meta: { title: 'Error' },
     path: '/error',
     name: 'error',
-    component: ErrorView,
+    component: () => import('@/views/auth/ErrorView.vue'),
   },
 
   // ==================== DASHBOARD ====================
@@ -87,7 +39,7 @@ const routes = [
     meta: { title: 'Dashboard' },
     path: '/dashboard',
     name: 'dashboard',
-    component: HomeView,
+    component: () => import('@/views/dashboard/HomeView.vue'),
   },
 
   // ==================== MANAGE: PRODUCTS ====================
@@ -95,13 +47,13 @@ const routes = [
     meta: { title: 'Quản lý sản phẩm' },
     path: '/products',
     name: 'products.index',
-    component: ProductListView,
+    component: () => import('@/views/manage/products/ProductListView.vue'),
   },
   {
     meta: { title: 'Thêm/Sửa sản phẩm' },
     path: '/products/form/:id?',
     name: 'products.form',
-    component: ProductFormView,
+    component: () => import('@/views/manage/products/ProductFormView.vue'),
   },
 
   // ==================== MANAGE: CATEGORIES ====================
@@ -109,7 +61,7 @@ const routes = [
     meta: { title: 'Quản lý danh mục' },
     path: '/categories',
     name: 'categories.index',
-    component: CategoryListView,
+    component: () => import('@/views/manage/categories/CategoryListView.vue'),
   },
 
   // ==================== MANAGE: USERS ====================
@@ -117,13 +69,13 @@ const routes = [
     meta: { title: 'Quản lý người dùng' },
     path: '/users',
     name: 'users.index',
-    component: UserListView,
+    component: () => import('@/views/manage/users/UserListView.vue'),
   },
   {
     meta: { title: 'Thêm/Sửa người dùng' },
     path: '/users/form/:id?',
     name: 'users.form',
-    component: UserFormView,
+    component: () => import('@/views/manage/users/UserFormView.vue'),
   },
 
   // ==================== MANAGE: ORDERS ====================
@@ -131,7 +83,7 @@ const routes = [
     meta: { title: 'Quản lý đơn hàng' },
     path: '/orders',
     name: 'orders.index',
-    component: OrderListView,
+    component: () => import('@/views/manage/orders/OrderListView.vue'),
   },
 
   // ==================== MANAGE: VOUCHERS ====================
@@ -139,7 +91,7 @@ const routes = [
     meta: { title: 'Quản lý Voucher' },
     path: '/vouchers',
     name: 'vouchers.index',
-    component: VoucherListView,
+    component: () => import('@/views/manage/vouchers/VoucherListView.vue'),
   },
 
   // ==================== MANAGE: REVIEWS ====================
@@ -147,23 +99,21 @@ const routes = [
     meta: { title: 'Quản lý Đánh giá' },
     path: '/reviews',
     name: 'reviews.index',
-    component: ReviewListView,
+    component: () => import('@/views/manage/reviews/ReviewListView.vue'),
   },
   {
-      meta: {
-        title: 'Chi tiết đánh giá'
-      },
-      path: '/manage/reviews/:id',
-      name: 'review-detail',
-      component: () => import('@/views/manage/reviews/ReviewDetailView.vue')
-    },
+    meta: { title: 'Chi tiết đánh giá' },
+    path: '/manage/reviews/:id',
+    name: 'review-detail',
+    component: () => import('@/views/manage/reviews/ReviewDetailView.vue'),
+  },
 
   // ==================== MANAGE: SHIPPING ====================
   {
     meta: { title: 'Quản lý Vận chuyển' },
     path: '/shipping',
     name: 'shipping',
-    component: ShippingView,
+    component: () => import('@/views/manage/shipping/ShippingView.vue'),
   },
 
   // ==================== MANAGE: CONTACT MESSAGES ====================
@@ -171,7 +121,7 @@ const routes = [
     meta: { title: 'Tin nhắn liên hệ' },
     path: '/contact-messages',
     name: 'contact-messages.index',
-    component: ContactMessageListView,
+    component: () => import('@/views/manage/contact/ContactMessageListView.vue'),
   },
 
   // ==================== MANAGE: PAYMENTS ====================
@@ -179,38 +129,13 @@ const routes = [
     meta: { title: 'Quản lý Thanh toán' },
     path: '/payments',
     name: 'payments.index',
-    component: PaymentListView,
+    component: () => import('@/views/manage/payment/PaymentListView.vue'),
   },
   {
-  meta: { title: 'Flash Sale' },
-  path: '/flash-sales',
-  name: 'flash-sales.index',
-  component: FlashSaleView,
-},
-  // ==================== DEMO PAGES ====================
-  {
-    meta: { title: 'Tables' },
-    path: '/tables',
-    name: 'tables',
-    component: TablesView,
-  },
-  {
-    meta: { title: 'Forms' },
-    path: '/forms',
-    name: 'forms',
-    component: FormsView,
-  },
-  {
-    meta: { title: 'UI' },
-    path: '/ui',
-    name: 'ui',
-    component: UiView,
-  },
-  {
-    meta: { title: 'Responsive' },
-    path: '/responsive',
-    name: 'responsive',
-    component: ResponsiveView,
+    meta: { title: 'Flash Sale' },
+    path: '/flash-sales',
+    name: 'flash-sales.index',
+    component: () => import('@/views/manage/flash-sales/FlashSaleView.vue'),
   },
 ]
 

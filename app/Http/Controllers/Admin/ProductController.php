@@ -183,7 +183,13 @@ class ProductController extends Controller
     }
     public function index(Request $request)
     {
-        $query = Product::with('category');
+        // Chỉ select các cột bảng danh sách admin thực sự hiển thị — tránh
+        // kéo theo description/meta_description/meta_keywords/tags/og_image
+        // (có thể khá dài) trên mỗi lần tải trang danh sách sản phẩm.
+        $query = Product::select([
+                'id', 'category_id', 'name', 'price', 'stock', 'image', 'is_bestseller', 'created_at',
+            ])
+            ->with('category:id,name');
 
         if ($request->filled('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');

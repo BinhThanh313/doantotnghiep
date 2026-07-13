@@ -9,7 +9,6 @@ import {
   mdiTruck,
   mdiAccountGroup,
   mdiLogout,
-    mdiPalette,
     mdiCreditCardOutline,
     mdiBolt,
     mdiEmailOutline,
@@ -34,11 +33,6 @@ export const menuAsideBottom = [
     to: '/profile',
     label: 'Profile',
     icon: mdiAccountCircle,
-  },
-    {
-    to: '/style',
-    label: 'Style',
-    icon: mdiPalette,
   },
   {
   label: 'Logout',

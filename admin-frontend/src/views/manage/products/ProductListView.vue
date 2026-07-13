@@ -132,7 +132,7 @@ onMounted(() => {
             <tr v-for="product in products" :key="product.id">
               <td data-label="ID">{{ product.id }}</td>
               <td data-label="Ảnh">
-                <img v-if="product.image" :src="`http://localhost/doantotnghiep/public/storage/${product.image}`" class="w-12 h-12 object-cover rounded" />
+                <img v-if="product.image" :src="`http://localhost/doantotnghiep/public/storage/${product.image}`" class="w-12 h-12 object-cover rounded" loading="lazy" />
               </td>
               <td data-label="Tên sản phẩm">{{ product.name }}</td>
               <td data-label="Giá">{{ product.price }} đ</td>

@@ -135,7 +135,7 @@ onMounted(() => fetchReviews())
                 <div v-if="r.images?.length" class="flex gap-1 mt-1">
                   <img v-for="img in r.images" :key="img.id"
                     :src="`/storage/${img.image_url}`"
-                    class="w-8 h-8 rounded object-cover" />
+                    class="w-8 h-8 rounded object-cover" loading="lazy" />
                 </div>
               </td>
               <td data-label="Helpful">

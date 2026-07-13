@@ -292,7 +292,7 @@
                     <div class="row g-0">
                         <div class="col-5">
                             <div class="products-mini-img border-end h-100">
-                                <img src="{{ $item->image ? asset('storage/' . $item->image) : asset('img/product-3.png') }}" class="img-fluid w-100 h-100" style="object-fit: cover;" alt="{{ $item->name }}">
+                                <img src="{{ $item->image ? asset('storage/' . $item->image) : asset('img/product-3.png') }}" class="img-fluid w-100 h-100" style="object-fit: cover;" alt="{{ $item->name }}" loading="lazy">
                                 <div class="products-mini-icon rounded-circle bg-primary">
                                     <a href="{{ route('shop.show', $item->id) }}"><i class="fa fa-eye text-white"></i></a>
                                 </div>
@@ -367,7 +367,7 @@
                 <div class="row g-0">
                     <div class="col-5">
                         <div class="products-mini-img border-end h-100">
-                            <img src="{{ $product->image ? asset('storage/' . $product->image) : asset('img/product-3.png') }}" class="img-fluid w-100 h-100" alt="{{ $product->name }}">
+                            <img src="{{ $product->image ? asset('storage/' . $product->image) : asset('img/product-3.png') }}" class="img-fluid w-100 h-100" alt="{{ $product->name }}" loading="lazy">
                         </div>
                     </div>
                     <div class="col-7">

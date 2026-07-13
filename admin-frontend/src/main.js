@@ -51,10 +51,6 @@ async function bootstrap() {
   }
 
   app.mount('#app')
-
-  // Fetch sample data
-  mainStore.fetchSampleClients()
-  mainStore.fetchSampleHistory()
 }
 
 bootstrap()

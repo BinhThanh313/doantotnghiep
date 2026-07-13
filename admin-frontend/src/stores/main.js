@@ -1,6 +1,5 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import axios from 'axios'
 
 export const useMainStore = defineStore('main', () => {
   const userName = ref('John Doe')
@@ -16,9 +15,6 @@ export const useMainStore = defineStore('main', () => {
 
   const isFieldFocusRegistered = ref(false)
 
-  const clients = ref([])
-  const history = ref([])
-
   function setUser(payload) {
     if (payload.name) {
       userName.value = payload.name
@@ -28,37 +24,11 @@ export const useMainStore = defineStore('main', () => {
     }
   }
 
-  function fetchSampleClients() {
-    axios
-      .get(`data-sources/clients.json?v=3`)
-      .then((result) => {
-        clients.value = result?.data?.data
-      })
-      .catch((error) => {
-        alert(error.message)
-      })
-  }
-
-  function fetchSampleHistory() {
-    axios
-      .get(`data-sources/history.json`)
-      .then((result) => {
-        history.value = result?.data?.data
-      })
-      .catch((error) => {
-        alert(error.message)
-      })
-  }
-
   return {
     userName,
     userEmail,
     userAvatar,
     isFieldFocusRegistered,
-    clients,
-    history,
     setUser,
-    fetchSampleClients,
-    fetchSampleHistory,
   }
 })
