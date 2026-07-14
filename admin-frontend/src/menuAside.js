@@ -12,10 +12,12 @@ import {
     mdiCreditCardOutline,
     mdiBolt,
     mdiEmailOutline,
+    mdiLightbulbOnOutline,
 } from '@mdi/js'
 
 export const menuAsideMain = [
   { to: '/dashboard',  icon: mdiMonitor,           label: 'Dashboard'     },
+  { to: '/insights',   icon: mdiLightbulbOnOutline, label: 'Gợi ý cho Admin' },
   { to: '/products',   icon: mdiPackageVariant,     label: 'Sản phẩm'      },
   { to: '/categories', icon: mdiFormatListBulleted, label: 'Danh mục'      },
   { to: '/orders',     icon: mdiCartOutline,        label: 'Đơn hàng'      },

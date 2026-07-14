@@ -147,7 +147,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @if(session('cart'))
+                                    @if(!empty($cart))
                                         @foreach($cart as $id => $item)
                                         <tr class="text-center">
                                             <th scope="row" class="text-start py-4">{{ $item['name'] }}</th>

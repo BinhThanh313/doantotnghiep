@@ -11,6 +11,8 @@ use App\Http\Controllers\Admin\VoucherController;
 use App\Http\Controllers\Admin\ShippingController;
 use App\Http\Controllers\Admin\ReviewController as AdminReviewController;
 use App\Http\Controllers\Admin\ContactMessageController;
+use App\Http\Controllers\Admin\InsightController;
+use App\Http\Controllers\Admin\ComboController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Admin\ProductVariantController;
@@ -46,6 +48,15 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
+
+    // Admin Insights (gợi ý hành động: restock, bán chậm, xu hướng, combo, giỏ hàng bỏ quên, ...)
+    Route::get('/insights', [InsightController::class, 'index']);
+
+    // Combo sản phẩm (tạo từ gợi ý ở trang Insights, hiển thị ở trang chi tiết sản phẩm)
+    Route::get('/combos',              [ComboController::class, 'index']);
+    Route::post('/combos',             [ComboController::class, 'store']);
+    Route::patch('/combos/{id}/toggle', [ComboController::class, 'toggle']);
+    Route::delete('/combos/{id}',      [ComboController::class, 'destroy']);
 
     // Orders
     Route::get('/orders/export',          [OrderController::class, 'export']);

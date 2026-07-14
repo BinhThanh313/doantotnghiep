@@ -170,6 +170,8 @@
                             </div>
                         </div>
 
+                        @include('shop.partials.combo-suggestion')
+
                         @include('shop.partials.recommendations')
 
                     </div>

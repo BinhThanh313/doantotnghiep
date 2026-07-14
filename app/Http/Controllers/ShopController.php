@@ -71,7 +71,11 @@ class ShopController extends Controller
         // Gợi ý sản phẩm: liên quan / khách hàng cũng mua / dành riêng cho bạn
         // Sửa auth()->user() thành Auth::user()
         $recommendations = $recommendationService->forProductPage($product, Auth::user());
-        return view('shop.show', compact('product', 'categories', 'recommendations'));
+
+        // Combo do admin tạo (từ gợi ý "thường mua cùng") liên quan tới sản phẩm này
+        $combos = \App\Models\ProductCombo::activeForProduct($product->id);
+
+        return view('shop.show', compact('product', 'categories', 'recommendations', 'combos'));
     }
 
     public function vouchers()

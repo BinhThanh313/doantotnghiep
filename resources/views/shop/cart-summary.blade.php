@@ -29,7 +29,7 @@
     </div>
 </div>
 
-@if(session('cart') && count(session('cart')) > 0)
+@if(!empty($cart))
     <a href="{{ route('checkout') }}" class="btn border-secondary rounded-pill px-4 py-3 text-primary text-uppercase w-100">
         Tiến hành thanh toán
     </a>

@@ -1,4 +1,4 @@
-@if(session('cart') && count(session('cart')) > 0)
+@if(!empty($cart))
     @foreach($cart as $id => $item)
     <tr>
         <th scope="row">

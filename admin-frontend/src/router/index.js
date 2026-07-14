@@ -42,6 +42,14 @@ const routes = [
     component: () => import('@/views/dashboard/HomeView.vue'),
   },
 
+  // ==================== ADMIN INSIGHTS ====================
+  {
+    meta: { title: 'Gợi ý cho Admin' },
+    path: '/insights',
+    name: 'insights',
+    component: () => import('@/views/insights/InsightsView.vue'),
+  },
+
   // ==================== MANAGE: PRODUCTS ====================
   {
     meta: { title: 'Quản lý sản phẩm' },

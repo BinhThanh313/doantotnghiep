@@ -128,14 +128,10 @@ document.addEventListener('DOMContentLoaded', function () {
         fetch('{{ route("cart.index") }}?ajax=1', {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
-        .then(r => r.text())
-        .then(html => {
-            const temp = document.createElement('div');
-            temp.innerHTML = html;
-            const newBody = temp.querySelector('#cart-body');
-            const newSummary = temp.querySelector('#cart-summary');
-            if (newBody) document.getElementById('cart-body').innerHTML = newBody.innerHTML;
-            if (newSummary) document.getElementById('cart-summary').innerHTML = newSummary.innerHTML;
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById('cart-body').innerHTML = data.cart_html;
+            document.getElementById('cart-summary').innerHTML = data.summary_html;
         });
     }
 

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AppNotification;
+use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Payment;
@@ -19,9 +20,32 @@ use Illuminate\Support\Facades\Log;
 
 class CheckoutController extends Controller
 {
+    /**
+     * Đọc giỏ hàng từ bảng cart_items (DB) thay vì session — đồng bộ với
+     * CartController sau khi giỏ hàng được chuyển sang lưu bền vững theo user_id.
+     */
+    private function getCart()
+    {
+        return CartItem::with('product.activeFlashSaleItem')
+            ->where('user_id', Auth::id())
+            ->get()
+            ->filter(fn($item) => $item->product !== null)
+            ->mapWithKeys(function ($item) {
+                $product = $item->product;
+                return [$product->id => [
+                    'id'       => $product->id,
+                    'name'     => $product->name,
+                    'price'    => $product->effective_price,
+                    'image'    => $product->image,
+                    'quantity' => $item->quantity,
+                ]];
+            })
+            ->toArray();
+    }
+
     public function index()
     {
-        $cart = session()->get('cart', []);
+        $cart = $this->getCart();
         if (empty($cart)) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng đang trống!');
         }
@@ -144,7 +168,7 @@ class CheckoutController extends Controller
             'voucher_codes.*' => 'string',
         ]);
 
-        $cart = session()->get('cart', []);
+        $cart = $this->getCart();
         if (empty($cart)) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống!');
         }
@@ -279,7 +303,8 @@ class CheckoutController extends Controller
                 return $order;
             });
 
-            session()->forget(['cart', 'applied_vouchers']);
+            CartItem::where('user_id', Auth::id())->delete();
+            session()->forget('applied_vouchers');
 
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
