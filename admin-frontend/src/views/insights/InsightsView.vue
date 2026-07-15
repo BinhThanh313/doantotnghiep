@@ -19,17 +19,74 @@ const data = ref({
   incomplete: [], negative_reviews: [],
 })
 
+const createdCombos = ref([])
+const creatingComboKey = ref(null)
+
 const imageUrl = (path) =>
   path ? `http://localhost/doantotnghiep/public/storage/${path}` : 'http://localhost/doantotnghiep/public/img/product-3.png'
 
 const formatPrice = (v) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v || 0)
 
+const fetchCreatedCombos = async () => {
+  try {
+    const res = await api.get('/api/admin/combos')
+    createdCombos.value = res.data
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const isComboCreated = (c) => createdCombos.value.some(
+  (existing) =>
+    (existing.product_id === c.product_a.id && existing.combo_product_id === c.product_b.id) ||
+    (existing.product_id === c.product_b.id && existing.combo_product_id === c.product_a.id)
+)
+
+const createCombo = async (c) => {
+  const key = `${c.product_a.id}-${c.product_b.id}`
+  creatingComboKey.value = key
+  try {
+    await api.post('/api/admin/combos', {
+      product_id: c.product_a.id,
+      combo_product_id: c.product_b.id,
+      similarity_score: c.score,
+    })
+    showToast('Đã tạo combo — sẽ hiển thị ở trang chi tiết sản phẩm')
+    await fetchCreatedCombos()
+  } catch (e) {
+    showToast(e.response?.data?.message || 'Không thể tạo combo!', 'error')
+  } finally {
+    creatingComboKey.value = null
+  }
+}
+
+const toggleCombo = async (combo) => {
+  try {
+    await api.patch(`/api/admin/combos/${combo.id}/toggle`)
+    fetchCreatedCombos()
+  } catch (e) {
+    showToast('Không thể cập nhật combo!', 'error')
+  }
+}
+
+const deleteCombo = async (combo) => {
+  if (!confirm('Xóa combo này?')) return
+  try {
+    await api.delete(`/api/admin/combos/${combo.id}`)
+    fetchCreatedCombos()
+    showToast('Đã xóa combo')
+  } catch (e) {
+    showToast('Không thể xóa combo!', 'error')
+  }
+}
+
 const fetchInsights = async () => {
   loading.value = true
   try {
     const res = await api.get('/api/admin/insights')
     data.value = res.data
+    await fetchCreatedCombos()
   } catch (e) {
     showToast(e.response?.data?.message || 'Không thể tải dữ liệu gợi ý!', 'error')
   } finally {
@@ -151,9 +208,44 @@ onMounted(fetchInsights)
                 <p class="font-medium truncate text-sm">+ {{ c.product_b.name }}</p>
               </div>
             </div>
-            <span class="text-purple-600 text-sm font-semibold whitespace-nowrap ml-2">
-              {{ Math.round(c.score * 100) }}% liên quan
-            </span>
+            <div class="flex items-center whitespace-nowrap ml-2">
+              <span class="text-purple-600 text-sm font-semibold mr-2">{{ Math.round(c.score * 100) }}%</span>
+              <BaseButton
+                v-if="!isComboCreated(c)"
+                size="small"
+                color="success"
+                label="Tạo combo"
+                :disabled="creatingComboKey === `${c.product_a.id}-${c.product_b.id}`"
+                @click="createCombo(c)"
+              />
+              <span v-else class="text-xs text-emerald-600 font-medium">Đã tạo ✓</span>
+            </div>
+          </div>
+        </CardBox>
+
+        <!-- #5b Created combos -->
+        <CardBox>
+          <div class="flex items-center mb-4">
+            <BaseButton :icon="mdiViewGridPlus" color="success" small class="mr-2 pointer-events-none" />
+            <h2 class="text-lg font-bold">Combo đã tạo</h2>
+          </div>
+          <p v-if="!createdCombos.length" class="text-gray-400 text-sm">Chưa có combo nào — bấm "Tạo combo" ở card bên cạnh.</p>
+          <div v-for="combo in createdCombos" :key="combo.id" class="flex items-center justify-between py-2 border-b last:border-0">
+            <div class="flex items-center min-w-0">
+              <img :src="imageUrl(combo.product?.image)" class="w-9 h-9 object-cover rounded-full mr-1 shrink-0" />
+              <img :src="imageUrl(combo.combo_product?.image)" class="w-9 h-9 object-cover rounded-full mr-3 shrink-0 -ml-3 border-2 border-white" />
+              <div class="min-w-0">
+                <p class="font-medium truncate text-sm">{{ combo.product?.name }}</p>
+                <p class="font-medium truncate text-sm">+ {{ combo.combo_product?.name }}</p>
+              </div>
+            </div>
+            <div class="flex items-center whitespace-nowrap ml-2 gap-2">
+              <span class="text-xs" :class="combo.is_active ? 'text-emerald-600' : 'text-gray-400'">
+                {{ combo.is_active ? 'Đang hiển thị' : 'Đã ẩn' }}
+              </span>
+              <BaseButton size="small" color="whiteDark" :label="combo.is_active ? 'Ẩn' : 'Hiện'" @click="toggleCombo(combo)" />
+              <BaseButton size="small" color="danger" label="Xóa" @click="deleteCombo(combo)" />
+            </div>
           </div>
         </CardBox>
 

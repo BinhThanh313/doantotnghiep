@@ -31,6 +31,7 @@ class DatabaseSeeder extends Seeder
             OrderSeeder::class,
             VoucherSeeder::class,     // dữ liệu demo mã giảm giá, hiệu lực dài (2 năm)
             FlashSaleSeeder::class,   // dữ liệu demo flash sale, hiệu lực dài (1 năm)
+            DemoInsightSeeder::class, // dữ liệu demo cho trang "Gợi ý cho Admin" (restock, bán chậm, giỏ hàng bỏ quên, đánh giá xấu...)
         ]);
     }
 }
