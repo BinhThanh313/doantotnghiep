@@ -133,6 +133,27 @@ class ChatbotResponseServiceTest extends TestCase
         $this->assertSame('llm_fallback', $result['intent']);
     }
 
+    public function test_off_topic_weather_question_does_not_list_products(): void
+    {
+        // Có sẵn sản phẩm bestseller trong DB để đảm bảo nếu bug tái diễn
+        // (câu hỏi lọt xuống LLM fallback kèm context bestseller) thì test
+        // này thực sự có dữ liệu để phát hiện ra sai sót.
+        $category = Category::create(['name' => 'Laptop', 'slug' => 'laptop']);
+        Product::create([
+            'category_id' => $category->id, 'name' => 'Laptop Dell XPS 13', 'slug' => 'dell-xps-13',
+            'price' => 18_000_000, 'stock' => 5, 'is_active' => true, 'is_bestseller' => true,
+        ]);
+
+        $service = $this->makeService();
+        $result = $service->respond('trời hôm nay có đẹp không');
+
+        // PHẢI bị chặn ở tầng rule-based (small_talk), KHÔNG được rơi xuống
+        // product_search hay llm_fallback -> đảm bảo hành vi ổn định, không
+        // phụ thuộc việc LLM có tuân thủ prompt hay không.
+        $this->assertSame('small_talk', $result['intent']);
+        $this->assertStringNotContainsString('Dell XPS 13', $result['reply']);
+    }
+
     public function test_llm_disabled_gives_safe_default_reply_without_calling_api(): void
     {
         $service = $this->makeService();

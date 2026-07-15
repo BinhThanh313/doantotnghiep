@@ -32,6 +32,23 @@ class ChatbotResponseService
             ];
         }
 
+        // Câu hỏi phiếm/ngoài lề hoàn toàn không liên quan mua sắm (thời
+        // tiết, giờ giấc, hỏi thăm bot...). CHẶN Ở ĐÂY, TRƯỚC parser sản
+        // phẩm và trước LLM fallback — vì buildFallbackContext() luôn kèm
+        // sẵn danh sách bestseller làm "phao cứu sinh" cho câu hỏi mua sắm
+        // mơ hồ, nên nếu để những câu hỏi kiểu này lọt xuống LLM fallback,
+        // model (đặc biệt Groq free tier) có thể vẫn liệt kê sản phẩm ra dù
+        // câu hỏi chẳng liên quan gì (VD "trời hôm nay có đẹp không"). Trả
+        // lời cố định ở đây đảm bảo hành vi ổn định, không phụ thuộc LLM có
+        // tuân thủ prompt hay không.
+        if ($this->isOffTopicSmallTalk($message)) {
+            return [
+                'intent' => 'small_talk',
+                'reply'  => 'Haha mình là trợ lý mua sắm nên không rành khoản này lắm 😅. '
+                          . 'Bạn cần mình tư vấn sản phẩm gì không, ví dụ laptop, điện thoại, tai nghe...?',
+            ];
+        }
+
         // Câu hỏi kiểu so sánh/nối tiếp ("cái nào tốt hơn", "laptop nào tốt
         // nhất"...) PHẢI dựa vào lịch sử hội thoại, không được để parser bắt
         // nhầm thành 1 lượt tìm kiếm sản phẩm mới chỉ vì có chứa tên danh
@@ -184,6 +201,41 @@ class ChatbotResponseService
 
         $greetings = ['hi', 'hello', 'hey', 'chào', 'xin chào', 'alo', 'chào bạn', 'chào shop'];
         return in_array($text, $greetings, true) || in_array($normalized, $greetings, true);
+    }
+
+    // ==================== NGOÀI LỀ / PHIẾM ====================
+
+    /**
+     * Nhận diện các câu hỏi phiếm/xã giao KHÔNG liên quan gì tới mua sắm,
+     * sản phẩm, đơn hàng hay chính sách shop — điển hình là hỏi thăm thời
+     * tiết ("trời hôm nay có đẹp không"), giờ giấc, hoặc hỏi thăm chính bot.
+     * Đây là danh sách các chủ đề phổ biến nhất khách hay hỏi lạc đề, KHÔNG
+     * nhằm bao phủ mọi câu ngoài lề có thể có (những câu hiếm gặp hơn vẫn sẽ
+     * rơi xuống LLM fallback, đã được dặn dò không tự ý liệt kê sản phẩm).
+     */
+    private function isOffTopicSmallTalk(string $message): bool
+    {
+        $text = mb_strtolower($message);
+
+        $patterns = [
+            // Thời tiết
+            'thời tiết', 'thoi tiet', 'trời hôm nay', 'troi hom nay',
+            'trời có đẹp', 'trời đẹp không', 'troi dep khong', 'trời mưa',
+            'troi mua', 'trời nắng', 'troi nang', 'dự báo thời tiết',
+            // Giờ giấc / ngày tháng phiếm (không phải tra cứu đơn hàng)
+            'mấy giờ rồi', 'may gio roi', 'bây giờ là mấy giờ', 'hôm nay ngày mấy',
+            // Hỏi thăm chính bot (không phải hỏi về sản phẩm)
+            'bạn khỏe không', 'ban khoe khong', 'bạn ăn cơm chưa',
+            'bạn là ai', 'bạn tên gì', 'bạn có phải là người thật không',
+            'bạn có người yêu không',
+        ];
+
+        foreach ($patterns as $p) {
+            if (str_contains($text, $p)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ==================== TÌM SẢN PHẨM ====================
