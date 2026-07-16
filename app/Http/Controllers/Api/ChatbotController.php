@@ -87,7 +87,11 @@ class ChatbotController extends Controller
     private function recentHistory(ChatConversation $conversation, int $limit = 6): array
     {
         return $conversation->messages()
-            ->latest('id')
+            // reorder() xoá orderBy('created_at') có sẵn trong relation
+            // ChatConversation::messages() trước khi áp lại đúng thứ tự —
+            // nếu không, Laravel cộng dồn thành "ORDER BY created_at ASC,
+            // id DESC" và limit() sẽ lấy nhầm N tin CŨ NHẤT thay vì mới nhất.
+            ->reorder('id', 'desc')
             ->limit($limit)
             ->get(['sender', 'message'])
             ->reverse()

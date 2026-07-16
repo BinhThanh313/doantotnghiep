@@ -68,6 +68,11 @@ vừa hỏi (VD: nếu hỏi về pin, chỉ so sánh thông số pin, không li
 trước). Nếu ngữ cảnh không có thông số khách hỏi (VD: không có dữ liệu pin), hãy nói thẳng là chưa
 có thông tin đó, KHÔNG suy đoán hay dùng kiến thức chung ngoài ngữ cảnh để trả lời thay.
 
+QUAN TRỌNG: Nếu danh sách sản phẩm trong NGỮ CẢNH DỮ LIỆU được đánh số (1., 2., 3...), thứ tự này
+đúng theo thứ tự đã hiển thị/đã nhắc cho khách trước đó. Khi khách hỏi theo thứ tự (VD: "cái đầu
+tiên", "cái thứ hai", "cái cuối cùng"), hãy map CHÍNH XÁC theo số thứ tự đó, không đoán theo tiêu
+chí khác (giá, tên...).
+
 NGỮ CẢNH DỮ LIỆU:
 {$context}
 PROMPT;

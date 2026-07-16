@@ -178,6 +178,42 @@ class ChatbotResponseServiceTest extends TestCase
         $this->assertSame('llm_fallback', $result['intent']);
     }
 
+    public function test_comparison_question_naming_products_explicitly_is_understood_even_with_unrelated_turns_between(): void
+    {
+        // Tái hiện đúng bug thực tế đã gặp khi test kịch bản defense: khách
+        // nêu THẲNG tên 2 sản phẩm trong câu so sánh ("macbook air m2 với
+        // dell xps 15 cái nào tốt hơn"), nhưng các lượt hội thoại NGAY TRƯỚC
+        // ĐÓ lại không liên quan gì tới sản phẩm (hỏi COD, tra đơn hàng thất
+        // bại) — bug cũ: bot chỉ soi 3 tin nhắn BOT gần nhất để tìm sản phẩm
+        // "đang được bàn tới", bỏ qua hoàn toàn tên sản phẩm khách vừa gõ
+        // ngay trong câu hỏi, nên luôn hỏi lại dù thông tin đã có sẵn.
+        $category = Category::create(['name' => 'Laptop', 'slug' => 'laptop']);
+        Product::create([
+            'category_id' => $category->id, 'name' => 'MacBook Air M2', 'slug' => 'macbook-air-m2',
+            'price' => 32_990_000, 'stock' => 5, 'is_active' => true,
+        ]);
+        Product::create([
+            'category_id' => $category->id, 'name' => 'Dell XPS 15', 'slug' => 'dell-xps-15',
+            'price' => 42_990_000, 'stock' => 5, 'is_active' => true,
+        ]);
+
+        $history = [
+            ['sender' => 'user', 'message' => 'cái đầu tiên có đáng mua không'],
+            ['sender' => 'bot', 'message' => 'Bạn đang hỏi về sản phẩm nào vậy? Bạn nhắc lại tên sản phẩm giúp mình để tư vấn chính xác hơn nhé.'],
+            ['sender' => 'user', 'message' => 'shop có ship COD không'],
+            ['sender' => 'bot', 'message' => 'Electro Shop hỗ trợ thanh toán khi nhận hàng (COD) và chuyển khoản ngân hàng qua mã QR.'],
+            ['sender' => 'user', 'message' => 'đơn hàng của tôi tới đâu rồi'],
+            ['sender' => 'bot', 'message' => 'Bạn vui lòng đăng nhập để mình tra cứu đúng đơn hàng của bạn nhé.'],
+        ];
+
+        $service = $this->makeService();
+        $result = $service->respond('macbook air m2 với dell xps 15 cái nào tốt hơn', null, $history);
+
+        // KHÔNG được rơi vào clarify_product — tên sản phẩm đã có sẵn ngay
+        // trong câu hỏi hiện tại.
+        $this->assertSame('llm_fallback', $result['intent']);
+    }
+
     public function test_cod_question_matches_payment_faq_not_shipping_faq(): void
     {
         // "shop có ship COD không" chứa cả 'ship' lẫn 'cod' — ý khách hỏi là

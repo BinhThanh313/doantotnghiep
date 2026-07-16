@@ -5,6 +5,7 @@ namespace App\Services\Chatbot;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class ChatbotResponseService
@@ -37,8 +38,15 @@ class ChatbotResponseService
         // nhầm thành 1 lượt tìm kiếm sản phẩm mới chỉ vì có chứa tên danh
         // mục (VD: "laptop nào tốt hơn" chứa chữ "laptop"). Ưu tiên kiểm tra
         // trước khi chạy parser.
-        if ($this->isFollowUpComparison($message) && !empty($history)) {
-            $products = $this->findRecentlyMentionedProducts($history);
+        if ($this->isFollowUpComparison($message)) {
+            $products = $this->findRecentlyMentionedProducts($history, $message);
+
+            Log::info('[chatbot-debug] follow_up_comparison', [
+                'message'        => $message,
+                'history_count'  => count($history),
+                'history'        => $history,
+                'products_found' => $products->pluck('name')->all(),
+            ]);
 
             if ($products->isEmpty()) {
                 // KHÔNG xác định được sản phẩm cụ thể nào đang được bàn tới
@@ -126,7 +134,7 @@ class ChatbotResponseService
      * rỗng là 1 khả năng THỰC SỰ xảy ra ở nơi gọi hàm này, không được coi là
      * trường hợp hiếm rồi phó mặc cho LLM tự xử lý.
      */
-    private function findRecentlyMentionedProducts(array $history)
+    private function findRecentlyMentionedProducts(array $history, string $currentMessage = '')
     {
         $recentBotText = collect($history)
             ->filter(fn ($m) => $m['sender'] === 'bot')
@@ -134,22 +142,49 @@ class ChatbotResponseService
             ->pluck('message')
             ->implode(' ');
 
-        if ($recentBotText === '') {
+        // QUAN TRỌNG: gộp thêm CHÍNH câu hỏi hiện tại của khách. Khách hoàn
+        // toàn có thể nêu thẳng tên sản phẩm ngay trong câu so sánh (VD
+        // "macbook air m2 với dell xps 15 cái nào tốt hơn") mà không cần bot
+        // vừa nhắc tới chúng trước đó. Nếu chỉ dựa vào lịch sử bot, các lượt
+        // hỏi xen giữa không liên quan sản phẩm (hỏi COD, tra đơn hàng...)
+        // sẽ khiến bot "quên" mất sản phẩm đang được nêu tên rành rành trong
+        // câu hỏi, dù đó là tín hiệu chắc chắn nhất có thể có.
+        $haystack = trim($recentBotText . ' ' . $currentMessage);
+
+        if ($haystack === '') {
             return collect();
         }
+
+        // So khớp KHÔNG phân biệt hoa/thường: tên sản phẩm do BOT sinh ra
+        // (rule-based) khớp nguyên văn DB nên vốn không cần lower-case, nhưng
+        // câu khách TỰ GÕ (VD "macbook air m2") gần như luôn không viết hoa
+        // đúng chuẩn ("MacBook Air M2"), nên bắt buộc phải so khớp lower-case
+        // ở đây, khác với chỗ so khớp cũ (chỉ soát tin bot) không cần việc này.
+        $haystackLower = mb_strtolower($haystack);
 
         // Chỉ cần so khớp trong phạm vi ~58 sản phẩm active, chi phí không đáng kể
         $matchedNames = Product::where('is_active', true)
             ->pluck('name')
-            ->filter(fn ($name) => str_contains($recentBotText, $name));
+            ->filter(fn ($name) => str_contains($haystackLower, mb_strtolower($name)));
 
         if ($matchedNames->isEmpty()) {
             return collect();
         }
 
-        return Product::with(['category', 'specifications', 'activeFlashSaleItem'])
-            ->whereIn('name', $matchedNames)
+        // Giữ ĐÚNG thứ tự sản phẩm xuất hiện trong văn bản (không phải thứ
+        // tự ngẫu nhiên MySQL trả về từ whereIn), để phục vụ các câu hỏi
+        // tham chiếu theo thứ tự như "cái đầu tiên", "cái thứ hai" — nếu
+        // không giữ thứ tự này, kể cả khi tìm đúng sản phẩm, LLM vẫn không
+        // có cách nào biết "đầu tiên" nghĩa là sản phẩm nào.
+        $orderedNames = $matchedNames
+            ->sortBy(fn ($name) => mb_stripos($haystackLower, mb_strtolower($name)))
+            ->values();
+
+        $products = Product::with(['category', 'specifications', 'activeFlashSaleItem'])
+            ->whereIn('name', $orderedNames)
             ->get();
+
+        return $products->sortBy(fn ($p) => $orderedNames->search($p->name))->values();
     }
 
     private function formatHistory(array $history): string
@@ -407,13 +442,17 @@ class ChatbotResponseService
     /** Ngữ cảnh đầy đủ (kèm vài thông số nổi bật) để LLM xếp hạng/diễn giải, không tự bịa sản phẩm ngoài danh sách này */
     private function buildProductContextWithSpecs($products): string
     {
-        return $products->map(function (Product $p) {
+        // Đánh số thứ tự (1., 2., 3...) thay vì gạch đầu dòng: $products đã
+        // được sắp đúng theo thứ tự xuất hiện trong hội thoại (xem
+        // findRecentlyMentionedProducts), nên đánh số giúp LLM trả lời được
+        // các câu hỏi kiểu "cái đầu tiên/thứ hai/cuối cùng có đáng mua không".
+        return collect($products)->values()->map(function (Product $p, int $i) {
             $specs = $p->specifications
                 ->take(6)
                 ->map(fn ($s) => "{$s->label}: {$s->value}" . ($s->unit ? " {$s->unit}" : ''))
                 ->implode(', ');
 
-            return "- {$p->name} — " . $this->formatProductPrice($p)
+            return ($i + 1) . ". {$p->name} — " . $this->formatProductPrice($p)
                  . ($p->category ? " ({$p->category->name})" : '')
                  . ($specs ? "\n  Thông số: {$specs}" : '');
         })->implode("\n");
