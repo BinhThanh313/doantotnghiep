@@ -133,6 +133,63 @@ class ChatbotResponseServiceTest extends TestCase
         $this->assertSame('llm_fallback', $result['intent']);
     }
 
+    public function test_follow_up_question_without_matched_product_asks_to_clarify_instead_of_calling_llm(): void
+    {
+        // Mô phỏng đúng tình huống thực tế đã gặp: tin nhắn bot trước đó
+        // không chứa tên sản phẩm khớp CHÍNH XÁC với DB (VD do LLM viết lại
+        // hoặc chỉ là câu chào chung chung), sau đó khách hỏi tiếp kiểu so
+        // sánh/đánh giá ("cái này có đáng mua không"). Phải trả lời cố định
+        // hỏi lại khách, TUYỆT ĐỐI không được rơi xuống llm_fallback kèm
+        // context bestseller (đây chính là bug thực tế: LLM cứ có context là
+        // liệt kê sản phẩm ra dù câu hỏi không yêu cầu liệt kê).
+        $history = [
+            ['sender' => 'user', 'message' => 'tư vấn giúp mình cái gì đó tốt'],
+            ['sender' => 'bot', 'message' => 'Hiện tại chúng tôi có một số sản phẩm nổi bật, bạn quan tâm loại nào?'],
+            ['sender' => 'user', 'message' => 'cái này có đáng mua không'],
+        ];
+
+        $service = $this->makeService();
+        $result = $service->respond('cái này có đáng mua không', null, $history);
+
+        $this->assertSame('clarify_product', $result['intent']);
+        $this->assertStringContainsString('sản phẩm nào', $result['reply']);
+    }
+
+    public function test_follow_up_question_with_matched_product_uses_specific_product_context(): void
+    {
+        // Ngược lại: khi tin nhắn bot trước đó CÓ chứa tên sản phẩm khớp
+        // chính xác với DB, phải nhận diện được và đi tiếp xuống llm_fallback
+        // (không bị chặn thành clarify_product).
+        $category = Category::create(['name' => 'Laptop', 'slug' => 'laptop']);
+        Product::create([
+            'category_id' => $category->id, 'name' => 'MacBook Air M2', 'slug' => 'macbook-air-m2',
+            'price' => 28_000_000, 'stock' => 5, 'is_active' => true, 'is_bestseller' => true,
+        ]);
+
+        $history = [
+            ['sender' => 'user', 'message' => 'laptop apple'],
+            ['sender' => 'bot', 'message' => 'Mình tìm thấy: MacBook Air M2 — 28.000.000đ'],
+            ['sender' => 'user', 'message' => 'cái này có đáng mua không'],
+        ];
+
+        $service = $this->makeService();
+        $result = $service->respond('cái này có đáng mua không', null, $history);
+
+        $this->assertSame('llm_fallback', $result['intent']);
+    }
+
+    public function test_cod_question_matches_payment_faq_not_shipping_faq(): void
+    {
+        // "shop có ship COD không" chứa cả 'ship' lẫn 'cod' — ý khách hỏi là
+        // về THANH TOÁN (có hỗ trợ COD không), không phải hỏi thời gian giao
+        // hàng. Trước đây bị từ khoá 'ship' của FAQ vận chuyển nuốt mất.
+        $service = $this->makeService();
+        $result = $service->respond('shop có ship COD không');
+
+        $this->assertSame('policy_faq', $result['intent']);
+        $this->assertStringContainsString('COD', $result['reply']);
+    }
+
     public function test_off_topic_weather_question_does_not_list_products(): void
     {
         // Có sẵn sản phẩm bestseller trong DB để đảm bảo nếu bug tái diễn
@@ -152,6 +209,18 @@ class ChatbotResponseServiceTest extends TestCase
         // phụ thuộc việc LLM có tuân thủ prompt hay không.
         $this->assertSame('small_talk', $result['intent']);
         $this->assertStringNotContainsString('Dell XPS 13', $result['reply']);
+    }
+
+    public function test_vague_shopping_question_still_reaches_llm_fallback(): void
+    {
+        // "có gì hot không" không đủ tín hiệu để parser bắt thành product
+        // search (không category/brand/giá/spec) nhưng RÕ RÀNG là câu hỏi
+        // mua sắm mơ hồ, cần được whitelist cho qua để LLM tư vấn dựa trên
+        // context bestseller — không được bị chặn nhầm thành small_talk.
+        $service = $this->makeService();
+        $result = $service->respond('có gì hot không shop');
+
+        $this->assertSame('llm_fallback', $result['intent']);
     }
 
     public function test_llm_disabled_gives_safe_default_reply_without_calling_api(): void

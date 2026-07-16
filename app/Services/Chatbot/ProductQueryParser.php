@@ -106,6 +106,18 @@ class ProductQueryParser
     }
 
     /**
+     * Danh sách từ khoá danh mục + thương hiệu đã biết — dùng lại ở
+     * ChatbotResponseService để nhận diện nhanh 1 câu hỏi có khả năng liên
+     * quan mua sắm hay không (whitelist), không cần parse đầy đủ ra filter.
+     * Tách hàm này ra thay vì để ChatbotResponseService tự khai 1 danh sách
+     * riêng, tránh 2 nơi lệch nhau khi thêm/sửa danh mục hoặc thương hiệu.
+     */
+    public function knownProductKeywords(): array
+    {
+        return array_merge(array_keys($this->categoryKeywords), array_keys($this->brandKeywords));
+    }
+
+    /**
      * Trả về mẫu LIKE (có thể là "A|B|C" cho nhiều tên gộp của cùng 1 hãng,
      * VD Apple không xuất hiện trong tên sản phẩm mà là iPhone/iPad/MacBook).
      */

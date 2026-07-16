@@ -32,30 +32,32 @@ class ChatbotResponseService
             ];
         }
 
-        // Câu hỏi phiếm/ngoài lề hoàn toàn không liên quan mua sắm (thời
-        // tiết, giờ giấc, hỏi thăm bot...). CHẶN Ở ĐÂY, TRƯỚC parser sản
-        // phẩm và trước LLM fallback — vì buildFallbackContext() luôn kèm
-        // sẵn danh sách bestseller làm "phao cứu sinh" cho câu hỏi mua sắm
-        // mơ hồ, nên nếu để những câu hỏi kiểu này lọt xuống LLM fallback,
-        // model (đặc biệt Groq free tier) có thể vẫn liệt kê sản phẩm ra dù
-        // câu hỏi chẳng liên quan gì (VD "trời hôm nay có đẹp không"). Trả
-        // lời cố định ở đây đảm bảo hành vi ổn định, không phụ thuộc LLM có
-        // tuân thủ prompt hay không.
-        if ($this->isOffTopicSmallTalk($message)) {
-            return [
-                'intent' => 'small_talk',
-                'reply'  => 'Haha mình là trợ lý mua sắm nên không rành khoản này lắm 😅. '
-                          . 'Bạn cần mình tư vấn sản phẩm gì không, ví dụ laptop, điện thoại, tai nghe...?',
-            ];
-        }
-
         // Câu hỏi kiểu so sánh/nối tiếp ("cái nào tốt hơn", "laptop nào tốt
         // nhất"...) PHẢI dựa vào lịch sử hội thoại, không được để parser bắt
         // nhầm thành 1 lượt tìm kiếm sản phẩm mới chỉ vì có chứa tên danh
         // mục (VD: "laptop nào tốt hơn" chứa chữ "laptop"). Ưu tiên kiểm tra
         // trước khi chạy parser.
         if ($this->isFollowUpComparison($message) && !empty($history)) {
-            $context = $this->buildContextFromRecentProducts($history);
+            $products = $this->findRecentlyMentionedProducts($history);
+
+            if ($products->isEmpty()) {
+                // KHÔNG xác định được sản phẩm cụ thể nào đang được bàn tới
+                // (có thể vì tin nhắn bot trước đó do LLM viết lại tên sản
+                // phẩm không khớp 100% ký tự với DB, hoặc đây thực ra là câu
+                // hỏi MỚI bị nhận nhầm là câu hỏi tiếp nối). TRẢ LỜI CỐ ĐỊNH
+                // hỏi lại khách ở đây, KHÔNG đẩy quyết định "liệt kê bestseller
+                // hay hỏi lại" cho LLM — vì thực tế đã cho thấy LLM (Groq free
+                // tier) không đáng tin cậy ở việc này, dễ lặp lại đúng bug cũ:
+                // cứ có sẵn context sản phẩm là liệt kê ra, dù câu hỏi ("cái
+                // này có đáng mua không") không hề yêu cầu liệt kê danh sách.
+                return [
+                    'intent' => 'clarify_product',
+                    'reply'  => 'Bạn đang hỏi về sản phẩm nào vậy? Bạn nhắc lại tên sản phẩm giúp mình để tư vấn chính xác hơn nhé.',
+                ];
+            }
+
+            $context = $this->buildProductContextWithSpecs($products)
+                     . "\n\n" . $this->formatHistory($history);
             return [
                 'intent' => 'llm_fallback',
                 'reply'  => $this->llm->reply($message, $context),
@@ -76,10 +78,32 @@ class ChatbotResponseService
             return ['intent' => 'policy_faq', 'reply' => $faqReply];
         }
 
-        // Không khớp intent nào rõ ràng -> fallback LLM, kèm ngữ cảnh vài
-        // sản phẩm bán chạy + lịch sử hội thoại gần nhất, để LLM hiểu được
-        // câu hỏi nối tiếp (VD: "cái nào tốt hơn" nhắc tới kết quả tìm kiếm
-        // ngay phía trên) thay vì trả lời khống hoặc không hiểu ngữ cảnh.
+        // Tới đây nghĩa là KHÔNG có category/brand/giá/spec (đã bị
+        // parser->isProductSearch() loại), không phải tra đơn hàng, không
+        // khớp FAQ. Đây chính là điểm hay rò rỉ: nếu cứ mặc định coi là
+        // "câu hỏi mua sắm mơ hồ" và đưa nguyên context bestseller cho LLM,
+        // model (đặc biệt Groq free tier) có thể liệt kê sản phẩm ra dù câu
+        // hỏi chẳng liên quan gì tới mua sắm (VD "trời hôm nay có đẹp
+        // không"). Dùng WHITELIST — chỉ cho đi tiếp (kèm context sản phẩm)
+        // khi có tín hiệu THỰC SỰ liên quan mua sắm; mặc định còn lại coi là
+        // ngoài lề và chặn ngay tại đây, không gọi LLM. An toàn hơn hẳn so
+        // với việc liệt kê trước từng câu ngoài lề có thể gặp (blacklist),
+        // vì không thể lường hết mọi câu hỏi phiếm mà khách/giám khảo có
+        // thể hỏi.
+        if (!$this->hasShoppingSignal($message)) {
+            return [
+                'intent' => 'small_talk',
+                'reply'  => 'Haha mình là trợ lý mua sắm nên không rành khoản này lắm 😅. '
+                          . 'Bạn cần mình tư vấn sản phẩm gì không, ví dụ laptop, điện thoại, tai nghe...?',
+            ];
+        }
+
+        // Không khớp intent rõ ràng nhưng CÓ tín hiệu liên quan mua sắm (VD
+        // "có gì hot không", "tư vấn giúp mình") -> fallback LLM, kèm ngữ
+        // cảnh vài sản phẩm bán chạy + lịch sử hội thoại gần nhất, để LLM
+        // hiểu được câu hỏi nối tiếp (VD: "cái nào tốt hơn" nhắc tới kết quả
+        // tìm kiếm ngay phía trên) thay vì trả lời khống hoặc không hiểu
+        // ngữ cảnh.
         $context = $this->buildFallbackContext() . "\n\n" . $this->formatHistory($history);
         return [
             'intent' => 'llm_fallback',
@@ -94,8 +118,15 @@ class ChatbotResponseService
      * bot trả lời theo dạng liệt kê (rule-based) hay văn xuôi (LLM diễn giải
      * câu hỏi cảm tính), tránh trường hợp bot "quên" sản phẩm thật đang bàn
      * và tự chuyển sang nói về sản phẩm bestseller không liên quan.
+     *
+     * LƯU Ý: so khớp bằng str_contains trên NGUYÊN VĂN tin nhắn bot, nên nếu
+     * LLM (ở lượt trả lời trước) diễn đạt lại tên sản phẩm không khớp 100%
+     * ký tự với tên thật trong DB (thêm/bớt khoảng trắng, viết tắt...), hàm
+     * này sẽ không match được — đây là lý do bắt buộc phải coi collection
+     * rỗng là 1 khả năng THỰC SỰ xảy ra ở nơi gọi hàm này, không được coi là
+     * trường hợp hiếm rồi phó mặc cho LLM tự xử lý.
      */
-    private function buildContextFromRecentProducts(array $history): string
+    private function findRecentlyMentionedProducts(array $history)
     {
         $recentBotText = collect($history)
             ->filter(fn ($m) => $m['sender'] === 'bot')
@@ -103,36 +134,22 @@ class ChatbotResponseService
             ->pluck('message')
             ->implode(' ');
 
-        // Chỉ cần so khớp trong phạm vi ~58 sản phẩm active, chi phí không đáng kể
-        $allNames = Product::where('is_active', true)->pluck('name');
-        $matchedNames = $recentBotText !== ''
-            ? $allNames->filter(fn ($name) => str_contains($recentBotText, $name))
-            : collect();
-
-        if ($matchedNames->isEmpty()) {
-            // Không xác định được sản phẩm CỤ THỂ nào đang bàn tới — có thể
-            // vì câu hỏi thực ra là 1 câu hỏi MỚI (VD "sản phẩm nào đang
-            // hot") bị nhận nhầm là câu hỏi tiếp nối, chứ không phải khách
-            // thực sự đang so sánh 1 sản phẩm cũ. Thay vì để LLM bí và chỉ
-            // biết nói "không có thông tin", đưa luôn danh sách bestseller
-            // thật làm phao cứu sinh để LLM vẫn tư vấn được — vẫn giữ chặt
-            // yêu cầu không được tự bịa sản phẩm ngoài danh sách.
-            $note = 'KHÔNG có sản phẩm cụ thể nào đang được bàn tới trong lịch sử hội thoại gần đây. '
-                . 'Nếu đây là câu hỏi MỚI (không thực sự so sánh/tiếp nối 1 sản phẩm cũ), hãy dùng danh '
-                . 'sách sản phẩm nổi bật dưới đây để tư vấn — TUYỆT ĐỐI không tự bịa sản phẩm ngoài danh '
-                . 'sách này. Nếu câu hỏi thực sự cần biết rõ khách đang nói về sản phẩm nào, hãy hỏi lại khách.';
-            return $note . "\n\nDanh sách sản phẩm nổi bật:\n" . $this->buildFallbackContext()
-                 . "\n\n" . $this->formatHistory($history);
+        if ($recentBotText === '') {
+            return collect();
         }
 
-        $products = Product::with(['category', 'specifications', 'activeFlashSaleItem'])
+        // Chỉ cần so khớp trong phạm vi ~58 sản phẩm active, chi phí không đáng kể
+        $matchedNames = Product::where('is_active', true)
+            ->pluck('name')
+            ->filter(fn ($name) => str_contains($recentBotText, $name));
+
+        if ($matchedNames->isEmpty()) {
+            return collect();
+        }
+
+        return Product::with(['category', 'specifications', 'activeFlashSaleItem'])
             ->whereIn('name', $matchedNames)
             ->get();
-
-        $productContext = $this->buildProductContextWithSpecs($products);
-
-        return "Đây là các sản phẩm ĐANG được bàn tới trong cuộc hội thoại này (chỉ so sánh/nhận xét trong phạm vi các sản phẩm này, không nhắc sản phẩm khác):\n{$productContext}\n\n"
-             . $this->formatHistory($history);
     }
 
     private function formatHistory(array $history): string
@@ -206,35 +223,39 @@ class ChatbotResponseService
     // ==================== NGOÀI LỀ / PHIẾM ====================
 
     /**
-     * Nhận diện các câu hỏi phiếm/xã giao KHÔNG liên quan gì tới mua sắm,
-     * sản phẩm, đơn hàng hay chính sách shop — điển hình là hỏi thăm thời
-     * tiết ("trời hôm nay có đẹp không"), giờ giấc, hoặc hỏi thăm chính bot.
-     * Đây là danh sách các chủ đề phổ biến nhất khách hay hỏi lạc đề, KHÔNG
-     * nhằm bao phủ mọi câu ngoài lề có thể có (những câu hiếm gặp hơn vẫn sẽ
-     * rơi xuống LLM fallback, đã được dặn dò không tự ý liệt kê sản phẩm).
+     * Câu hỏi có TÍN HIỆU liên quan mua sắm/sản phẩm/đơn hàng/chính sách shop
+     * hay không — cổng WHITELIST trước khi 1 câu hỏi "mơ hồ" (không khớp
+     * parser/order/FAQ) được đưa xuống LLM fallback kèm context bestseller.
+     * Chỉ cần khớp 1 tín hiệu là đủ cho qua; parser/order/FAQ ở các bước
+     * trước đã lo phần chính xác rồi, hàm này chỉ cần lỏng tay hơn 1 chút để
+     * không chặn nhầm câu hỏi mua sắm nói vòng vo (VD "có gì hot không").
      */
-    private function isOffTopicSmallTalk(string $message): bool
+    private function hasShoppingSignal(string $message): bool
     {
         $text = mb_strtolower($message);
 
-        $patterns = [
-            // Thời tiết
-            'thời tiết', 'thoi tiet', 'trời hôm nay', 'troi hom nay',
-            'trời có đẹp', 'trời đẹp không', 'troi dep khong', 'trời mưa',
-            'troi mua', 'trời nắng', 'troi nang', 'dự báo thời tiết',
-            // Giờ giấc / ngày tháng phiếm (không phải tra cứu đơn hàng)
-            'mấy giờ rồi', 'may gio roi', 'bây giờ là mấy giờ', 'hôm nay ngày mấy',
-            // Hỏi thăm chính bot (không phải hỏi về sản phẩm)
-            'bạn khỏe không', 'ban khoe khong', 'bạn ăn cơm chưa',
-            'bạn là ai', 'bạn tên gì', 'bạn có phải là người thật không',
-            'bạn có người yêu không',
+        $genericSignals = [
+            'mua', 'bán', 'giá', 'tư vấn', 'gợi ý', 'đề xuất', 'recommend',
+            'sản phẩm', 'hàng gì', 'shop', 'cửa hàng', 'khuyến mãi', 'giảm giá',
+            'sale', 'flash sale', 'nổi bật', 'hot', 'bán chạy', 'xu hướng',
+            'trending', 'đơn hàng', 'don hang', 'giao hàng', 'giao hang',
+            'vận chuyển', 'van chuyen', 'tra cứu', 'chính sách', 'chinh sach',
+            'bảo hành', 'bao hanh', 'đổi trả', 'doi tra', 'thanh toán', 'thanh toan',
+            'hotline', 'combo', 'thông số', 'thong so', 'cấu hình', 'cau hinh',
         ];
 
-        foreach ($patterns as $p) {
-            if (str_contains($text, $p)) {
+        foreach ($genericSignals as $s) {
+            if (str_contains($text, $s)) {
                 return true;
             }
         }
+
+        foreach ($this->parser->knownProductKeywords() as $keyword) {
+            if (str_contains($text, $keyword)) {
+                return true;
+            }
+        }
+
         return false;
     }
 
@@ -497,10 +518,14 @@ class ChatbotResponseService
                 'Electro Shop hỗ trợ đổi trả trong vòng 7 ngày kể từ khi nhận hàng, với điều kiện sản phẩm còn nguyên tem, chưa qua sử dụng.'],
             ['keywords' => ['bảo hành', 'bao hanh', 'warranty'], 'reply' =>
                 'Tất cả sản phẩm tại Electro Shop đều được bảo hành chính hãng 12 tháng kể từ ngày mua.'],
+            // Đặt TRƯỚC FAQ vận chuyển: câu hỏi kiểu "có ship COD không" chứa
+            // cả 'ship' lẫn 'cod', nhưng ý khách hỏi thực chất là về hình
+            // thức THANH TOÁN (có hỗ trợ trả tiền khi nhận hàng không), nên
+            // phải ưu tiên khớp 'cod' trước khi 'ship' bị FAQ vận chuyển nuốt mất.
+            ['keywords' => ['thanh toán', 'thanh toan', 'payment', 'cod', 'trả tiền khi nhận', 'tra tien khi nhan'], 'reply' =>
+                'Electro Shop hỗ trợ thanh toán khi nhận hàng (COD) và chuyển khoản ngân hàng qua mã QR.'],
             ['keywords' => ['vận chuyển', 'van chuyen', 'ship', 'giao hàng', 'giao hang', 'phí ship', 'phi ship', 'giao nhận'], 'reply' =>
                 'Thời gian giao hàng dự kiến 2-5 ngày tuỳ khu vực. Phí vận chuyển được tính cụ thể ở bước thanh toán dựa theo địa chỉ nhận hàng.'],
-            ['keywords' => ['thanh toán', 'thanh toan', 'payment'], 'reply' =>
-                'Electro Shop hỗ trợ thanh toán khi nhận hàng (COD) và chuyển khoản ngân hàng qua mã QR.'],
         ];
 
         foreach ($faqs as $faq) {
