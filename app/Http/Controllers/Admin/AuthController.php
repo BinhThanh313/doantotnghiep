@@ -58,4 +58,41 @@ class AuthController extends Controller
     {
         return response()->json($request->user());
     }
+
+    public function updateProfile(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+        ]);
+
+        $user->update($data);
+
+        return response()->json([
+            'message' => 'Cập nhật thông tin thành công',
+            'user'    => $user->fresh(),
+        ]);
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $user = $request->user();
+
+        $data = $request->validate([
+            'current_password'      => 'required|string',
+            'password'              => 'required|string|min:8|confirmed',
+        ]);
+
+        if (!\Illuminate\Support\Facades\Hash::check($data['current_password'], $user->password)) {
+            return response()->json(['message' => 'Mật khẩu hiện tại không đúng'], 422);
+        }
+
+        $user->update([
+            'password' => \Illuminate\Support\Facades\Hash::make($data['password']),
+        ]);
+
+        return response()->json(['message' => 'Đổi mật khẩu thành công']);
+    }
 }

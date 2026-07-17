@@ -210,7 +210,7 @@ onMounted(() => fetchVouchers())
           </tbody>
         </table>
 
-        <div class="p-3 lg:px-6 border-t border-gray-100 dark:border-slate-800 flex justify-between items-center">
+        <div class="p-3 lg:px-6 border-t border-gray-100 dark:border-slate-800 flex justify-end items-center flex-wrap gap-2">
           <BaseButtons>
             <BaseButton v-for="page in lastPage" :key="page"
               :active="page === currentPage" :label="page"
