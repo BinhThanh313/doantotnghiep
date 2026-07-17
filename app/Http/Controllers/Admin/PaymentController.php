@@ -114,6 +114,10 @@ class PaymentController extends Controller
     {
         $payment = Payment::with('order')->findOrFail($id);
 
+        if (strtolower($payment->payment_method) !== 'bank') {
+            return response()->json(['message' => 'Chỉ có thể từ chối giao dịch chuyển khoản'], 422);
+        }
+
         $request->validate(['reason' => 'required|string|max:500']);
 
        $result = $this->bankService->adminReject($payment, $request->input('reason'));

@@ -115,10 +115,23 @@ class ShippingController extends Controller
 
         // Khi giao hàng thành công → cập nhật trạng thái order
         if (isset($data['status']) && $data['status'] === 'delivered') {
+            $isCod = strtoupper($shipment->order->payment_method) === 'COD';
+
             $shipment->order->update([
                 'status'         => 'delivered',
-                'payment_status' => $shipment->order->payment_method === 'COD' ? 'paid' : $shipment->order->payment_status,
+                'payment_status' => $isCod ? 'paid' : $shipment->order->payment_status,
             ]);
+
+            // Đồng bộ bản ghi Payment: COD thu tiền khi giao hàng thành công
+            // nên payment record cũng phải chuyển sang 'success', nếu không
+            // trang /payments sẽ vẫn hiển thị "Chờ xử lý" dù đơn đã "Đã thanh toán".
+            if ($isCod && $shipment->order->payment && $shipment->order->payment->status !== 'success') {
+                $shipment->order->payment->update([
+                    'status'         => 'success',
+                    'transaction_id' => $shipment->order->payment->transaction_id ?: ('COD-' . $shipment->order->tracking_number),
+                    'paid_at'        => now(),
+                ]);
+            }
         }
 
         return response()->json($shipment->load('order', 'carrier'));

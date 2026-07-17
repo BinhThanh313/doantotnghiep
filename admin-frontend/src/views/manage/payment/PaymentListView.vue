@@ -257,9 +257,9 @@ onMounted(() => fetchPayments())
                     color="success" :icon="mdiCheckCircle" small
                     @click="openBankVerify(p)" title="Xác nhận CK" />
 
-                  <!-- Reject -->
+                  <!-- Reject (chỉ áp dụng cho chuyển khoản — COD không có giao dịch để "từ chối") -->
                   <BaseButton
-                    v-if="['pending','processing'].includes(p.status)"
+                    v-if="p.payment_method?.toLowerCase() === 'bank' && ['pending','processing'].includes(p.status)"
                     color="danger" :icon="mdiCloseCircle" small
                     @click="rejectPayment(p)" title="Từ chối" />
                 </BaseButtons>

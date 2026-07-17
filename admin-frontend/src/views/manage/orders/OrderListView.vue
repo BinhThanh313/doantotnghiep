@@ -271,6 +271,24 @@ const updateStatus = async (orderId, newStatus) => {
   }
 }
 
+const paymentStatusUpdating = ref(false)
+const updatePaymentStatus = async (orderId, newPaymentStatus) => {
+  if (paymentStatusUpdating.value) return
+  paymentStatusUpdating.value = true
+  try {
+    await api.put(`/api/admin/orders/${orderId}`, { payment_status: newPaymentStatus })
+    await fetchOrders(currentPage.value)
+    if (selectedOrder.value?.id === orderId) {
+      selectedOrder.value.payment_status = newPaymentStatus
+    }
+    showToast('Cập nhật trạng thái thanh toán thành công!')
+  } catch (e) {
+    showToast(e?.response?.data?.message || 'Lỗi cập nhật trạng thái thanh toán!', 'error')
+  } finally {
+    paymentStatusUpdating.value = false
+  }
+}
+
 const deleteOrder = async (id) => {
   if (!confirm('Xóa đơn hàng này?')) return
   try {
@@ -588,7 +606,8 @@ onMounted(() => fetchOrders())
         :has-cancel="false"
         has-custom-layout
       >
-        <div v-if="selectedOrder" class="p-6 space-y-4 overflow-y-auto max-h-[70vh]">
+        <div v-if="selectedOrder" class="flex flex-col flex-1 min-h-0">
+        <div class="p-6 space-y-4 overflow-y-auto min-h-0 flex-1">
           <!-- Thông tin khách -->
           <div class="grid grid-cols-2 gap-4 p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
             <div>
@@ -615,6 +634,22 @@ onMounted(() => fetchOrders())
                 :color="selectedOrder.status === opt.id ? 'info' : 'whiteDark'"
                 rounded-full small
                 @click="updateStatus(selectedOrder.id, opt.id)"
+              />
+            </div>
+          </div>
+
+          <!-- Cập nhật thanh toán -->
+          <div class="p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+            <p class="text-xs text-gray-500 mb-2 font-semibold uppercase">Cập nhật thanh toán</p>
+            <div class="flex flex-wrap gap-2">
+              <BaseButton
+                v-for="opt in paymentStatusOptions.slice(1)" :key="opt.id"
+                :label="opt.label"
+                :active="selectedOrder.payment_status === opt.id"
+                :color="selectedOrder.payment_status === opt.id ? 'success' : 'whiteDark'"
+                :disabled="paymentStatusUpdating"
+                rounded-full small
+                @click="updatePaymentStatus(selectedOrder.id, opt.id)"
               />
             </div>
           </div>
@@ -664,8 +699,6 @@ onMounted(() => fetchOrders())
               <span class="text-blue-600">{{ formatPrice(grandTotal) }}</span>
             </div>
           </div>
-        </div>
-        <!-- ══ DETAIL MODAL — thay thế toàn bộ phần Payment & Notes cũ ══ -->
 
 <!-- Payment Info -->
 <div class="p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
@@ -777,7 +810,8 @@ onMounted(() => fetchOrders())
      class="p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded text-sm">
   <span class="font-semibold">Ghi chú:</span> {{ selectedOrder.notes }}
 </div>
-        <div class="px-6 pb-6 flex justify-end gap-2">
+        </div>
+        <div class="px-6 py-4 flex-none flex justify-end gap-2 border-t border-gray-200 dark:border-slate-700">
           <BaseButton
             v-if="selectedOrder && ['delivered','completed'].includes(selectedOrder.status) && selectedOrder.payment_status === 'paid'"
             color="warning" outline :icon="mdiCashRefund" label="Hoàn tiền"
@@ -785,6 +819,7 @@ onMounted(() => fetchOrders())
           <BaseButton color="whiteDark" outline label="In phiếu giao"
             @click="printLabel(selectedOrder)" />
           <BaseButton color="info" outline label="Đóng" @click="isDetailModalActive = false" />
+        </div>
         </div>
       </CardBoxModal>
         

@@ -1,5 +1,4 @@
 import {
-  mdiAccountCircle,
   mdiMonitor,
   mdiPackageVariant,
   mdiFormatListBulleted,
@@ -8,7 +7,6 @@ import {
   mdiStarOutline,
   mdiTruck,
   mdiAccountGroup,
-  mdiLogout,
     mdiCreditCardOutline,
     mdiBolt,
     mdiEmailOutline,
@@ -30,15 +28,4 @@ export const menuAsideMain = [
   { to: '/users',      icon: mdiAccountGroup,       label: 'Người dùng'    },
 ]
 
-export const menuAsideBottom = [
-  {
-    to: '/profile',
-    label: 'Profile',
-    icon: mdiAccountCircle,
-  },
-  {
-  label: 'Logout',
-  icon: mdiLogout,
-  isLogout: true,   
-  },
-]
+export const menuAsideBottom = []

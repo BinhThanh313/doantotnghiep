@@ -78,6 +78,30 @@ class OrderController extends Controller
 
     // ==================== UPDATE ====================
 
+    /**
+     * Đồng bộ bản ghi Payment khi order.payment_status bị đổi thủ công từ trang Orders,
+     * để trang /payments không bị lệch trạng thái so với đơn hàng.
+     */
+    private function syncPaymentRecord(Order $order, string $newPaymentStatus): void
+    {
+        $payment = $order->payment;
+        if (!$payment) {
+            return;
+        }
+
+        if ($newPaymentStatus === 'paid' && $payment->status !== 'success') {
+            $payment->update([
+                'status'         => 'success',
+                'transaction_id' => $payment->transaction_id ?: (strtoupper($order->payment_method) . '-' . $order->tracking_number),
+                'paid_at'        => $payment->paid_at ?: now(),
+            ]);
+        } elseif ($newPaymentStatus === 'refunded' && $payment->status !== 'refunded') {
+            $payment->update(['status' => 'refunded']);
+        } elseif ($newPaymentStatus === 'unpaid' && !in_array($payment->status, ['pending', 'failed'])) {
+            $payment->update(['status' => 'pending']);
+        }
+    }
+
     public function update(Request $request, $id)
     {
         $order = Order::findOrFail($id);
@@ -91,6 +115,10 @@ class OrderController extends Controller
 
         $oldStatus = $order->status;
         $order->update($data);
+
+        if (isset($data['payment_status'])) {
+            $this->syncPaymentRecord($order, $data['payment_status']);
+        }
 
         // Gửi thông báo in-app + email khi đổi status
         if (isset($data['status']) && $data['status'] !== $oldStatus) {
@@ -144,7 +172,11 @@ class OrderController extends Controller
 
             case 'update_payment_status':
                 $request->validate(['payment_status' => 'required']);
-                Order::whereIn('id', $ids)->update(['payment_status' => $request->payment_status]);
+                $orders = Order::with('payment')->whereIn('id', $ids)->get();
+                foreach ($orders as $order) {
+                    $order->update(['payment_status' => $request->payment_status]);
+                    $this->syncPaymentRecord($order, $request->payment_status);
+                }
                 return response()->json(['message' => 'Đã cập nhật thanh toán ' . count($ids) . ' đơn hàng']);
         }
     }
@@ -203,13 +235,19 @@ class OrderController extends Controller
     {
         $order = Order::with('user')->findOrFail($id);
 
+        $grandTotal = $order->total_amount + $order->shipping_fee - ($order->discount_amount ?? 0);
+
         $request->validate([
             'reason'        => 'required|string|max:500',
-            'refund_amount' => 'required|numeric|min:1|max:' . ($order->total_amount + $order->shipping_fee),
+            'refund_amount' => 'required|numeric|min:1|max:' . $grandTotal,
         ]);
 
         if (!in_array($order->status, ['delivered', 'completed'])) {
             return response()->json(['message' => 'Chỉ có thể hoàn tiền đơn hàng đã giao hoặc hoàn thành'], 422);
+        }
+
+        if ($order->payment_status !== 'paid') {
+            return response()->json(['message' => 'Đơn hàng chưa được thanh toán, không thể hoàn tiền'], 422);
         }
 
         DB::transaction(function () use ($order, $request) {
