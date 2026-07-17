@@ -123,7 +123,7 @@
                                     @if($product->specifications->isNotEmpty())
                                     <button class="nav-link border-white border-bottom-0" type="button" role="tab" id="nav-specs-tab" data-bs-toggle="tab" data-bs-target="#nav-specs" aria-controls="nav-specs" aria-selected="false">Thông số kỹ thuật</button>
                                     @endif
-                                    <button class="nav-link border-white border-bottom-0" type="button" role="tab" id="nav-mission-tab" data-bs-toggle="tab" data-bs-target="#nav-mission" aria-controls="nav-mission" aria-selected="false">Đánh giá (0)</button>
+                                    <button class="nav-link border-white border-bottom-0" type="button" role="tab" id="nav-mission-tab" data-bs-toggle="tab" data-bs-target="#nav-mission" aria-controls="nav-mission" aria-selected="false">Đánh giá (<span id="review-tab-count">0</span>)</button>
                                 </div>
                             </nav>
                             <div class="tab-content mb-5">

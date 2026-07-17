@@ -12,6 +12,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 
 /**
  * Chỉ phục vụ DEMO trước hội đồng — đảm bảo cả 8 card ở trang "Gợi ý cho
@@ -115,10 +116,18 @@ class DemoInsightSeeder extends Seeder
     /** #7 — 1 dòng cart_items "cũ" (48h trước) chưa checkout → giỏ hàng bị bỏ quên */
     private function seedAbandonedCart(Product $product): void
     {
-        $user = User::where('role', '!=', 'admin')->orderBy('id')->first();
-        if (!$user) {
-            return;
-        }
+        // Dùng user demo riêng, không mượn user thật (lý do xem giải thích
+        // ở seedNegativeReviews) để không âm thầm sửa giỏ hàng thật của
+        // khách/tài khoản test đầu tiên mỗi lần seed lại.
+        $identity = DemoIdentityPool::insightDemoUsers()[0];
+        $user = User::firstOrCreate(
+            ['email' => $identity['email']],
+            [
+                'name'     => $identity['name'],
+                'password' => Hash::make('demo_seed_password'),
+                'role'     => 'user',
+            ]
+        );
 
         $item = CartItem::updateOrCreate(
             ['user_id' => $user->id, 'product_id' => $product->id],
@@ -142,16 +151,31 @@ class DemoInsightSeeder extends Seeder
         $this->command?->info("[Insight demo] Incomplete product: {$product->name}");
     }
 
-    /** #9 — 5 review 1-2 sao dồn vào 1 sản phẩm trong 7 ngày gần nhất */
+    /**
+     * #9 — 5 review 1-2 sao dồn vào 1 sản phẩm trong 7 ngày gần nhất.
+     *
+     * QUAN TRỌNG: KHÔNG được mượn user thật (5 user id nhỏ nhất) như cũ.
+     * Trước đây hàm này lấy 5 user thật đầu tiên rồi updateOrCreate theo
+     * cặp (product_id, user_id) — nếu 1 trong 5 user đó đã lỡ tự viết
+     * review thật cho đúng sản phẩm này (rất dễ xảy ra vì đây luôn là
+     * "sản phẩm active thứ 4"), mỗi lần seeder chạy lại sẽ ĐÈ MẤT nội
+     * dung review thật đó bằng review giả 1-2 sao. Đây chính là lý do
+     * review "tự nhiên biến mất" sau một thời gian.
+     *
+     * Sửa: tạo 5 user demo riêng (không đụng bảng users thật), review
+     * cũng match theo user demo này nên không bao giờ đụng review thật.
+     */
     private function seedNegativeReviews(Product $product): void
     {
-        $users = User::where('role', '!=', 'admin')->orderBy('id')->take(5)->get();
-        if ($users->isEmpty()) {
-            return;
-        }
-
-        for ($i = 0; $i < 5; $i++) {
-            $user = $users[$i % $users->count()];
+        foreach (DemoIdentityPool::insightDemoUsers() as $identity) {
+            $user = User::firstOrCreate(
+                ['email' => $identity['email']],
+                [
+                    'name'     => $identity['name'],
+                    'password' => Hash::make('demo_seed_password'),
+                    'role'     => 'user',
+                ]
+            );
 
             $review = Review::updateOrCreate(
                 ['product_id' => $product->id, 'user_id' => $user->id],

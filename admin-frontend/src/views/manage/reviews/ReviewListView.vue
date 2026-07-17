@@ -1,6 +1,9 @@
 <script setup>
-import { ref, onMounted } from 'vue'
-import { mdiStar, mdiEyeOff, mdiEye, mdiTrashCan, mdiMagnify } from '@mdi/js'
+import { ref, computed, onMounted } from 'vue'
+import {
+  mdiStar, mdiEyeOff, mdiEye, mdiTrashCan, mdiMagnify,
+  mdiChevronLeft, mdiChevronRight, mdiChevronDoubleLeft, mdiChevronDoubleRight,
+} from '@mdi/js'
 import SectionMain from '@/components/SectionMain.vue'
 import CardBox from '@/components/CardBox.vue'
 import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
@@ -15,6 +18,7 @@ import { showToast } from '@/composables/useToast'
 const reviews = ref([])
 const currentPage = ref(1)
 const lastPage = ref(1)
+const totalItems = ref(0)
 const filterRating = ref('')
 const filterVisible = ref('')
 
@@ -42,10 +46,22 @@ const fetchReviews = async (page = 1) => {
     reviews.value = res.data.data
     currentPage.value = res.data.current_page
     lastPage.value = res.data.last_page
+    totalItems.value = res.data.total
   } catch (e) {
     console.error(e)
   }
 }
+
+// Phân trang kiểu cửa sổ trượt (giống UserListView) — tránh hiện tất cả
+// số trang liền một hàng khi có nhiều trang (vd: review 26 trang).
+const visiblePages = computed(() => {
+  const range = []
+  const delta = 2
+  for (let i = Math.max(1, currentPage.value - delta); i <= Math.min(lastPage.value, currentPage.value + delta); i++) {
+    range.push(i)
+  }
+  return range
+})
 
 const toggleVisibility = async (id) => {
   try {
@@ -176,12 +192,17 @@ onMounted(() => fetchReviews())
           </tbody>
         </table>
 
-        <div class="p-3 lg:px-6 border-t border-gray-100 dark:border-slate-800 flex justify-between items-center">
-          <BaseButtons>
-            <BaseButton v-for="page in lastPage" :key="page"
+        <div class="p-3 lg:px-6 border-t border-gray-100 dark:border-slate-800 flex justify-between items-center flex-wrap gap-2">
+          <small class="text-gray-500">Tổng {{ totalItems }} đánh giá | Trang {{ currentPage }}/{{ lastPage }}</small>
+          <BaseButtons no-wrap>
+            <BaseButton v-if="currentPage > 1" :icon="mdiChevronDoubleLeft" color="whiteDark" small @click="fetchReviews(1)" />
+            <BaseButton v-if="currentPage > 1" :icon="mdiChevronLeft" color="whiteDark" small @click="fetchReviews(currentPage - 1)" />
+            <BaseButton v-for="page in visiblePages" :key="page"
               :active="page === currentPage" :label="page"
               :color="page === currentPage ? 'lightDark' : 'whiteDark'"
               small @click="fetchReviews(page)" />
+            <BaseButton v-if="currentPage < lastPage" :icon="mdiChevronRight" color="whiteDark" small @click="fetchReviews(currentPage + 1)" />
+            <BaseButton v-if="currentPage < lastPage" :icon="mdiChevronDoubleRight" color="whiteDark" small @click="fetchReviews(lastPage)" />
           </BaseButtons>
         </div>
       </CardBox>

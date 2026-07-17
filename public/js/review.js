@@ -13,6 +13,9 @@ function fetchReviews(productId, page = 1) {
             if (document.getElementById('review-avg-rating')) {
                 document.getElementById('review-avg-rating').innerText = `⭐ ${data.avg_rating} / 5 (${data.total} đánh giá)`;
             }
+            if (document.getElementById('review-tab-count')) {
+                document.getElementById('review-tab-count').innerText = data.total;
+            }
         })
         .catch(err => console.error('Lỗi tải đánh giá:', err));
 }
