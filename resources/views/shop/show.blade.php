@@ -56,9 +56,31 @@
                 <div class="col-lg-7 col-xl-9 wow fadeInUp" data-wow-delay="0.1s">
                     <div class="row g-4 single-product">
                         <div class="col-xl-6">
-                            <div class="single-inner bg-light rounded p-2">
-                                <img src="{{ $product->image ? asset('storage/' . $product->image) : asset('img/product-4.png') }}" class="img-fluid rounded w-100" alt="{{ $product->name }}">
+                            @php
+                                // Ảnh chính: ưu tiên ảnh đánh dấu is_primary trong gallery,
+                                // nếu chưa có gallery thì tạm dùng products.image, cuối cùng
+                                // mới rơi về ảnh mặc định của theme.
+                                $gallery = $product->images; // đã eager-load ở ShopController
+                                $primaryImg = $gallery->firstWhere('is_primary', true) ?? $gallery->first();
+                                $mainImageUrl = $primaryImg
+                                    ? asset('storage/' . $primaryImg->image_url)
+                                    : ($product->image ? asset('storage/' . $product->image) : asset('img/product-4.png'));
+                            @endphp
+                            <div class="single-inner bg-light rounded p-2 mb-2">
+                                <img id="mainProductImage" src="{{ $mainImageUrl }}" class="img-fluid rounded w-100" style="aspect-ratio: 1 / 1; object-fit: cover;" alt="{{ $product->name }}">
                             </div>
+                            @if($gallery->count() > 1)
+                                <div class="d-flex gap-2 flex-wrap">
+                                    @foreach($gallery as $img)
+                                        @php $thumbUrl = asset('storage/' . $img->image_url); @endphp
+                                        <img src="{{ $thumbUrl }}"
+                                             class="product-thumb rounded border {{ $thumbUrl === $mainImageUrl ? 'border-primary border-2' : '' }}"
+                                             style="width: 64px; height: 64px; object-fit: cover; cursor: pointer;"
+                                             alt="{{ $img->alt_text ?? $product->name }}"
+                                             onclick="document.getElementById('mainProductImage').src=this.src; document.querySelectorAll('.product-thumb').forEach(t=>t.classList.remove('border-primary','border-2')); this.classList.add('border-primary','border-2');">
+                                    @endforeach
+                                </div>
+                            @endif
                         </div>
                         
                         <div class="col-xl-6">

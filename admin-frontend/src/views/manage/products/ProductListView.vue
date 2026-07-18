@@ -16,6 +16,7 @@ const lastPage = ref(1)
 
 const importing = ref(false)
 const importInput = ref(null)
+const replaceImages = ref(false)
 
 const fetchProducts = async (page = 1) => {
   try {
@@ -59,6 +60,7 @@ const handleImportFile = async (e) => {
 
   const formData = new FormData()
   formData.append('file', file)
+  formData.append('replace_images', replaceImages.value ? '1' : '0')
 
   importing.value = true
   try {
@@ -94,8 +96,12 @@ onMounted(() => {
   <LayoutAuthenticated>
     <SectionMain>
       <SectionTitleLineWithButton :icon="mdiPackageVariant" title="Danh sách sản phẩm" main>
-        <div class="flex gap-2">
+        <div class="flex items-center gap-2">
           <input ref="importInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="handleImportFile" />
+          <label class="flex items-center gap-1 text-sm text-gray-600 dark:text-slate-300 select-none" title="Nếu bật: với sản phẩm ĐÃ TỒN TẠI trong file, ảnh cũ (kể cả ảnh placeholder) sẽ bị xoá và thay bằng ảnh mới trong file. Nếu tắt: ảnh mới chỉ được thêm bổ sung vào gallery, giữ nguyên ảnh cũ.">
+            <input type="checkbox" v-model="replaceImages" class="rounded" />
+            Thay ảnh cũ
+          </label>
           <BaseButton
             :icon="mdiFileExcel"
             :label="importing ? 'Đang nhập...' : 'Nhập Excel'"

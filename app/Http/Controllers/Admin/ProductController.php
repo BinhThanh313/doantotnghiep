@@ -3,11 +3,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Models\Category;
 use App\Models\InventoryLog;
+use App\Models\ProductImage;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -27,12 +29,33 @@ class ProductController extends Controller
      *   original_price | giá gốc
      *   stock | tồn kho | số lượng
      *   description | mô tả
+     *   image | ảnh chính        (URL ảnh đại diện sản phẩm)
+     *   image_2..image_6 | anh_2..anh_6   (URL các ảnh phụ, tối đa 6 ảnh/dòng)
+     *
+     * Ảnh được tải về và lưu vào storage/app/public/products, KHÔNG dùng
+     * ảnh placeholder sinh tự động (SVG) — chỉ dùng URL ảnh thật do người
+     * nhập cung cấp. Nếu 1 URL tải lỗi (mạng, 404...) thì dòng đó vẫn được
+     * tạo/cộng dồn bình thường, chỉ riêng ảnh đó bị bỏ qua và ghi vào errors.
+     *
+     * Field "replace_images" (gửi kèm ngoài file, không phải cột trong Excel,
+     * ví dụ formData.append('replace_images', '1')): nếu = true, với các
+     * sản phẩm ĐÃ TỒN TẠI có URL ảnh mới trong file, hệ thống sẽ XOÁ hết
+     * ảnh cũ (kể cả ảnh placeholder) trước khi gắn ảnh mới. Dùng để "sửa
+     * lại ảnh" cho catalog sản phẩm hiện có, không chỉ để nhập hàng mới.
      */
     public function import(Request $request)
     {
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv',
+            'file'           => 'required|file|mimes:xlsx,xls,csv',
+            'replace_images' => 'nullable|boolean',
         ]);
+
+        // Khi bật: với các sản phẩm ĐÃ TỒN TẠI trong file, xoá toàn bộ ảnh
+        // cũ (kể cả ảnh placeholder SVG do lệnh products:generate-placeholder-images
+        // sinh ra trước đây) rồi thay bằng ảnh thật lấy từ URL trong file.
+        // Dùng để "sửa ảnh" cho sản phẩm đang có sẵn trong hệ thống, không
+        // chỉ dùng để nhập sản phẩm mới.
+        $replaceImages = $request->boolean('replace_images');
 
         $path = $request->file('file')->getRealPath();
 
@@ -57,6 +80,12 @@ class ProductController extends Controller
             'originalprice' => 'original_price', 'giagoc' => 'original_price',
             'stock' => 'stock', 'tonkho' => 'stock', 'soluong' => 'stock',
             'description' => 'description', 'mota' => 'description',
+            'image' => 'image', 'anh' => 'image', 'anhchinh' => 'image', 'hinhanh' => 'image',
+            'image2' => 'image_2', 'anh2' => 'image_2',
+            'image3' => 'image_3', 'anh3' => 'image_3',
+            'image4' => 'image_4', 'anh4' => 'image_4',
+            'image5' => 'image_5', 'anh5' => 'image_5',
+            'image6' => 'image_6', 'anh6' => 'image_6',
         ];
 
         $header = [];
@@ -70,7 +99,7 @@ class ProductController extends Controller
         $errors  = [];
         $userId  = $request->user()?->id;
 
-        DB::transaction(function () use ($rows, $header, &$created, &$updated, &$errors, $userId) {
+        DB::transaction(function () use ($rows, $header, &$created, &$updated, &$errors, $userId, $replaceImages) {
             foreach ($rows as $index => $row) {
                 $rowNumber = $index + 2; // +1 cho header, +1 vì index từ 0
                 $data = array_combine($header, array_pad($row, count($header), null));
@@ -114,6 +143,11 @@ class ProductController extends Controller
                     }
                     $product->save();
 
+                    // Ảnh thật (nếu file có cung cấp URL): mặc định thêm bổ
+                    // sung vào gallery hiện có; nếu bật "replace_images" thì
+                    // xoá hết ảnh cũ (kể cả placeholder) rồi thay bằng ảnh mới.
+                    $this->importImagesForProduct($product, $data, $rowNumber, $errors, $replaceImages);
+
                     $updated++;
                 } else {
                     // ===== Sản phẩm mới =====
@@ -154,6 +188,11 @@ class ProductController extends Controller
                     }
 
                     $this->generateDefaultSpecifications($product);
+
+                    // Ảnh thật: ảnh đầu tiên (cột "image") được set làm ảnh
+                    // đại diện (products.image) + ảnh chính trong gallery,
+                    // các ảnh còn lại (image_2..image_6) thêm vào gallery.
+                    $this->importImagesForProduct($product, $data, $rowNumber, $errors);
 
                     $created++;
                 }
@@ -282,6 +321,131 @@ class ProductController extends Controller
         $product->delete();
 
         return response()->json(['message' => 'Đã xóa sản phẩm']);
+    }
+
+    /**
+     * Tải ảnh THẬT (theo URL trong file Excel/CSV) về server và gắn vào
+     * gallery của sản phẩm (bảng product_images). Không dùng SVG placeholder.
+     *
+     * Cột "image" -> ảnh đại diện (products.image) + ảnh chính (is_primary)
+     * Cột "image_2".."image_6" -> ảnh phụ trong gallery (tối đa 6 ảnh/dòng)
+     *
+     * Sản phẩm đã có đủ ảnh (>= 6) thì bỏ qua, không tải thêm — tránh
+     * phình gallery khi import lại cùng 1 file nhiều lần.
+     */
+    private function importImagesForProduct(Product $product, array $data, int $rowNumber, array &$errors, bool $replaceExisting = false): void
+    {
+        $urls = [];
+        foreach (['image', 'image_2', 'image_3', 'image_4', 'image_5', 'image_6'] as $col) {
+            $url = trim((string) ($data[$col] ?? ''));
+            if ($url !== '') {
+                $urls[] = $url;
+            }
+        }
+
+        if (empty($urls)) {
+            return;
+        }
+
+        // Chỉ xoá ảnh cũ khi file có ảnh mới để thay thế — tránh trường
+        // hợp xoá sạch ảnh của sản phẩm chỉ vì dòng đó không điền URL ảnh.
+        if ($replaceExisting) {
+            foreach ($product->images as $oldImage) {
+                if ($oldImage->image_url) {
+                    Storage::disk('public')->delete($oldImage->image_url);
+                }
+                $oldImage->delete();
+            }
+            if ($product->image) {
+                Storage::disk('public')->delete($product->image);
+                $product->update(['image' => null]);
+            }
+            $product->refresh();
+        }
+
+        $existingCount = $product->images()->count();
+        if ($existingCount >= 6) {
+            return;
+        }
+
+        $nextSortOrder = (int) ($product->images()->max('sort_order') ?? -1) + 1;
+
+        foreach ($urls as $i => $url) {
+            if ($product->images()->count() >= 6) {
+                break;
+            }
+
+            // Không tải lại nếu URL này đã có sẵn trong gallery (import lại
+            // cùng file nhiều lần sẽ không tạo ảnh trùng).
+            if ($product->images()->where('image_url', $url)->exists()) {
+                continue;
+            }
+
+            $storedPath = $this->downloadProductImage($url, $product->slug, $nextSortOrder + $i);
+
+            if (!$storedPath) {
+                $errors[] = "Dòng {$rowNumber}: Không tải được ảnh '{$url}' cho sản phẩm '{$product->name}', đã bỏ qua ảnh này.";
+                continue;
+            }
+
+            $isPrimary = $existingCount === 0 && $i === 0;
+
+            ProductImage::create([
+                'product_id' => $product->id,
+                'image_url'  => $storedPath,
+                'alt_text'   => $product->name,
+                'sort_order' => $nextSortOrder + $i,
+                'is_primary' => $isPrimary,
+            ]);
+
+            // Cột "image" (ảnh đầu tiên) luôn đồng bộ vào products.image
+            // để các nơi hiển thị 1 ảnh (danh sách, giỏ hàng...) có ảnh thật.
+            if ($isPrimary || empty($product->image)) {
+                $product->update(['image' => $storedPath]);
+            }
+        }
+    }
+
+    /**
+     * Tải 1 ảnh từ URL bên ngoài về storage/app/public/products.
+     * Trả về đường dẫn tương đối (dùng cho asset('storage/...')) hoặc
+     * null nếu tải thất bại (URL sai, hết thời gian chờ, không phải ảnh...).
+     */
+    private function downloadProductImage(string $url, string $slug, int $index): ?string
+    {
+        if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            return null;
+        }
+
+        try {
+            $response = Http::timeout(15)->retry(1, 200)->get($url);
+        } catch (\Throwable $e) {
+            return null;
+        }
+
+        if (!$response->successful()) {
+            return null;
+        }
+
+        $contentType = $response->header('Content-Type');
+        $extension = match (true) {
+            str_contains((string) $contentType, 'png')  => 'png',
+            str_contains((string) $contentType, 'webp') => 'webp',
+            str_contains((string) $contentType, 'gif')  => 'gif',
+            default => 'jpg',
+        };
+
+        $body = $response->body();
+        if (empty($body)) {
+            return null;
+        }
+
+        $filename = "{$slug}-{$index}-" . Str::random(6) . ".{$extension}";
+        $path = "products/{$filename}";
+
+        Storage::disk('public')->put($path, $body);
+
+        return $path;
     }
 
     /**
