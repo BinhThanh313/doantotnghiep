@@ -45,6 +45,15 @@ class ProductController extends Controller
      */
     public function import(Request $request)
     {
+        // File Excel có thể có hàng trăm ảnh (mỗi sản phẩm tối đa 6 ảnh) phải
+        // tải tuần tự về server trong đúng 1 request này. Với max_execution_time
+        // mặc định (30-60s) rất dễ bị PHP kill giữa chừng, khiến trình duyệt
+        // nhận về response rỗng/mất kết nối ("Failed to load response data"
+        // trong DevTools) dù logic import hoàn toàn không lỗi.
+        // set_time_limit(0) = không giới hạn thời gian thực thi cho riêng
+        // request này (không ảnh hưởng các request khác).
+        set_time_limit(0);
+
         $request->validate([
             'file'           => 'required|file|mimes:xlsx,xls,csv',
             'replace_images' => 'nullable|boolean',
@@ -381,10 +390,11 @@ class ProductController extends Controller
                 continue;
             }
 
-            $storedPath = $this->downloadProductImage($url, $product->slug, $nextSortOrder + $i);
+            $storedPath = $this->downloadProductImage($url, $product->slug, $nextSortOrder + $i, $failReason);
 
             if (!$storedPath) {
-                $errors[] = "Dòng {$rowNumber}: Không tải được ảnh '{$url}' cho sản phẩm '{$product->name}', đã bỏ qua ảnh này.";
+                $reasonText = $failReason ? " (Lý do: {$failReason})" : '';
+                $errors[] = "Dòng {$rowNumber}: Không tải được ảnh '{$url}' cho sản phẩm '{$product->name}', đã bỏ qua ảnh này.{$reasonText}";
                 continue;
             }
 
@@ -410,24 +420,57 @@ class ProductController extends Controller
      * Tải 1 ảnh từ URL bên ngoài về storage/app/public/products.
      * Trả về đường dẫn tương đối (dùng cho asset('storage/...')) hoặc
      * null nếu tải thất bại (URL sai, hết thời gian chờ, không phải ảnh...).
+     *
+     * $failReason (tham chiếu, optional) được set khi trả về null, để nơi gọi
+     * (importImagesForProduct) hiển thị lý do cụ thể cho admin thay vì chỉ
+     * biết chung chung là "tải ảnh thất bại".
+     *
+     * LƯU Ý: nhiều CDN ảnh (Bing thumbnail, Apple, Amazon...) chặn request
+     * không có User-Agent/Referer giống trình duyệt và trả về 403 — đây là
+     * nguyên nhân phổ biến khiến ảnh "không được nhận" dù URL hợp lệ và mở
+     * được bình thường trên trình duyệt.
      */
-    private function downloadProductImage(string $url, string $slug, int $index): ?string
+    private function downloadProductImage(string $url, string $slug, int $index, ?string &$failReason = null): ?string
     {
+        $failReason = null;
+
         if (!filter_var($url, FILTER_VALIDATE_URL)) {
+            $failReason = 'URL không hợp lệ';
             return null;
         }
 
         try {
-            $response = Http::timeout(15)->retry(1, 200)->get($url);
+            $response = Http::withHeaders([
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                        . '(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+                    'Accept'     => 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8',
+                    // Referer = origin của chính URL ảnh, giúp qua được hotlink
+                    // protection ở nhiều CDN (Bing, các trang thương mại điện tử...).
+                    'Referer'    => parse_url($url, PHP_URL_SCHEME) . '://' . parse_url($url, PHP_URL_HOST) . '/',
+                ])
+                ->timeout(20)
+                ->connectTimeout(10)
+                ->retry(2, 400)
+                ->withOptions(['allow_redirects' => ['max' => 5]])
+                ->get($url);
         } catch (\Throwable $e) {
+            $failReason = 'Lỗi kết nối: ' . $e->getMessage();
             return null;
         }
 
         if (!$response->successful()) {
+            $failReason = 'HTTP ' . $response->status();
             return null;
         }
 
         $contentType = $response->header('Content-Type');
+        if ($contentType && !str_starts_with((string) $contentType, 'image/')) {
+            // Server trả về HTML (trang lỗi/redirect tới trang đăng nhập...)
+            // thay vì file ảnh thật — không lưu để tránh lưu rác vào storage.
+            $failReason = "Nội dung trả về không phải ảnh (Content-Type: {$contentType})";
+            return null;
+        }
+
         $extension = match (true) {
             str_contains((string) $contentType, 'png')  => 'png',
             str_contains((string) $contentType, 'webp') => 'webp',
@@ -437,6 +480,7 @@ class ProductController extends Controller
 
         $body = $response->body();
         if (empty($body)) {
+            $failReason = 'Nội dung ảnh rỗng';
             return null;
         }
 
