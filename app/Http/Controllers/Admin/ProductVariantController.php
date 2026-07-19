@@ -47,14 +47,18 @@ class ProductVariantController extends Controller
             'original_price' => 'nullable|numeric|min:0',
             'stock'          => 'required|integer|min:0',
             'image'          => 'nullable|image|max:2048', // file ảnh thật, không phải chuỗi đường dẫn
+            'image_url'      => 'nullable|url|max:2048',   // hoặc dán URL ảnh từ ngoài (VD: link ảnh Bing/Google/CDN)
             'is_active'      => 'boolean',
         ]);
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('products/variants', 'public');
+        } elseif (!empty($data['image_url'])) {
+            $data['image'] = $data['image_url'];
         } else {
             unset($data['image']);
         }
+        unset($data['image_url']);
 
         $data['product_id'] = $productId;
         $data['is_active']  = $data['is_active'] ?? true;
@@ -95,17 +99,23 @@ class ProductVariantController extends Controller
             'original_price' => 'nullable|numeric|min:0',
             'stock'          => 'sometimes|integer|min:0',
             'image'          => 'nullable|image|max:2048', // file ảnh thật, không phải chuỗi đường dẫn
+            'image_url'      => 'nullable|url|max:2048',   // hoặc dán URL ảnh từ ngoài
             'remove_image'   => 'nullable|boolean',
             'is_active'      => 'boolean',
         ]);
 
         if ($request->hasFile('image')) {
-            if ($variant->image) {
+            if ($variant->image && !is_external_image_url($variant->image)) {
                 Storage::disk('public')->delete($variant->image);
             }
             $data['image'] = $request->file('image')->store('products/variants', 'public');
+        } elseif (!empty($data['image_url'])) {
+            if ($variant->image && !is_external_image_url($variant->image)) {
+                Storage::disk('public')->delete($variant->image);
+            }
+            $data['image'] = $data['image_url'];
         } elseif ($request->boolean('remove_image')) {
-            if ($variant->image) {
+            if ($variant->image && !is_external_image_url($variant->image)) {
                 Storage::disk('public')->delete($variant->image);
             }
             $data['image'] = null;
@@ -113,7 +123,7 @@ class ProductVariantController extends Controller
             // Không gửi ảnh mới và không yêu cầu xoá -> giữ nguyên ảnh hiện tại
             unset($data['image']);
         }
-        unset($data['remove_image']);
+        unset($data['remove_image'], $data['image_url']);
 
         // Nếu stock thay đổi → ghi inventory log
         if (isset($data['stock']) && (int) $data['stock'] !== $variant->stock) {

@@ -2,13 +2,14 @@
 import { ref, watch, computed } from 'vue'
 import {
   mdiTrashCan, mdiChevronDown, mdiChevronUp, mdiStar, mdiStarOutline,
-  mdiArrowUp, mdiArrowDown, mdiPencil, mdiPlus, mdiClose,
+  mdiArrowUp, mdiArrowDown, mdiPencil, mdiPlus, mdiClose, mdiLink,
 } from '@mdi/js'
 import CardBox from '@/components/CardBox.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import FormControl from '@/components/FormControl.vue'
 import api from '@/services/api'
 import { showToast } from '@/composables/useToast'
+import { imgUrl } from '@/utils/image'
 
 // ── Props ────────────────────────────────────────────────────
 const props = defineProps({
@@ -27,8 +28,12 @@ const editAlt    = ref('')
 const newAltText = ref('')
 const fileInput  = ref(null)
 const replaceInputs = ref({}) // refs cho input[type=file] thay ảnh từng dòng
+const newImageUrl = ref('') // dán URL ảnh từ ngoài thay vì upload file (khi THÊM ảnh mới)
+const showAddByUrl = ref(false)
 
-const storageBase = computed(() => `${api.defaults.baseURL}/storage/`)
+const replacingByUrlId = ref(null) // id ảnh đang mở ô dán URL để THAY ảnh
+const replaceUrlValue  = ref('')
+
 const canAddMore  = computed(() => images.value.length < MAX_IMAGES)
 
 const fetchImages = async () => {
@@ -73,6 +78,31 @@ const onAddFile = async (event) => {
   }
 }
 
+// ── Thêm ảnh mới bằng URL dán từ ngoài ──────────────────────
+const onAddByUrl = async () => {
+  if (!newImageUrl.value) return
+
+  uploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('image_url', newImageUrl.value)
+    if (newAltText.value) formData.append('alt_text', newAltText.value)
+
+    await api.post(`/api/admin/products/${props.productId}/images`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    newImageUrl.value = ''
+    newAltText.value = ''
+    showAddByUrl.value = false
+    showToast('Đã thêm ảnh')
+    await fetchImages()
+  } catch (e) {
+    showToast(e.response?.data?.message || 'Lỗi thêm ảnh', 'error')
+  } finally {
+    uploading.value = false
+  }
+}
+
 // ── Thay ảnh (giữ nguyên vị trí / trạng thái chính) ─────────
 const triggerReplace = (imageId) => replaceInputs.value[imageId]?.click()
 
@@ -89,6 +119,33 @@ const onReplaceFile = async (imageId, event) => {
     await api.post(`/api/admin/products/${props.productId}/images/${imageId}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
+    showToast('Đã thay ảnh')
+    await fetchImages()
+  } catch (e) {
+    showToast(e.response?.data?.message || 'Lỗi thay ảnh', 'error')
+  } finally {
+    uploading.value = false
+  }
+}
+
+// ── Thay ảnh bằng URL dán từ ngoài ──────────────────────────
+const startReplaceByUrl = (img) => {
+  replacingByUrlId.value = img.id
+  replaceUrlValue.value = ''
+}
+
+const submitReplaceByUrl = async (img) => {
+  if (!replaceUrlValue.value) return
+
+  uploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('image_url', replaceUrlValue.value)
+    formData.append('_method', 'PUT')
+    await api.post(`/api/admin/products/${props.productId}/images/${img.id}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    replacingByUrlId.value = null
     showToast('Đã thay ảnh')
     await fetchImages()
   } catch (e) {
@@ -196,7 +253,7 @@ const move = async (index, direction) => {
         <div v-for="(img, index) in images" :key="img.id"
              class="relative w-40 border rounded-lg overflow-hidden dark:border-slate-700 group">
           <div class="relative aspect-square bg-gray-50 dark:bg-slate-800">
-            <img :src="storageBase + img.image_url" :alt="img.alt_text || ''"
+            <img :src="imgUrl(img.image_url)" :alt="img.alt_text || ''"
                  class="w-full h-full object-cover" />
 
             <span v-if="img.is_primary"
@@ -213,9 +270,13 @@ const move = async (index, direction) => {
                   <path :d="img.is_primary ? mdiStar : mdiStarOutline" />
                 </component>
               </button>
-              <button type="button" title="Thay ảnh" @click="triggerReplace(img.id)"
+              <button type="button" title="Thay ảnh (chọn file)" @click="triggerReplace(img.id)"
                       class="bg-white/90 hover:bg-white rounded p-1.5">
                 <component :is="'svg'" class="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor"><path :d="mdiPencil" /></component>
+              </button>
+              <button type="button" title="Thay ảnh (dán URL)" @click="startReplaceByUrl(img)"
+                      class="bg-white/90 hover:bg-white rounded p-1.5">
+                <component :is="'svg'" class="w-4 h-4 text-purple-600" viewBox="0 0 24 24" fill="currentColor"><path :d="mdiLink" /></component>
               </button>
               <button type="button" title="Xoá ảnh" @click="removeImage(img)"
                       class="bg-white/90 hover:bg-white rounded p-1.5">
@@ -226,6 +287,15 @@ const move = async (index, direction) => {
             <input type="file" accept="image/*" class="hidden"
                    :ref="el => (replaceInputs[img.id] = el)"
                    @change="onReplaceFile(img.id, $event)" />
+          </div>
+
+          <!-- Ô dán URL để thay ảnh -->
+          <div v-if="replacingByUrlId === img.id" class="p-1.5 pt-0 flex gap-1">
+            <FormControl v-model="replaceUrlValue" class="!text-xs" placeholder="Dán URL ảnh..." />
+            <button type="button" class="text-green-600 px-1" @click="submitReplaceByUrl(img)">✓</button>
+            <button type="button" class="text-gray-400 px-1" @click="replacingByUrlId = null">
+              <component :is="'svg'" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path :d="mdiClose" /></component>
+            </button>
           </div>
 
           <!-- Mô tả ảnh (alt_text) -->
@@ -259,12 +329,29 @@ const move = async (index, direction) => {
 
         <!-- Ô thêm ảnh mới -->
         <div v-if="canAddMore"
-             class="w-40 aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 text-gray-400 hover:text-blue-500 hover:border-blue-400 cursor-pointer dark:border-slate-700"
-             @click="triggerAdd">
-          <div v-if="uploading" class="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
+             class="w-40 aspect-square border-2 border-dashed rounded-lg flex flex-col items-center justify-center gap-2 p-2 text-gray-400 dark:border-slate-700">
+          <template v-if="showAddByUrl">
+            <span class="text-xs font-medium text-gray-500">Dán URL ảnh</span>
+            <FormControl v-model="newImageUrl" class="!text-xs w-full" placeholder="https://..." />
+            <div class="flex gap-2">
+              <button type="button" class="text-green-600 text-xs font-medium" :disabled="uploading" @click="onAddByUrl">
+                {{ uploading ? '...' : 'Thêm' }}
+              </button>
+              <button type="button" class="text-gray-400 text-xs" @click="showAddByUrl = false; newImageUrl = ''">Huỷ</button>
+            </div>
+          </template>
           <template v-else>
-            <component :is="'svg'" class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path :d="mdiPlus" /></component>
-            <span class="text-xs">Thêm ảnh</span>
+            <div class="flex flex-col items-center gap-2 cursor-pointer hover:text-blue-500" @click="triggerAdd">
+              <div v-if="uploading" class="animate-spin rounded-full h-6 w-6 border-2 border-blue-500 border-t-transparent"></div>
+              <template v-else>
+                <component :is="'svg'" class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path :d="mdiPlus" /></component>
+                <span class="text-xs">Thêm ảnh (file)</span>
+              </template>
+            </div>
+            <button type="button" class="text-xs text-purple-500 hover:underline flex items-center gap-1" @click="showAddByUrl = true">
+              <component :is="'svg'" class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path :d="mdiLink" /></component>
+              hoặc dán URL
+            </button>
           </template>
           <input ref="fileInput" type="file" accept="image/*" class="hidden" @change="onAddFile" />
         </div>

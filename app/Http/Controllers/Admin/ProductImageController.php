@@ -48,10 +48,17 @@ class ProductImageController extends Controller
         $product = Product::findOrFail($productId);
 
         $data = $request->validate([
-            'image'      => 'required|image|max:2048',
+            'image'      => 'nullable|image|max:2048',
+            'image_url'  => 'nullable|url|max:2048', // dán URL ảnh từ ngoài (VD: link ảnh Bing/Google/CDN)
             'alt_text'   => 'nullable|string|max:255',
             'is_primary' => 'nullable|boolean',
         ]);
+
+        if (!$request->hasFile('image') && empty($data['image_url'])) {
+            return response()->json([
+                'message' => 'Cần chọn 1 file ảnh để upload hoặc dán URL ảnh.',
+            ], 422);
+        }
 
         if ($product->images()->count() >= self::MAX_IMAGES) {
             return response()->json([
@@ -59,7 +66,12 @@ class ProductImageController extends Controller
             ], 422);
         }
 
-        $path = $request->file('image')->store('products', 'public');
+        // Ưu tiên file upload nếu có, ngược lại dùng URL dán trực tiếp
+        // (lưu nguyên URL vào image_url, img_url() helper sẽ tự nhận diện
+        // và không ghép thêm "storage/" khi hiển thị).
+        $path = $request->hasFile('image')
+            ? $request->file('image')->store('products', 'public')
+            : $data['image_url'];
 
         $isFirstImage = $product->images()->count() === 0;
         $wantsPrimary = $request->boolean('is_primary') || $isFirstImage;
@@ -94,16 +106,24 @@ class ProductImageController extends Controller
 
         $data = $request->validate([
             'image'      => 'nullable|image|max:2048',
+            'image_url'  => 'nullable|url|max:2048', // dán URL ảnh từ ngoài để thay ảnh hiện tại
             'alt_text'   => 'nullable|string|max:255',
             'sort_order' => 'nullable|integer|min:0',
             'is_primary' => 'nullable|boolean',
         ]);
 
         if ($request->hasFile('image')) {
-            if ($image->image_url) {
+            // Chỉ xoá file cũ trên disk nếu nó THẬT SỰ là file do hệ thống
+            // lưu (không phải URL dán từ ngoài) — tránh gọi xoá 1 URL http.
+            if ($image->image_url && !is_external_image_url($image->image_url)) {
                 Storage::disk('public')->delete($image->image_url);
             }
             $image->image_url = $request->file('image')->store('products', 'public');
+        } elseif (!empty($data['image_url'])) {
+            if ($image->image_url && !is_external_image_url($image->image_url)) {
+                Storage::disk('public')->delete($image->image_url);
+            }
+            $image->image_url = $data['image_url'];
         }
 
         if (array_key_exists('alt_text', $data) && $data['alt_text'] !== null) {
@@ -120,7 +140,7 @@ class ProductImageController extends Controller
             $this->makePrimary($product, $image);
         } elseif ($image->is_primary) {
             // Ảnh này đang là primary và request có thay ảnh -> đồng bộ lại
-            // products.image cho khớp file mới.
+            // products.image cho khớp file/URL mới.
             $product->update(['image' => $image->image_url]);
         }
 

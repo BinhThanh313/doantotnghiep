@@ -264,12 +264,16 @@ class ProductController extends Controller
             'is_new'         => 'boolean',
             'is_active'      => 'boolean',
             'image'          => 'nullable|image|max:2048',
+            'image_url'      => 'nullable|url|max:2048', // hoặc dán URL ảnh từ ngoài
         ]);
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')
                                      ->store('products', 'public');
+        } elseif (!empty($data['image_url'])) {
+            $data['image'] = $data['image_url'];
         }
+        unset($data['image_url']);
 
         $data['slug'] = Str::slug($data['name']) . '-' . Str::random(6);
 
@@ -303,16 +307,24 @@ class ProductController extends Controller
             'is_new'         => 'boolean',
             'is_active'      => 'boolean',
             'image'          => 'nullable|image|max:2048',
+            'image_url'      => 'nullable|url|max:2048', // hoặc dán URL ảnh từ ngoài
         ]);
 
         if ($request->hasFile('image')) {
-            // Xóa ảnh cũ nếu có
-            if ($product->image) {
+            // Xóa ảnh cũ nếu có (chỉ khi nó là file thật do hệ thống lưu,
+            // không phải URL dán từ ngoài).
+            if ($product->image && !is_external_image_url($product->image)) {
                 Storage::disk('public')->delete($product->image);
             }
             $data['image'] = $request->file('image')
                                      ->store('products', 'public');
+        } elseif (!empty($data['image_url'])) {
+            if ($product->image && !is_external_image_url($product->image)) {
+                Storage::disk('public')->delete($product->image);
+            }
+            $data['image'] = $data['image_url'];
         }
+        unset($data['image_url']);
 
         $product->update($data);
 

@@ -34,6 +34,7 @@ const form = reactive({
   is_bestseller: false,
 })
 const imageFile = ref(null)
+const imageUrl  = ref('')
 
 const fetchCategories = async () => {
   try {
@@ -70,6 +71,7 @@ const submit = async () => {
   formData.append('is_new', form.is_new ? 1 : 0)
   formData.append('is_bestseller', form.is_bestseller ? 1 : 0)
   if (imageFile.value) formData.append('image', imageFile.value)
+  else if (imageUrl.value) formData.append('image_url', imageUrl.value)
 
   const config = { headers: { 'Content-Type': 'multipart/form-data' } }
 
@@ -143,6 +145,8 @@ onMounted(() => {
 
         <FormField :label="isEditMode ? 'Ảnh đại diện nhanh (tuỳ chọn)' : 'Hình ảnh'">
           <FormFilePicker v-model="imageFile" label="Chọn ảnh sản phẩm" />
+          <div class="text-xs text-gray-400 mt-2 mb-1">— hoặc —</div>
+          <FormControl v-model="imageUrl" placeholder="Dán URL ảnh (VD: https://...)" :disabled="!!imageFile" />
           <p v-if="isEditMode" class="text-xs text-gray-400 mt-1">
             Ảnh này sẽ ghi đè ảnh chính hiện tại. Để quản lý từng ảnh trong gallery (thêm/sửa/xoá/sắp xếp), dùng mục "Ảnh sản phẩm (gallery)" bên dưới sau khi lưu.
           </p>

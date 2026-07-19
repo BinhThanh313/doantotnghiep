@@ -11,6 +11,7 @@ import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.
 import BaseButton from '@/components/BaseButton.vue'
 import api from '@/services/api'
 import { showToast } from '@/composables/useToast'
+import { imgUrl } from '@/utils/image'
 
 const loading = ref(true)
 const data = ref({
@@ -22,8 +23,11 @@ const data = ref({
 const createdCombos = ref([])
 const creatingComboKey = ref(null)
 
-const imageUrl = (path) =>
-  path ? `http://localhost/doantotnghiep/public/storage/${path}` : 'http://localhost/doantotnghiep/public/img/product-3.png'
+// Giữ nguyên tên imageUrl (đang được gọi ở nhiều chỗ trong file này) nhưng
+// dùng chung logic với imgUrl() để hỗ trợ cả URL dán từ ngoài lẫn đường dẫn
+// tương đối do hệ thống tự lưu — trước đây hard-code "http://localhost/..."
+// nên sẽ vỡ ảnh khi đổi domain/deploy lên server thật.
+const imageUrl = (path) => imgUrl(path, `${api.defaults.baseURL}/img/product-3.png`)
 
 const formatPrice = (v) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v || 0)

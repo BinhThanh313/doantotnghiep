@@ -8,6 +8,7 @@ import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.vue'
 import api from '@/services/api'
+import { imgUrl } from '@/utils/image'
 
 const route = useRoute()
 const router = useRouter()
@@ -59,7 +60,7 @@ onMounted(() => fetchReview())
             <div v-if="review.images?.length" class="mt-4">
               <strong>Hình ảnh đính kèm:</strong>
               <div class="flex flex-wrap gap-2 mt-2">
-                <img v-for="img in review.images" :key="img.id" :src="`/storage/${img.image_url}`" class="w-32 h-32 object-cover rounded shadow" />
+                <img v-for="img in review.images" :key="img.id" :src="imgUrl(img.image_url)" class="w-32 h-32 object-cover rounded shadow" />
               </div>
             </div>
           </div>
@@ -69,7 +70,7 @@ onMounted(() => fetchReview())
             <div class="mb-4">
               <strong>Sản phẩm:</strong>
               <div v-if="review.product" class="flex items-center gap-4 mt-2 p-3 bg-gray-50 dark:bg-slate-800 rounded">
-                <img :src="`/storage/${review.product.image}`" class="w-16 h-16 object-cover rounded" />
+                <img :src="imgUrl(review.product.image)" class="w-16 h-16 object-cover rounded" />
                 <div>
                   <p class="font-bold">{{ review.product.name }}</p>
                   <p class="text-red-500 font-semibold">{{ Number(review.product.price).toLocaleString('vi-VN') }}đ</p>

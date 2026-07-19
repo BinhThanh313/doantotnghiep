@@ -14,6 +14,7 @@ import FormControl from '@/components/FormControl.vue'
 import FormField from '@/components/FormField.vue'
 import api from '@/services/api'
 import { showToast } from '@/composables/useToast'
+import { imgUrl } from '@/utils/image'
 
 const reviews = ref([])
 const currentPage = ref(1)
@@ -150,7 +151,7 @@ onMounted(() => fetchReviews())
                 </p>
                 <div v-if="r.images?.length" class="flex gap-1 mt-1">
                   <img v-for="img in r.images" :key="img.id"
-                    :src="`/storage/${img.image_url}`"
+                    :src="imgUrl(img.image_url)"
                     class="w-8 h-8 rounded object-cover" loading="lazy" />
                 </div>
               </td>

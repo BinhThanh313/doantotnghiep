@@ -9,6 +9,7 @@ import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
 import api from '@/services/api'
 import { showToast } from '@/composables/useToast'
+import { imgUrl } from '@/utils/image'
 
 const products = ref([])
 const currentPage = ref(1)
@@ -138,7 +139,7 @@ onMounted(() => {
             <tr v-for="product in products" :key="product.id">
               <td data-label="ID">{{ product.id }}</td>
               <td data-label="Ảnh">
-                <img v-if="product.image" :src="`http://localhost/doantotnghiep/public/storage/${product.image}`" class="w-12 h-12 object-cover rounded" loading="lazy" />
+                <img v-if="product.image" :src="imgUrl(product.image)" class="w-12 h-12 object-cover rounded" loading="lazy" />
               </td>
               <td data-label="Tên sản phẩm">{{ product.name }}</td>
               <td data-label="Giá">{{ product.price }} đ</td>

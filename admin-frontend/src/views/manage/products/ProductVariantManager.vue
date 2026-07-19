@@ -13,11 +13,10 @@ import FormControl from '@/components/FormControl.vue'
 import FormFilePicker from '@/components/FormFilePicker.vue'
 import api from '@/services/api'
 import { showToast } from '@/composables/useToast'
+import { imgUrl } from '@/utils/image'
 const props = defineProps({
   productId: { type: [Number, String], required: true },
 })
-
-const storageBase = computed(() => `${api.defaults.baseURL}/storage/`)
 
 // ── State ────────────────────────────────────────────────────
 const variants       = ref([])
@@ -36,6 +35,7 @@ const form = ref({
   stock: 0, image: '', is_active: true,
 })
 const variantImageFile = ref(null) // File thật được chọn để upload (khác form.image là path cũ khi sửa)
+const variantImageUrl  = ref('')   // hoặc dán URL ảnh từ ngoài thay vì upload file
 const removeExistingImage = ref(false)
 
 const adjustForm = ref({ quantity_change: 0, reason: 'restock', notes: '' })
@@ -83,6 +83,7 @@ const openCreate = () => {
   editingId.value  = null
   form.value = { sku: '', name: '', attributes: '', price: '', original_price: '', stock: 0, image: '', is_active: true }
   variantImageFile.value = null
+  variantImageUrl.value = ''
   removeExistingImage.value = false
   isFormModal.value = true
 }
@@ -92,6 +93,7 @@ const openEdit = (v) => {
   editingId.value  = v.id
   form.value = { ...v }
   variantImageFile.value = null
+  variantImageUrl.value = ''
   removeExistingImage.value = false
   isFormModal.value = true
 }
@@ -106,6 +108,7 @@ const saveVariant = async () => {
   formData.append('stock', form.value.stock)
   formData.append('is_active', form.value.is_active ? 1 : 0)
   if (variantImageFile.value) formData.append('image', variantImageFile.value)
+  else if (variantImageUrl.value) formData.append('image_url', variantImageUrl.value)
   if (removeExistingImage.value) formData.append('remove_image', 1)
 
   const config = { headers: { 'Content-Type': 'multipart/form-data' } }
@@ -223,7 +226,7 @@ const formatDate  = (d) => new Date(d).toLocaleString('vi-VN')
           <tr v-for="v in variants" :key="v.id"
               class="border-t border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800/50">
             <td class="px-4 py-2">
-              <img v-if="v.image" :src="storageBase + v.image"
+              <img v-if="v.image" :src="imgUrl(v.image)"
                    class="w-10 h-10 object-cover rounded border dark:border-slate-700" />
               <span v-else class="text-xs text-gray-400">—</span>
             </td>
@@ -291,13 +294,14 @@ const formatDate  = (d) => new Date(d).toLocaleString('vi-VN')
         <FormControl v-model="form.original_price" type="number" :min="0" />
       </FormField>
       <FormField label="Ảnh biến thể (tuỳ chọn)" class="md:col-span-2">
-        <div class="flex items-center gap-3">
-          <img v-if="!removeExistingImage && (variantImageFile || form.image)"
-               :src="variantImageFile ? URL.createObjectURL(variantImageFile) : (storageBase + form.image)"
-               class="w-14 h-14 object-cover rounded border dark:border-slate-700" />
+        <div class="flex items-center gap-3 mb-2">
+          <img v-if="!removeExistingImage && (variantImageFile || variantImageUrl || form.image)"
+               :src="variantImageFile ? URL.createObjectURL(variantImageFile) : imgUrl(variantImageUrl || form.image)"
+               class="w-14 h-14 object-cover rounded border dark:border-slate-700 flex-shrink-0" />
           <FormFilePicker v-model="variantImageFile" label="Chọn ảnh" accept="image/*" />
         </div>
-        <label v-if="isEditMode && form.image && !variantImageFile" class="flex items-center gap-2 mt-2 text-xs text-gray-500">
+        <FormControl v-model="variantImageUrl" placeholder="Hoặc dán URL ảnh (VD: https://...)" :disabled="!!variantImageFile" />
+        <label v-if="isEditMode && form.image && !variantImageFile && !variantImageUrl" class="flex items-center gap-2 mt-2 text-xs text-gray-500">
           <input type="checkbox" v-model="removeExistingImage">
           Xoá ảnh hiện tại (không thay ảnh mới)
         </label>

@@ -17,6 +17,7 @@ import FormField from '@/components/FormField.vue'
 import FormControl from '@/components/FormControl.vue'
 import api from '@/services/api'
 import { showToast } from '@/composables/useToast'
+import { imgUrl } from '@/utils/image'
 const sales       = ref([])
 const loading     = ref(false)
 const currentPage = ref(1)
@@ -485,7 +486,7 @@ onMounted(() => fetchSales())
                 <!-- Product image -->
                 <div class="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 shrink-0">
                   <img v-if="item.product?.image"
-                       :src="`http://localhost/doantotnghiep/public/storage/${item.product.image}`"
+                       :src="imgUrl(item.product.image)"
                        class="w-full h-full object-cover" />
                   <div v-else class="w-full h-full flex items-center justify-center text-gray-400 text-xl">📦</div>
                 </div>
