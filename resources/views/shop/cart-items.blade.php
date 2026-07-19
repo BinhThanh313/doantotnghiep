@@ -10,6 +10,9 @@
         </th>
         <td>
             <p class="mb-0 mt-4">{{ $item['name'] }}</p>
+            @if(!empty($item['variant_name']))
+                <small class="text-muted">{{ $item['variant_name'] }}</small>
+            @endif
         </td>
         <td>
             <p class="mb-0 mt-4">{{ number_format($item['price'], 0, ',', '.') }}đ</p>

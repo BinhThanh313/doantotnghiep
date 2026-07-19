@@ -26,18 +26,27 @@ class CheckoutController extends Controller
      */
     private function getCart()
     {
-        return CartItem::with('product.activeFlashSaleItem')
+        return CartItem::with(['product.activeFlashSaleItem', 'variant'])
             ->where('user_id', Auth::id())
             ->get()
             ->filter(fn($item) => $item->product !== null)
             ->mapWithKeys(function ($item) {
                 $product = $item->product;
-                return [$product->id => [
-                    'id'       => $product->id,
-                    'name'     => $product->name,
-                    'price'    => $product->effective_price,
-                    'image'    => $product->image,
-                    'quantity' => $item->quantity,
+                $variant = $item->variant;
+
+                $price = $variant && $variant->price !== null
+                    ? (float) $variant->price
+                    : $product->effective_price;
+
+                return [$item->id => [
+                    'id'                => $product->id,
+                    'variant_id'        => $variant?->id,
+                    'name'              => $product->name,
+                    'variant_name'      => $variant?->name,
+                    'price'             => $price,
+                    'original_price'    => (float) $product->price,
+                    'image'             => ($variant && $variant->image) ? $variant->image : $product->image,
+                    'quantity'          => $item->quantity,
                 ]];
             })
             ->toArray();
@@ -176,11 +185,20 @@ class CheckoutController extends Controller
         try {
             $order = DB::transaction(function () use ($request, $cart) {
 
-                // 1. Kiểm tra tồn kho
+                // 1. Kiểm tra tồn kho — theo biến thể nếu khách chọn màu/size,
+                // ngược lại theo tồn kho chung của sản phẩm.
                 foreach ($cart as $item) {
                     $product = Product::lockForUpdate()->findOrFail($item['id']);
-                    if ($product->stock < $item['quantity']) {
-                        throw new \Exception("Sản phẩm '{$product->name}' chỉ còn {$product->stock} trong kho.");
+                    $label   = $product->name . (!empty($item['variant_name']) ? " ({$item['variant_name']})" : '');
+
+                    if (!empty($item['variant_id'])) {
+                        $variant = \App\Models\ProductVariant::lockForUpdate()->find($item['variant_id']);
+                        if (!$variant || $variant->stock < $item['quantity']) {
+                            $available = $variant->stock ?? 0;
+                            throw new \Exception("Sản phẩm '{$label}' chỉ còn {$available} trong kho.");
+                        }
+                    } elseif ($product->stock < $item['quantity']) {
+                        throw new \Exception("Sản phẩm '{$label}' chỉ còn {$product->stock} trong kho.");
                     }
                 }
 
@@ -243,17 +261,25 @@ class CheckoutController extends Controller
                     'tracking_number' => Order::generateTrackingNumber(),
                 ]);
 
-                // 6. Tạo OrderItems + Trừ kho
+                // 6. Tạo OrderItems + Trừ kho (đúng biến thể nếu có chọn màu/size)
                 foreach ($cart as $item) {
+                    $discountPercent = $item['original_price'] > 0
+                        ? round((1 - $item['price'] / $item['original_price']) * 100, 2)
+                        : 0;
+
                     OrderItem::create([
-                        'order_id'     => $order->id,
-                        'product_id'   => $item['id'],
-                        'product_name' => $item['name'],
-                        'quantity'     => $item['quantity'],
-                        'price'        => $item['price'],
+                        'order_id'            => $order->id,
+                        'product_id'          => $item['id'],
+                        'product_variant_id'  => $item['variant_id'] ?? null,
+                        'product_name'        => $item['name'],
+                        'variant_name'        => $item['variant_name'] ?? null,
+                        'quantity'            => $item['quantity'],
+                        'price'               => $item['price'],
+                        'original_price'      => $item['original_price'],
+                        'discount_percent'    => $discountPercent > 0 ? $discountPercent : null,
                     ]);
 
-                    Product::find($item['id'])->decreaseStock($item['quantity'], $order->id);
+                    Product::find($item['id'])->decreaseStock($item['quantity'], $order->id, $item['variant_id'] ?? null);
                 }
 
                 // 7. Lưu voucher usage (từng mã trong danh sách đã áp dụng)

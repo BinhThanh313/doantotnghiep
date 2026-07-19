@@ -164,7 +164,7 @@
             @endforelse
         </div>
 
-        <div class="col-12 mt-5 d-flex justify-content-center">
+        <div class="col-12 mt-5 d-flex justify-content-center" id="pagination">
             {{ $products->links('pagination::bootstrap-5') }}
         </div>
     </div>

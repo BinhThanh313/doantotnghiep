@@ -150,7 +150,12 @@
                                     @if(!empty($cart))
                                         @foreach($cart as $id => $item)
                                         <tr class="text-center">
-                                            <th scope="row" class="text-start py-4">{{ $item['name'] }}</th>
+                                            <th scope="row" class="text-start py-4">
+                                                {{ $item['name'] }}
+                                                @if(!empty($item['variant_name']))
+                                                    <br><small class="text-muted fw-normal">{{ $item['variant_name'] }}</small>
+                                                @endif
+                                            </th>
                                             <td class="py-4">{{ number_format($item['price'], 0, ',', '.') }}đ</td>
                                             <td class="py-4">{{ $item['quantity'] }}</td>
                                             <td class="py-4 fw-bold">{{ number_format($item['price'] * $item['quantity'], 0, ',', '.') }}đ</td>

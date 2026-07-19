@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CartItem;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -12,28 +13,47 @@ use Illuminate\Support\Facades\Auth;
  * KHÔNG dùng session — vì toàn bộ route /cart/* đều yêu cầu đăng nhập
  * (xem middleware('auth') trong routes/web.php). Nhờ vậy giỏ hàng
  * không bị mất khi người dùng đăng xuất rồi đăng nhập lại.
+ *
+ * Hỗ trợ biến thể (màu/size...): 1 sản phẩm có thể xuất hiện nhiều dòng
+ * trong giỏ nếu khách chọn các biến thể khác nhau (VD: 1 dòng "Áo - Đỏ",
+ * 1 dòng "Áo - Xanh"). Khoá của mảng $cart trả về giờ là ID của chính
+ * dòng cart_items (không còn là product_id) để phân biệt được các dòng
+ * cùng sản phẩm khác biến thể — các nút +/-/xoá ở view dùng key này.
  */
 class CartController extends Controller
 {
     /**
-     * Trả về giỏ hàng dưới dạng mảng thống nhất (giữ nguyên shape cũ
-     * để các view shop.cart / cart-items / cart-summary không cần sửa):
-     * [product_id => ['id','name','price','image','quantity']]
+     * Trả về giỏ hàng dưới dạng mảng thống nhất, key = cart_items.id.
+     * [cart_item_id => ['id'=>product_id,'variant_id','name','variant_name','price','image','quantity','stock']]
      */
     private function getCart()
     {
-        return CartItem::with('product.activeFlashSaleItem')
+        return CartItem::with(['product.activeFlashSaleItem', 'variant'])
             ->where('user_id', Auth::id())
             ->get()
             ->filter(fn($item) => $item->product !== null)
             ->mapWithKeys(function ($item) {
                 $product = $item->product;
-                return [$product->id => [
-                    'id'       => $product->id,
-                    'name'     => $product->name,
-                    'price'    => $product->effective_price, // giá Flash Sale nếu đang chạy, ngược lại giá thường
-                    'image'    => $product->image,
-                    'quantity' => $item->quantity,
+                $variant = $item->variant;
+
+                // Ưu tiên giá/ảnh của biến thể nếu có set riêng, ngược lại
+                // dùng giá/ảnh của sản phẩm gốc (kể cả giá Flash Sale).
+                $price = $variant && $variant->price !== null
+                    ? (float) $variant->price
+                    : $product->effective_price;
+
+                $image = $variant && $variant->image ? $variant->image : $product->image;
+                $stock = $variant ? $variant->stock : $product->stock;
+
+                return [$item->id => [
+                    'id'           => $product->id,
+                    'variant_id'   => $variant?->id,
+                    'name'         => $product->name,
+                    'variant_name' => $variant?->name,
+                    'price'        => $price,
+                    'image'        => $image,
+                    'quantity'     => $item->quantity,
+                    'stock'        => $stock,
                 ]];
             })
             ->toArray();
@@ -77,13 +97,34 @@ class CartController extends Controller
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
+            'variant_id' => 'nullable|exists:product_variants,id',
         ]);
 
         $product  = Product::with('activeFlashSaleItem')->findOrFail($request->product_id);
         $quantity = $request->quantity ?? 1;
 
+        $variant = null;
+        if ($request->filled('variant_id')) {
+            $variant = ProductVariant::where('product_id', $product->id)
+                ->where('is_active', true)
+                ->find($request->variant_id);
+
+            if (!$variant) {
+                $message = 'Biến thể sản phẩm không hợp lệ hoặc đã ngừng bán.';
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json(['success' => false, 'message' => $message], 422);
+                }
+                return redirect()->back()->with('error', $message);
+            }
+        }
+
+        // Mỗi dòng cart_items ứng với 1 cặp (product_id, variant_id) —
+        // whereNull khi không có biến thể để không bị nhầm với các biến
+        // thể khác (MySQL coi NULL != NULL nên phải so sánh tường minh).
         $item = CartItem::where('user_id', Auth::id())
             ->where('product_id', $product->id)
+            ->when($variant, fn($q) => $q->where('variant_id', $variant->id))
+            ->when(!$variant, fn($q) => $q->whereNull('variant_id'))
             ->first();
 
         if ($item) {
@@ -93,16 +134,18 @@ class CartController extends Controller
             CartItem::create([
                 'user_id'    => Auth::id(),
                 'product_id' => $product->id,
+                'variant_id' => $variant?->id,
                 'quantity'   => $quantity,
             ]);
         }
 
         $cartCount = CartItem::where('user_id', Auth::id())->count();
+        $label = $product->name . ($variant ? " ({$variant->name})" : '');
 
         // Form submit bình thường (không phải AJAX) -> quay lại trang trước kèm thông báo,
         // tránh hiện thẳng JSON ra màn hình. Chỉ trả JSON khi gọi bằng fetch/AJAX (vd: nút .add-to-cart ở trang shop).
         if (! ($request->ajax() || $request->wantsJson())) {
-            return redirect()->back()->with('cart_message', 'Đã thêm "' . $product->name . '" vào giỏ hàng!');
+            return redirect()->back()->with('cart_message', 'Đã thêm "' . $label . '" vào giỏ hàng!');
         }
 
         return response()->json([
@@ -112,13 +155,17 @@ class CartController extends Controller
         ], 200, [], JSON_UNESCAPED_UNICODE);
     }
 
+    /**
+     * $id giờ là ID của dòng cart_items (không còn là product_id) để có
+     * thể sửa đúng dòng khi 1 sản phẩm có nhiều biến thể trong giỏ.
+     */
     public function update(Request $request, $id)
     {
         $action = $request->action ?? 'plus';
         $newQuantity = 0;
 
         $item = CartItem::where('user_id', Auth::id())
-            ->where('product_id', $id)
+            ->where('id', $id)
             ->first();
 
         if ($item) {
@@ -142,9 +189,12 @@ class CartController extends Controller
         return redirect()->route('cart.index');
     }
 
+    /**
+     * $id là ID của dòng cart_items (xem ghi chú ở update()).
+     */
     public function remove($id, Request $request)
     {
-        CartItem::where('user_id', Auth::id())->where('product_id', $id)->delete();
+        CartItem::where('user_id', Auth::id())->where('id', $id)->delete();
 
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json(['success' => true]);

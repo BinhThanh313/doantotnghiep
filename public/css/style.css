@@ -1,5 +1,28 @@
+/* Tên sản phẩm trên trang Flash Sale: giới hạn 2 dòng để mọi thẻ trong cùng một hàng
+   luôn cao bằng nhau dù tên sản phẩm dài ngắn khác nhau. */
+.card-body > a.fw-semibold.text-dark {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.6em;
+}
 
-/*** Spinner Start ***/
+/*** Pagination Start ***/
+/* Ẩn dòng "Showing X to Y of Z results" mà view mặc định pagination::bootstrap-5 của Laravel
+   tự thêm vào (nằm trong div.small.text-muted). Đặt ở đây (CSS chung) thay vì trong <style>
+   riêng của từng trang để luôn áp dụng, kể cả khi nội dung phân trang được nạp lại qua AJAX. */
+#pagination .pagination + div,
+#pagination div.small.text-muted,
+#pagination .text-muted {
+    display: none !important;
+}
+
+#pagination nav {
+    justify-content: center !important;
+}
+/*** Pagination End ***/
+
 /*** Spinner ***/
 #spinner {
     opacity: 0;
@@ -296,46 +319,39 @@
 
 
 /*** Products Start ***/
-.product .product-item {
+/* .product-item được dùng lại ở nhiều trang (Trang chủ, Sản phẩm, Bán chạy, Gợi ý riêng cho bạn...)
+   Không scope theo .product nữa để mọi trang dùng chung khung này đều được áp dụng,
+   và dùng flexbox thay cho kiểu ẩn/hiện nút bằng margin âm (dễ vỡ khi tiêu đề dài ngắn khác nhau
+   hoặc trên thiết bị cảm ứng không có hover) để đảm bảo các khung trong CÙNG một trang luôn cao bằng nhau. */
+.product-item {
     width: 100%;
     height: 100%;
+    display: flex;
+    flex-direction: column;
     position: relative;
 }
 
-.product .product-item .product-item-inner {
-    height: 100%;
+.product-item .product-item-inner {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
 }
 
-.product .product-item .product-item-add {
-    width: 100%;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    opacity: 0;
-    transition: 0.5s;
-    z-index: 1;
-}
-
-.product .product-item:hover .product-item-add {
-    background: var(--bs-white);
-    margin-bottom: -124px;
-    opacity: 1;
-}
-.product .product-item:hover .product-item-inner {
+.product-item:hover .product-item-inner {
     border-bottom: 0 !important;
     border-bottom-right-radius: 0 !important;
     border-bottom-left-radius: 0 !important;
 }
 
-.product .product-item .product-item-inner .product-item-inner-item {
+.product-item .product-item-inner .product-item-inner-item {
     position: relative;
     border-top-right-radius: 10px;
     border-top-left-radius: 10px;
     overflow: hidden;
 }
 
-.product .product-item .product-item-inner .product-item-inner-item .product-new,
-.product .product-item .product-item-inner .product-item-inner-item .product-sale {
+.product-item .product-item-inner .product-item-inner-item .product-new,
+.product-item .product-item-inner .product-item-inner-item .product-sale {
     position: absolute;
     width: 60px; 
     height: 60px;
@@ -347,25 +363,25 @@
     justify-content: center; 
 }
 
-.product .product-item .product-item-inner .product-item-inner-item .product-new {
+.product-item .product-item-inner .product-item-inner-item .product-new {
     background: var(--bs-primary);
     color: var(--bs-white);
 }
 
-.product .product-item .product-item-inner .product-item-inner-item .product-sale {
+.product-item .product-item-inner .product-item-inner-item .product-sale {
     background: var(--bs-secondary);
     color: var(--bs-white);
 }
 
-.product .product-item .product-item-inner img {
+.product-item .product-item-inner img {
     transition: 0.5s;
 }
 
-.product .product-item:hover .product-item-inner img {
+.product-item:hover .product-item-inner img {
     transform: scale(1.1);
 }
 
-.product .product-item .product-item-inner .product-item-inner-item .product-details {
+.product-item .product-item-inner .product-item-inner-item .product-details {
     position: absolute;
     width: 100%; 
     height: 100%; 
@@ -381,7 +397,7 @@
     transition: 0.5s;
 }
 
-.product .product-item .product-item-inner .product-item-inner-item .product-details a i {
+.product-item .product-item-inner .product-item-inner-item .product-details a i {
     width: 50px; 
     height: 50px;
     border-radius: 50px;
@@ -393,13 +409,38 @@
     transition: 0.5s;
 }
 
-.product .product-item:hover .product-item-inner .product-item-inner-item .product-details a i:hover {
+.product-item:hover .product-item-inner .product-item-inner-item .product-details a i:hover {
     background: var(--bs-secondary);
     color: var(--bs-white);
 }
 
-.product .product-item:hover .product-item-inner .product-details {
+.product-item:hover .product-item-inner .product-details {
     opacity: 1;
+}
+
+/* Khối tên sản phẩm + giá: giãn để lấp đầy phần còn lại, giúp phần ảnh và khung ngoài
+   của mọi thẻ trong cùng một hàng cao bằng nhau, bất kể tên sản phẩm dài hay ngắn. */
+.product-item .product-item-inner > div:not(.product-item-inner-item) {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.product-item .product-item-inner > div:not(.product-item-inner-item) > a.h6,
+.product-item .product-item-inner > div:not(.product-item-inner-item) > a.h4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.6em;
+}
+
+/* Nút "Thêm vào giỏ" luôn hiển thị và nằm cố định ở đáy khung (không còn ẩn chờ hover),
+   nên chiều cao khung không phụ thuộc vào việc người dùng có rê chuột vào hay không. */
+.product-item .product-item-add {
+    width: 100%;
+    margin-top: auto;
 }
 
 .product .tab-class .nav .nav-item a.active {
@@ -413,8 +454,22 @@
 
 
 /*** ProductList Categories Start ***/
-.productList .productList-carousel {
-    height: 215px !important;
+/* Carousel "Tất cả sản phẩm" dùng Owl Carousel: các item nằm cạnh nhau trong .owl-stage
+   nhưng KHÔNG tự cao bằng nhau (do owl chỉ float từng item theo chiều ngang, không stretch).
+   Bật flex + stretch cho .owl-stage/.owl-item để mọi thẻ trong cùng 1 slide cao bằng nhau,
+   khi đó CSS .products-mini-item (height:100%) đã có sẽ tự lấp đầy đúng chiều cao đó. */
+.productList .productList-carousel.owl-carousel .owl-stage {
+    display: flex;
+    align-items: stretch;
+}
+
+.productList .productList-carousel.owl-carousel .owl-item {
+    height: auto;
+    display: flex;
+}
+
+.productList .productList-carousel.owl-carousel .owl-item > * {
+    width: 100%;
 }
 
 .productList .productList-carousel .productImg-carousel.productList-item .productImg-item {
@@ -493,34 +548,44 @@
 
 
 /*** bestseller Products Start ***/
-.products .products-mini .products-mini-item {
+/* Không scope theo .products .products-mini nữa để khung này áp dụng nhất quán ở mọi trang
+   dùng lại nó (Trang chủ, Bán chạy, carousel Tất cả sản phẩm), và dùng flexbox để đảm bảo
+   các khung trong cùng một hàng luôn cao bằng nhau (thay vì ẩn/hiện thanh nút bằng margin âm). */
+.products-mini-item {
     position: relative;
     border-radius: 10px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
     transition: 0.5s;
 }
 
-.products .products-mini .products-mini-item:hover {
+.products-mini-item:hover {
     border-bottom-left-radius: 0 !important;
     border-bottom-right-radius: 0 !important;
 }
 
-.products .products-mini .products-mini-item .products-mini-img {
+.products-mini-item > .row {
+    flex: 1 1 auto;
+}
+
+.products-mini-item .products-mini-img {
  position: relative;
  overflow: hidden;
 }
 
-.products .products-mini .products-mini-item .products-mini-img img {
+.products-mini-item .products-mini-img img {
     border-top-left-radius: 10px;
     border-bottom-left-radius: 10px;
     transition: 0.5s;
 }
 
-.products .products-mini .products-mini-item:hover .products-mini-img img {
+.products-mini-item:hover .products-mini-img img {
     border-bottom-left-radius: 0 !important;
     transform: scale(1.3);
 }
 
-.products .products-mini .products-mini-item .products-mini-img .products-mini-icon {
+.products-mini-item .products-mini-img .products-mini-icon {
     position: absolute;
     width: 50px; 
     height: 50px; 
@@ -534,31 +599,37 @@
     transition: 0.5s;
 }
 
-.products .products-mini .products-mini-item:hover .products-mini-img .products-mini-icon {
+.products-mini-item:hover .products-mini-img .products-mini-icon {
     opacity: 1;
 }
 
-.products .products-mini .products-mini-item:hover .products-mini-img .products-mini-icon:hover {
+.products-mini-item:hover .products-mini-img .products-mini-icon:hover {
     background: var(--bs-secondary) !important;
 }
 
-.products .products-mini .products-mini-item .products-mini-add {
-    position: absolute;
-    bottom: 0;
-    left: -1px;
-    right: -1px;
+.products-mini-item .products-mini-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.products-mini-item .products-mini-content > a.h5,
+.products-mini-item .products-mini-content > a.h6 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Thanh nút luôn hiển thị và cố định ở đáy khung, không còn phụ thuộc vào hover. */
+.products-mini-item .products-mini-add {
+    width: 100%;
+    margin-top: auto;
     display: flex;
     align-items: center;
     justify-content: space-between;
     background: var(--bs-white);
-    transition: 0.5s;
-    z-index: 9;
-    opacity: 0;
-}
-
-.products .products-mini .products-mini-item:hover .products-mini-add {
-    opacity: 1;
-    margin-bottom: -75px;
     border-bottom-left-radius: 10px;
     border-bottom-right-radius: 10px;
 }

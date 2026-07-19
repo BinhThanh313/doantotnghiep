@@ -175,6 +175,25 @@
     </div>
 </div>
 
+@if(($forYou ?? collect())->isNotEmpty())
+{{-- Gợi ý cá nhân hóa cho user đăng nhập (đẩy lên trước "Sản phẩm của chúng tôi") --}}
+<div class="container-fluid products pb-5">
+    <div class="container products-mini py-5">
+        <div class="mx-auto text-center mb-5" style="max-width: 700px;">
+            <h4 class="text-primary mb-4 border-bottom border-primary border-2 d-inline-block p-2">
+                <i class="fas fa-user-check me-2"></i>Gợi Ý Dành Riêng Cho Bạn
+            </h4>
+            <p class="mb-0">Dựa trên lịch sử mua sắm và sản phẩm bạn đã xem tại Electro Shop.</p>
+        </div>
+        <div class="row g-4">
+            @foreach($forYou as $p)
+                @include('shop.partials.product-card', ['product' => $p])
+            @endforeach
+        </div>
+    </div>
+</div>
+@endif
+
 {{-- Our Products with Tabs --}}
 <div class="container-fluid product py-5">
     <div class="container py-5">
@@ -334,25 +353,6 @@
         </div>
     </div>
 </div>
-
-@if(($forYou ?? collect())->isNotEmpty())
-{{-- Gợi ý cá nhân hóa cho user đăng nhập --}}
-<div class="container-fluid products pb-5">
-    <div class="container products-mini py-5">
-        <div class="mx-auto text-center mb-5" style="max-width: 700px;">
-            <h4 class="text-primary mb-4 border-bottom border-primary border-2 d-inline-block p-2">
-                <i class="fas fa-user-check me-2"></i>Gợi Ý Dành Riêng Cho Bạn
-            </h4>
-            <p class="mb-0">Dựa trên lịch sử mua sắm và sản phẩm bạn đã xem tại Electro Shop.</p>
-        </div>
-        <div class="row g-4">
-            @foreach($forYou as $p)
-                @include('shop.partials.product-card', ['product' => $p])
-            @endforeach
-        </div>
-    </div>
-</div>
-@endif
 
 {{-- All Product Items Carousel --}}
 <div class="container-fluid products productList overflow-hidden py-5">

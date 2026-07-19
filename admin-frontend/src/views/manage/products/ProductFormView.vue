@@ -13,6 +13,8 @@ import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
 import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.vue'
 // ── Import component thông số kỹ thuật (cùng thư mục) ──────────
 import ProductSpecificationManager from './ProductSpecificationManager.vue'
+import ProductImageManager from './ProductImageManager.vue'
+import ProductVariantManager from './ProductVariantManager.vue'
 import api from '@/services/api'
 
 const route = useRoute()
@@ -139,8 +141,11 @@ onMounted(() => {
           <FormControl type="textarea" v-model="form.description" />
         </FormField>
 
-        <FormField label="Hình ảnh">
+        <FormField :label="isEditMode ? 'Ảnh đại diện nhanh (tuỳ chọn)' : 'Hình ảnh'">
           <FormFilePicker v-model="imageFile" label="Chọn ảnh sản phẩm" />
+          <p v-if="isEditMode" class="text-xs text-gray-400 mt-1">
+            Ảnh này sẽ ghi đè ảnh chính hiện tại. Để quản lý từng ảnh trong gallery (thêm/sửa/xoá/sắp xếp), dùng mục "Ảnh sản phẩm (gallery)" bên dưới sau khi lưu.
+          </p>
         </FormField>
 
         <div class="flex gap-6 mt-4 mb-6">
@@ -163,6 +168,18 @@ onMounted(() => {
         </template>
       </CardBox>
 
+      <!-- ── Panel quản lý gallery ảnh: chỉ hiện khi đang SỬA sản phẩm ── -->
+      <ProductImageManager
+        v-if="isEditMode && route.params.id"
+        :product-id="Number(route.params.id)"
+      />
+
+      <!-- ── Panel quản lý biến thể (màu/size...): chỉ hiện khi đang SỬA ── -->
+      <ProductVariantManager
+        v-if="isEditMode && route.params.id"
+        :product-id="Number(route.params.id)"
+      />
+
       <!-- ── Panel thông số kỹ thuật: chỉ hiện khi đang SỬA sản phẩm ── -->
       <ProductSpecificationManager
         v-if="isEditMode && route.params.id"
@@ -171,7 +188,7 @@ onMounted(() => {
 
       <!-- Hint khi tạo mới -->
       <div v-else class="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-sm text-blue-600 dark:text-blue-400">
-        💡 Sau khi lưu sản phẩm, bạn có thể quay lại trang <strong>Sửa</strong> để chỉnh thông số kỹ thuật (đã được sinh tự động theo danh mục + giá).
+        💡 Sau khi lưu sản phẩm, bạn có thể quay lại trang <strong>Sửa</strong> để thêm nhiều ảnh vào gallery và chỉnh thông số kỹ thuật (đã được sinh tự động theo danh mục + giá).
       </div>
 
     </SectionMain>

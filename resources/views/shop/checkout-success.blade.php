@@ -91,7 +91,12 @@
                 <tbody>
                     @foreach($order->items as $item)
                     <tr>
-                        <td>{{ $item->product_name }}</td>
+                        <td>
+                            {{ $item->product_name }}
+                            @if($item->variant_name)
+                                <br><small class="text-muted">{{ $item->variant_name }}</small>
+                            @endif
+                        </td>
                         <td>{{ $item->quantity }}</td>
                         <td>{{ number_format($item->price, 0, ',', '.') }}đ</td>
                         <td>{{ number_format($item->price * $item->quantity, 0, ',', '.') }}đ</td>

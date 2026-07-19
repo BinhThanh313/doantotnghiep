@@ -88,16 +88,47 @@
                             <p class="mb-3">Danh mục: {{ $product->category->name ?? 'Đang cập nhật' }}</p>
                             
                             {{-- Đã sửa định dạng tiền sang VNĐ --}}
-                            @if($product->is_flash_sale)
-                                <div class="mb-2">
-                                    <span class="badge bg-danger fs-6"><i class="fas fa-bolt me-1"></i>Flash Sale -{{ $product->flash_sale_discount_percent }}%</span>
+                            @php
+                                $variants = $product->variants; // đã eager-load ở ShopController, chỉ gồm biến thể is_active
+                                // Biến thể mặc định được chọn sẵn: ưu tiên biến thể còn hàng đầu tiên,
+                                // nếu tất cả đều hết hàng thì chọn biến thể đầu tiên (để khách vẫn thấy
+                                // tuỳ chọn, nút "Thêm vào giỏ" sẽ tự khoá vì hết hàng).
+                                $defaultVariant = $variants->firstWhere('stock', '>', 0) ?? $variants->first();
+                            @endphp
+                            <div id="priceBlock">
+                                @if($product->is_flash_sale && !$defaultVariant)
+                                    <div class="mb-2">
+                                        <span class="badge bg-danger fs-6"><i class="fas fa-bolt me-1"></i>Flash Sale -{{ $product->flash_sale_discount_percent }}%</span>
+                                    </div>
+                                    <div class="d-flex align-items-center gap-2 mb-3">
+                                        <h5 class="fw-bold mb-0 text-danger" id="currentPrice">{{ number_format($product->flash_sale_price, 0, ',', '.') }}đ</h5>
+                                        <del class="text-muted">{{ number_format($product->price, 0, ',', '.') }}đ</del>
+                                    </div>
+                                @else
+                                    <h5 class="fw-bold mb-3 text-primary" id="currentPrice">
+                                        {{ number_format($defaultVariant && $defaultVariant->price !== null ? $defaultVariant->price : $product->price, 0, ',', '.') }}đ
+                                    </h5>
+                                @endif
+                            </div>
+
+                            @if($variants->isNotEmpty())
+                                <div class="mb-4">
+                                    <small class="d-block mb-2">Màu sắc / Phiên bản:</small>
+                                    <div class="d-flex flex-wrap gap-2">
+                                        @foreach($variants as $v)
+                                            <button type="button"
+                                                    class="variant-option btn btn-sm rounded-pill border {{ $defaultVariant && $v->id === $defaultVariant->id ? 'btn-primary text-white' : 'btn-light' }} {{ $v->stock <= 0 ? 'opacity-50' : '' }}"
+                                                    data-variant-id="{{ $v->id }}"
+                                                    data-price="{{ $v->price !== null ? $v->price : $product->price }}"
+                                                    data-stock="{{ $v->stock }}"
+                                                    data-image="{{ $v->image ? asset('storage/' . $v->image) : '' }}"
+                                                    @if($v->stock <= 0) title="Tạm hết hàng" @endif>
+                                                {{ $v->name }}
+                                                @if($v->stock <= 0) <span class="small">(hết hàng)</span> @endif
+                                            </button>
+                                        @endforeach
+                                    </div>
                                 </div>
-                                <div class="d-flex align-items-center gap-2 mb-3">
-                                    <h5 class="fw-bold mb-0 text-danger">{{ number_format($product->flash_sale_price, 0, ',', '.') }}đ</h5>
-                                    <del class="text-muted">{{ number_format($product->price, 0, ',', '.') }}đ</del>
-                                </div>
-                            @else
-                                <h5 class="fw-bold mb-3 text-primary">{{ number_format($product->price, 0, ',', '.') }}đ</h5>
                             @endif
                             
                             <div class="d-flex mb-4">
@@ -109,14 +140,17 @@
                             </div>
                             
                             <div class="d-flex flex-column mb-3">
-                                <small>Tình trạng: <strong class="text-primary">Còn hàng</strong></small>
+                                <small>Tình trạng: <strong class="text-primary" id="stockStatus">
+                                    {{ ($defaultVariant ? $defaultVariant->stock : $product->stock) > 0 ? 'Còn hàng' : 'Tạm hết hàng' }}
+                                </strong></small>
                             </div>
                             
                             <p class="mb-4">Sản phẩm chính hãng. Cam kết chất lượng và bảo hành đầy đủ. Phù hợp cho nhu cầu sử dụng của bạn.</p>
                             
-                            <form action="{{ route('cart.add') }}" method="POST">
+                            <form action="{{ route('cart.add') }}" method="POST" id="addToCartForm">
                                 @csrf
                                 <input type="hidden" name="product_id" value="{{ $product->id }}">
+                                <input type="hidden" name="variant_id" id="selectedVariantId" value="{{ $defaultVariant?->id }}">
                                 
                                 <div class="input-group quantity mb-4" style="width: 130px;">
                                     <div class="input-group-btn">
@@ -132,10 +166,47 @@
                                     </div>
                                 </div>
                                 
-                                <button type="submit" class="btn btn-primary border border-secondary rounded-pill px-4 py-2 text-white">
+                                <button type="submit" class="btn btn-primary border border-secondary rounded-pill px-4 py-2 text-white"
+                                        id="addToCartBtn"
+                                        {{ $defaultVariant && $defaultVariant->stock <= 0 ? 'disabled' : '' }}>
                                     <i class="fa fa-shopping-bag me-2"></i> Thêm vào giỏ hàng
                                 </button>
                             </form>
+
+                            @if($variants->isNotEmpty())
+                            <script>
+                                (function () {
+                                    const options = document.querySelectorAll('.variant-option');
+                                    const priceEl = document.getElementById('currentPrice');
+                                    const stockEl = document.getElementById('stockStatus');
+                                    const hiddenInput = document.getElementById('selectedVariantId');
+                                    const addBtn = document.getElementById('addToCartBtn');
+                                    const mainImg = document.getElementById('mainProductImage');
+
+                                    options.forEach(btn => {
+                                        btn.addEventListener('click', () => {
+                                            options.forEach(b => b.classList.remove('btn-primary', 'text-white'));
+                                            options.forEach(b => b.classList.add('btn-light'));
+                                            btn.classList.remove('btn-light');
+                                            btn.classList.add('btn-primary', 'text-white');
+
+                                            const price = parseFloat(btn.dataset.price);
+                                            const stock = parseInt(btn.dataset.stock, 10);
+                                            const image = btn.dataset.image;
+
+                                            hiddenInput.value = btn.dataset.variantId;
+                                            priceEl.textContent = price.toLocaleString('vi-VN') + 'đ';
+                                            stockEl.textContent = stock > 0 ? 'Còn hàng' : 'Tạm hết hàng';
+                                            addBtn.disabled = stock <= 0;
+
+                                            if (image && mainImg) {
+                                                mainImg.src = image;
+                                            }
+                                        });
+                                    });
+                                })();
+                            </script>
+                            @endif
                         </div>
                         
                         <div class="col-lg-12 mt-5">

@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\ProductVariant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 
 class ProductVariantController extends Controller
 {
@@ -17,8 +18,15 @@ class ProductVariantController extends Controller
 
     public function index(int $productId)
     {
-        $product  = Product::findOrFail($productId);
-        $variants = $product->variants()->withTrashed()->orderBy('id')->get();
+        Product::findOrFail($productId);
+
+        // KHÔNG dùng $product->variants() vì relation đó đã lọc sẵn
+        // is_active = true (dùng cho storefront) — admin cần thấy TẤT CẢ
+        // biến thể (kể cả đã tắt "Hoạt động") để còn bật lại/sửa được.
+        $variants = ProductVariant::withTrashed()
+            ->where('product_id', $productId)
+            ->orderBy('id')
+            ->get();
 
         return response()->json($variants);
     }
@@ -38,9 +46,15 @@ class ProductVariantController extends Controller
             'price'          => 'nullable|numeric|min:0',
             'original_price' => 'nullable|numeric|min:0',
             'stock'          => 'required|integer|min:0',
-            'image'          => 'nullable|string|max:255',
+            'image'          => 'nullable|image|max:2048', // file ảnh thật, không phải chuỗi đường dẫn
             'is_active'      => 'boolean',
         ]);
+
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('products/variants', 'public');
+        } else {
+            unset($data['image']);
+        }
 
         $data['product_id'] = $productId;
         $data['is_active']  = $data['is_active'] ?? true;
@@ -80,9 +94,26 @@ class ProductVariantController extends Controller
             'price'          => 'nullable|numeric|min:0',
             'original_price' => 'nullable|numeric|min:0',
             'stock'          => 'sometimes|integer|min:0',
-            'image'          => 'nullable|string|max:255',
+            'image'          => 'nullable|image|max:2048', // file ảnh thật, không phải chuỗi đường dẫn
+            'remove_image'   => 'nullable|boolean',
             'is_active'      => 'boolean',
         ]);
+
+        if ($request->hasFile('image')) {
+            if ($variant->image) {
+                Storage::disk('public')->delete($variant->image);
+            }
+            $data['image'] = $request->file('image')->store('products/variants', 'public');
+        } elseif ($request->boolean('remove_image')) {
+            if ($variant->image) {
+                Storage::disk('public')->delete($variant->image);
+            }
+            $data['image'] = null;
+        } else {
+            // Không gửi ảnh mới và không yêu cầu xoá -> giữ nguyên ảnh hiện tại
+            unset($data['image']);
+        }
+        unset($data['remove_image']);
 
         // Nếu stock thay đổi → ghi inventory log
         if (isset($data['stock']) && (int) $data['stock'] !== $variant->stock) {

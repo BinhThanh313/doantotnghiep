@@ -10,11 +10,14 @@ import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
 import FormField from '@/components/FormField.vue'
 import FormControl from '@/components/FormControl.vue'
+import FormFilePicker from '@/components/FormFilePicker.vue'
 import api from '@/services/api'
 import { showToast } from '@/composables/useToast'
 const props = defineProps({
   productId: { type: [Number, String], required: true },
 })
+
+const storageBase = computed(() => `${api.defaults.baseURL}/storage/`)
 
 // ── State ────────────────────────────────────────────────────
 const variants       = ref([])
@@ -32,6 +35,8 @@ const form = ref({
   sku: '', name: '', attributes: '', price: '', original_price: '',
   stock: 0, image: '', is_active: true,
 })
+const variantImageFile = ref(null) // File thật được chọn để upload (khác form.image là path cũ khi sửa)
+const removeExistingImage = ref(false)
 
 const adjustForm = ref({ quantity_change: 0, reason: 'restock', notes: '' })
 const logs       = ref([])
@@ -77,6 +82,8 @@ const openCreate = () => {
   isEditMode.value = false
   editingId.value  = null
   form.value = { sku: '', name: '', attributes: '', price: '', original_price: '', stock: 0, image: '', is_active: true }
+  variantImageFile.value = null
+  removeExistingImage.value = false
   isFormModal.value = true
 }
 
@@ -84,16 +91,32 @@ const openEdit = (v) => {
   isEditMode.value = true
   editingId.value  = v.id
   form.value = { ...v }
+  variantImageFile.value = null
+  removeExistingImage.value = false
   isFormModal.value = true
 }
 
 const saveVariant = async () => {
+  const formData = new FormData()
+  formData.append('name', form.value.name)
+  if (form.value.sku)             formData.append('sku', form.value.sku)
+  if (form.value.attributes)      formData.append('attributes', form.value.attributes)
+  if (form.value.price !== '' && form.value.price !== null)             formData.append('price', form.value.price)
+  if (form.value.original_price !== '' && form.value.original_price !== null) formData.append('original_price', form.value.original_price)
+  formData.append('stock', form.value.stock)
+  formData.append('is_active', form.value.is_active ? 1 : 0)
+  if (variantImageFile.value) formData.append('image', variantImageFile.value)
+  if (removeExistingImage.value) formData.append('remove_image', 1)
+
+  const config = { headers: { 'Content-Type': 'multipart/form-data' } }
+
   try {
     if (isEditMode.value) {
-      await api.put(`/api/admin/products/${props.productId}/variants/${editingId.value}`, form.value)
+      formData.append('_method', 'PUT')
+      await api.post(`/api/admin/products/${props.productId}/variants/${editingId.value}`, formData, config)
       showToast('Đã cập nhật biến thể')
     } else {
-      await api.post(`/api/admin/products/${props.productId}/variants`, form.value)
+      await api.post(`/api/admin/products/${props.productId}/variants`, formData, config)
       showToast('Đã tạo biến thể mới')
     }
     isFormModal.value = false
@@ -186,6 +209,7 @@ const formatDate  = (d) => new Date(d).toLocaleString('vi-VN')
       <table v-else class="w-full text-sm">
         <thead class="bg-gray-50 dark:bg-slate-800">
           <tr>
+            <th class="px-4 py-2 text-left">Ảnh</th>
             <th class="px-4 py-2 text-left">Tên biến thể</th>
             <th class="px-4 py-2 text-left">SKU</th>
             <th class="px-4 py-2 text-left">Thuộc tính</th>
@@ -198,6 +222,11 @@ const formatDate  = (d) => new Date(d).toLocaleString('vi-VN')
         <tbody>
           <tr v-for="v in variants" :key="v.id"
               class="border-t border-gray-100 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800/50">
+            <td class="px-4 py-2">
+              <img v-if="v.image" :src="storageBase + v.image"
+                   class="w-10 h-10 object-cover rounded border dark:border-slate-700" />
+              <span v-else class="text-xs text-gray-400">—</span>
+            </td>
             <td class="px-4 py-2 font-medium">{{ v.name }}</td>
             <td class="px-4 py-2 font-mono text-xs text-gray-500">{{ v.sku || '—' }}</td>
             <td class="px-4 py-2 text-xs text-gray-500">{{ v.attributes || '—' }}</td>
@@ -226,7 +255,7 @@ const formatDate  = (d) => new Date(d).toLocaleString('vi-VN')
             </td>
           </tr>
           <tr v-if="!variants.length">
-            <td colspan="7" class="text-center py-6 text-gray-400">Chưa có biến thể nào. Nhấn "Thêm biến thể" để bắt đầu.</td>
+            <td colspan="8" class="text-center py-6 text-gray-400">Chưa có biến thể nào. Nhấn "Thêm biến thể" để bắt đầu.</td>
           </tr>
         </tbody>
       </table>
@@ -261,8 +290,17 @@ const formatDate  = (d) => new Date(d).toLocaleString('vi-VN')
       <FormField label="Giá gốc (đ)">
         <FormControl v-model="form.original_price" type="number" :min="0" />
       </FormField>
-      <FormField label="Ảnh (URL/path)" class="md:col-span-2">
-        <FormControl v-model="form.image" placeholder="VD: products/variants/abc.jpg" />
+      <FormField label="Ảnh biến thể (tuỳ chọn)" class="md:col-span-2">
+        <div class="flex items-center gap-3">
+          <img v-if="!removeExistingImage && (variantImageFile || form.image)"
+               :src="variantImageFile ? URL.createObjectURL(variantImageFile) : (storageBase + form.image)"
+               class="w-14 h-14 object-cover rounded border dark:border-slate-700" />
+          <FormFilePicker v-model="variantImageFile" label="Chọn ảnh" accept="image/*" />
+        </div>
+        <label v-if="isEditMode && form.image && !variantImageFile" class="flex items-center gap-2 mt-2 text-xs text-gray-500">
+          <input type="checkbox" v-model="removeExistingImage">
+          Xoá ảnh hiện tại (không thay ảnh mới)
+        </label>
       </FormField>
       <div class="flex items-center gap-2 md:col-span-2">
         <input type="checkbox" v-model="form.is_active" id="var_active" class="mr-2">

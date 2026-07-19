@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\ComboController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\Api\PaymentController;
 use App\Http\Controllers\Admin\ProductVariantController;
+use App\Http\Controllers\Admin\ProductImageController;
 use App\Http\Controllers\Admin\FlashSaleController;
 use App\Http\Controllers\Api\FlashSaleController as PublicFlashSaleController;
 use App\Http\Controllers\Api\ChatbotController;
@@ -75,6 +76,16 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::put('/products/{id}/specifications', [ProductController::class, 'updateSpecifications']);
     Route::post('/products/{id}/specifications/regenerate', [ProductController::class, 'regenerateSpecifications']);
     Route::apiResource('products', ProductController::class);
+
+    // Gallery ảnh sản phẩm — thêm/sửa/xoá/sắp xếp TỪNG ảnh một (khác với
+    // /products/import vốn chỉ nạp ảnh hàng loạt từ file Excel/CSV).
+    Route::get('/products/{productId}/images',            [ProductImageController::class, 'index']);
+    Route::post('/products/{productId}/images',            [ProductImageController::class, 'store']);
+    Route::post('/products/{productId}/images/{imageId}',  [ProductImageController::class, 'update']); // dùng _method=PUT khi thay file ảnh
+    Route::put('/products/{productId}/images/{imageId}',   [ProductImageController::class, 'update']);
+    Route::delete('/products/{productId}/images/{imageId}', [ProductImageController::class, 'destroy']);
+    Route::patch('/products/{productId}/images/reorder',    [ProductImageController::class, 'reorder']);
+
     Route::apiResource('categories', CategoryController::class);
     Route::apiResource('users', UserController::class);
     Route::apiResource('vouchers', VoucherController::class);

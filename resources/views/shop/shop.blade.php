@@ -72,13 +72,8 @@
     }
     
     #pagination .page-item { display: inline-block !important; }
-
-    /* Ẩn "Showing ..." */
-    #pagination .pagination li:first-child:not(.page-item),
-    #pagination .pagination li:contains("Showing"),
-    #pagination .text-muted {
-        display: none !important;
-    }
+    /* Dòng "Showing X to Y of Z results" được ẩn ở public/css/style.css (áp dụng luôn cho
+       cả nội dung phân trang nạp qua AJAX), không cần lặp lại ở đây. */
 </style>
 
 <script>

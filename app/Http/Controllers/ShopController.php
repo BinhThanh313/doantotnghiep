@@ -56,7 +56,7 @@ class ShopController extends Controller
 
     public function show($id, RecommendationService $recommendationService)
     {
-        $product    = Product::with(['category', 'specifications', 'activeFlashSaleItem', 'images'])->findOrFail($id);
+        $product    = Product::with(['category', 'specifications', 'activeFlashSaleItem', 'images', 'variants'])->findOrFail($id);
         $categories = Category::withCount('products')->get();
 
         // Tăng lượt xem + ghi log lịch sử xem (dùng cho gợi ý cá nhân hóa)
