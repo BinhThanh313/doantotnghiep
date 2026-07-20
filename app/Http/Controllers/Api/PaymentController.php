@@ -22,6 +22,11 @@ class PaymentController extends Controller
 
         $order = Order::with('payment')->findOrFail($data['order_id']);
 
+        // ✅ Chặn IDOR: chỉ chủ đơn hàng mới được tạo payment cho đơn của mình
+        if ($order->user_id !== $request->user()->id) {
+            abort(403, 'Bạn không có quyền thao tác trên đơn hàng này');
+        }
+
         if ($order->payment_status === 'paid') {
             return response()->json(['message' => 'Đơn hàng đã được thanh toán'], 422);
         }
@@ -60,9 +65,14 @@ class PaymentController extends Controller
     }
 
     // GET /api/payment/{id}/status
-    public function status(int $id)
+    public function status(Request $request, int $id)
     {
         $payment = Payment::with('order')->findOrFail($id);
+
+        // ✅ Chặn IDOR: chỉ chủ payment mới được xem trạng thái
+        if ($payment->order->user_id !== $request->user()->id) {
+            abort(403, 'Bạn không có quyền xem giao dịch này');
+        }
 
         return response()->json([
             'payment_id'     => $payment->id,
@@ -81,6 +91,11 @@ class PaymentController extends Controller
     public function refund(Request $request, int $id)
     {
         $payment = Payment::with('order')->findOrFail($id);
+
+        // ✅ Chặn IDOR: chỉ chủ payment mới được yêu cầu hoàn tiền
+        if ($payment->order->user_id !== $request->user()->id) {
+            abort(403, 'Bạn không có quyền hoàn tiền giao dịch này');
+        }
 
         $request->validate([
             'reason' => 'required|string|max:500',
