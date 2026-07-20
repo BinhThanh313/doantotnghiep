@@ -53,7 +53,11 @@ return [
     |
     */
 
-    'expiration' => null,
+    // Token admin (Bearer) sẽ tự hết hạn sau X phút thay vì tồn tại vĩnh viễn.
+    // Mặc định 480 phút (8 tiếng) — đủ cho 1 phiên làm việc, nhưng nếu token
+    // bị lộ (log, máy dùng chung, ...) thì cũng không dùng được mãi mãi.
+    // Có thể override qua .env: SANCTUM_TOKEN_EXPIRATION=<số phút>
+    'expiration' => env('SANCTUM_TOKEN_EXPIRATION', 480),
 
     /*
     |--------------------------------------------------------------------------

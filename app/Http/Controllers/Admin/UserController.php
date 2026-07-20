@@ -86,14 +86,21 @@ class UserController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy(Request $request, string $id)
     {
         $user = User::findOrFail($id);
-        
-        // Ngăn chặn admin tự xóa chính mình nếu cần thiết (giả sử có check Auth)
-        // if (auth()->id() == $id) {
-        //     return response()->json(['message' => 'Không thể tự xóa tài khoản của chính mình'], 422);
-        // }
+
+        // Chặn tự xóa chính mình — tránh admin đang đăng nhập lỡ tay tự khóa
+        // mình khỏi hệ thống (token vẫn còn hiệu lực nhưng tài khoản đã mất).
+        if ($request->user() && (int) $request->user()->id === (int) $id) {
+            return response()->json(['message' => 'Không thể tự xóa tài khoản của chính mình'], 422);
+        }
+
+        // Chặn xóa admin cuối cùng — tránh trường hợp không còn ai truy cập
+        // được trang quản trị sau khi xóa.
+        if ($user->role === 'admin' && User::where('role', 'admin')->count() <= 1) {
+            return response()->json(['message' => 'Không thể xóa tài khoản admin cuối cùng'], 422);
+        }
 
         $user->delete();
 

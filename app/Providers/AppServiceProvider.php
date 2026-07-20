@@ -34,5 +34,21 @@ class AppServiceProvider extends ServiceProvider
             $key = optional($request->user())->id ?? $request->ip();
             return Limit::perMinute(20)->by($key);
         });
+
+        // Giới hạn số lần đăng nhập admin — 5 lần/phút, tính theo cặp
+        // (email + IP) để chống brute-force mật khẩu qua /api/admin/login.
+        // Trước đây route này KHÔNG có throttle, nên có thể bị dò mật khẩu
+        // admin bằng cách gửi liên tục không giới hạn số lần thử.
+        RateLimiter::for('login', function ($request) {
+            $key = strtolower((string) $request->input('email')) . '|' . $request->ip();
+            return Limit::perMinute(5)->by($key);
+        });
+
+        // Giới hạn chung cho các API công khai không cần đăng nhập
+        // (tính phí ship, flash sale hiện tại, xem review sản phẩm...)
+        // — chống spam/scrape gây quá tải, theo IP.
+        RateLimiter::for('public-api', function ($request) {
+            return Limit::perMinute(60)->by($request->ip());
+        });
     }
 }

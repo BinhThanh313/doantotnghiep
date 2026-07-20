@@ -22,6 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin' => \App\Http\Middleware\EnsureAdmin::class,
         ]);
+
+        // Header bảo mật cơ bản (X-Frame-Options, X-Content-Type-Options, ...)
+        // áp dụng cho toàn bộ response — cả storefront lẫn admin SPA.
+        $middleware->append(\App\Http\Middleware\SecurityHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

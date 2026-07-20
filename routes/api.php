@@ -24,10 +24,15 @@ use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
 // ==================== PUBLIC ROUTES ====================
 
-Route::post('/admin/login', [AuthController::class, 'login']);
-Route::post('/shipping/calculate', [ShippingController::class, 'calculateFee']);
-Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
-Route::get('/flash-sales/current', [PublicFlashSaleController::class, 'current']);
+// throttle:login — chống brute-force mật khẩu (xem RateLimiter 'login' trong AppServiceProvider)
+Route::post('/admin/login', [AuthController::class, 'login'])->middleware('throttle:login');
+
+// throttle:public-api — chống spam/scrape các endpoint công khai không cần đăng nhập
+Route::middleware('throttle:public-api')->group(function () {
+    Route::post('/shipping/calculate', [ShippingController::class, 'calculateFee']);
+    Route::get('/products/{productId}/reviews', [ReviewController::class, 'index']);
+    Route::get('/flash-sales/current', [PublicFlashSaleController::class, 'current']);
+});
 
 // Chatbot — công khai, không bắt buộc đăng nhập (khách vãng lai vẫn hỏi
 // được về sản phẩm/giá; tra cứu đơn hàng thì cần đăng nhập). Bọc riêng

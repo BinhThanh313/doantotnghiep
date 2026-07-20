@@ -221,7 +221,9 @@
                             </nav>
                             <div class="tab-content mb-5">
                                 <div class="tab-pane active" id="nav-about" role="tabpanel" aria-labelledby="nav-about-tab">
-                                    <p>{!! $product->description ?? 'Chưa có mô tả cho sản phẩm này.' !!}</p>
+                                    {{-- Mô tả nhập qua textarea thuần (không phải rich-text editor) nên
+                                         cần escape trước khi hiển thị để tránh XSS; nl2br giữ lại xuống dòng. --}}
+                                    <p>{!! nl2br(e($product->description ?? 'Chưa có mô tả cho sản phẩm này.')) !!}</p>
                                 </div>
                                 @if($product->specifications->isNotEmpty())
                                 <div class="tab-pane" id="nav-specs" role="tabpanel" aria-labelledby="nav-specs-tab">
