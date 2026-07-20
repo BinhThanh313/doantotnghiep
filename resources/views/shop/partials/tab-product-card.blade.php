@@ -34,13 +34,9 @@
             </div>
         </div>
         <div class="product-item-add border border-top-0 rounded-bottom text-center p-4 pt-0">
-            <form action="{{ route('cart.add') }}" method="POST">
-                @csrf
-                <input type="hidden" name="product_id" value="{{ $product->id }}">
-                <button type="submit" class="btn btn-primary border-secondary rounded-pill py-2 px-4 mb-4 w-100">
-                    <i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ
-                </button>
-            </form>
+            <button type="button" class="btn btn-primary border-secondary rounded-pill py-2 px-4 mb-4 w-100 add-to-cart" data-id="{{ $product->id }}">
+                <i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ
+            </button>
             <div class="d-flex justify-content-center">
                 <div class="d-flex text-primary">
                     <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>

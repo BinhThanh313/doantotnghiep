@@ -61,13 +61,9 @@
                         @endif
                     </div>
                     @if($heroProduct)
-                        <form action="{{ route('cart.add') }}" method="POST" class="d-inline">
-                            @csrf
-                            <input type="hidden" name="product_id" value="{{ $heroProduct->id }}">
-                            <button type="submit" class="btn btn-primary rounded-pill py-2 px-4">
-                                <i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-primary rounded-pill py-2 px-4 add-to-cart" data-id="{{ $heroProduct->id }}">
+                            <i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ
+                        </button>
                     @endif
                 </div>
             </div>
@@ -335,13 +331,9 @@
                         </div>
                     </div>
                     <div class="products-mini-add border-top p-2 text-center">
-                        <form action="{{ route('cart.add') }}" method="POST">
-                            @csrf
-                            <input type="hidden" name="product_id" value="{{ $item->id }}">
-                            <button type="submit" class="btn btn-primary btn-sm rounded-pill px-3">
-                                <i class="fas fa-shopping-cart me-2"></i>Thêm vào giỏ
-                            </button>
-                        </form>
+                        <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 add-to-cart" data-id="{{ $item->id }}">
+                            <i class="fas fa-shopping-cart me-2"></i>Thêm vào giỏ
+                        </button>
                     </div>
                 </div>
             </div>
@@ -388,11 +380,7 @@
                     </div>
                 </div>
                 <div class="products-mini-add border-top p-2 text-center">
-                    <form action="{{ route('cart.add') }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="product_id" value="{{ $product->id }}">
-                        <button type="submit" class="btn btn-link text-primary p-0"><i class="fas fa-shopping-cart me-2"></i>Giỏ hàng</button>
-                    </form>
+                    <button type="button" class="btn btn-link text-primary p-0 add-to-cart" data-id="{{ $product->id }}"><i class="fas fa-shopping-cart me-2"></i>Giỏ hàng</button>
                 </div>
             </div>
             @empty

@@ -63,9 +63,10 @@ class HomeController extends Controller
                         ?? Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true)->latest()->first();
 
         // Danh mục dùng để trỏ link cho các banner quảng cáo giữa/cuối trang
-        $cameraCategory    = Category::where('name', 'Máy ảnh')->first();
-        $watchCategory     = Category::where('name', 'Đồng hồ thông minh')->first();
-        $headphoneCategory = Category::where('name', 'Tai nghe')->first();
+        // (gộp 3 truy vấn where()->first() riêng lẻ thành 1 truy vấn whereIn)
+        $adCategories = Category::whereIn('name', ['Máy ảnh', 'Đồng hồ thông minh', 'Tai nghe'])
+                            ->get()
+                            ->keyBy('name');
 
         // Gợi ý cá nhân hóa bằng Item-based Collaborative Filtering (product_similarities):
         // user đăng nhập -> lan điểm từ sản phẩm đã mua/xem sang sản phẩm tương đồng,
@@ -76,7 +77,11 @@ class HomeController extends Controller
 
         return view('home', compact(
             'products', 'newArrivals', 'featuredProducts', 'bestsellers', 'exploreProducts',
-            'categories', 'forYou', 'heroProduct', 'cameraCategory', 'watchCategory', 'headphoneCategory'
-        ));
+            'categories', 'forYou', 'heroProduct'
+        ) + [
+            'cameraCategory'    => $adCategories->get('Máy ảnh'),
+            'watchCategory'     => $adCategories->get('Đồng hồ thông minh'),
+            'headphoneCategory' => $adCategories->get('Tai nghe'),
+        ]);
     }
 }

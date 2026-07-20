@@ -11,6 +11,14 @@ use Illuminate\Support\Facades\Auth;
 
 class ShopController extends Controller
 {
+    /**
+     * Danh mục kèm số lượng sản phẩm, dùng chung cho index/show/bestsellers.
+     */
+    private function categoriesWithCounts()
+    {
+        return Category::withCount('products')->get();
+    }
+
     public function index(Request $request)
     {
         $query = Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true);
@@ -43,7 +51,7 @@ class ShopController extends Controller
         };
 
         $products   = $query->paginate(12)->withQueryString();
-        $categories = Category::withCount('products')->get();
+        $categories = $this->categoriesWithCounts();
 
         // ==================== PHẦN AJAX ====================
         if ($request->ajax() || $request->wantsJson()) {
@@ -57,7 +65,7 @@ class ShopController extends Controller
     public function show($id, RecommendationService $recommendationService)
     {
         $product    = Product::with(['category', 'specifications', 'activeFlashSaleItem', 'images', 'variants'])->findOrFail($id);
-        $categories = Category::withCount('products')->get();
+        $categories = $this->categoriesWithCounts();
 
         // Tăng lượt xem + ghi log lịch sử xem (dùng cho gợi ý cá nhân hóa)
         $product->increment('view_count');
@@ -108,7 +116,7 @@ class ShopController extends Controller
             ->where('is_bestseller', true);
 
         $products   = $query->latest()->paginate(12)->withQueryString();
-        $categories = Category::withCount('products')->get();
+        $categories = $this->categoriesWithCounts();
 
         // Tab "Tất cả" trong khối "Sản Phẩm Của Chúng Tôi"
         $allProducts = Product::with(['category', 'activeFlashSaleItem'])

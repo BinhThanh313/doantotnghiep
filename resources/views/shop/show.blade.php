@@ -173,6 +173,57 @@
                                 </button>
                             </form>
 
+                            <script>
+                                (function () {
+                                    const form = document.getElementById('addToCartForm');
+                                    const addBtn = document.getElementById('addToCartBtn');
+                                    if (!form) return;
+
+                                    form.addEventListener('submit', function (e) {
+                                        e.preventDefault();
+
+                                        const originalHtml = addBtn.innerHTML;
+                                        addBtn.disabled = true;
+                                        addBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Đang thêm...';
+
+                                        const formData = new FormData(form);
+                                        const payload = {
+                                            product_id: formData.get('product_id'),
+                                            variant_id: formData.get('variant_id') || null,
+                                            quantity: parseInt(formData.get('quantity'), 10) || 1
+                                        };
+
+                                        fetch(form.action, {
+                                            method: 'POST',
+                                            headers: {
+                                                'X-Requested-With': 'XMLHttpRequest',
+                                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                                                'Content-Type': 'application/json',
+                                                'Accept': 'application/json'
+                                            },
+                                            body: JSON.stringify(payload)
+                                        })
+                                        .then(function (response) { return response.json(); })
+                                        .then(function (data) {
+                                            if (data.success) {
+                                                showCartToast(data.message || 'Đã thêm vào giỏ hàng!', true);
+                                                if (typeof updateCartCount === 'function') updateCartCount(data.cart_count);
+                                            } else {
+                                                showCartToast(data.message || 'Có lỗi xảy ra!', false);
+                                            }
+                                        })
+                                        .catch(function (error) {
+                                            console.error(error);
+                                            showCartToast('Có lỗi kết nối. Vui lòng thử lại!', false);
+                                        })
+                                        .finally(function () {
+                                            addBtn.disabled = false;
+                                            addBtn.innerHTML = originalHtml;
+                                        });
+                                    });
+                                })();
+                            </script>
+
                             @if($variants->isNotEmpty())
                             <script>
                                 (function () {
