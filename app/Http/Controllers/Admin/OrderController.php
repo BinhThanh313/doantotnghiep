@@ -301,7 +301,7 @@ class OrderController extends Controller
     public function export(Request $request)
     {
         $request->validate([
-            'format' => 'sometimes|in:csv,excel',
+            'format' => 'sometimes|in:csv,excel,xlsx',
         ]);
 
         $query = Order::with(['items', 'payment', 'shipment']);
@@ -322,11 +322,83 @@ class OrderController extends Controller
 
         $format = $request->get('format', 'csv');
 
-        if ($format === 'csv') {
-            return $this->exportCsv($orders);
+        if ($format === 'excel' || $format === 'xlsx') {
+            return $this->exportExcel($orders);
         }
 
-        return $this->exportCsv($orders); // mở rộng Excel sau
+        return $this->exportCsv($orders);
+    }
+
+    /**
+     * Xuất đơn hàng ra file .xlsx thật (dùng PhpSpreadsheet, đã có sẵn
+     * trong composer.json — cùng thư viện ProductController@import đang dùng).
+     */
+    private function exportExcel($orders)
+    {
+        $statusLabels = [
+            'pending'       => 'Chờ xử lý',
+            'processing'    => 'Đang chuẩn bị',
+            'ready_to_ship' => 'Sẵn sàng giao',
+            'shipped'       => 'Đang vận chuyển',
+            'delivered'     => 'Đã giao hàng',
+            'completed'     => 'Hoàn thành',
+            'cancelled'     => 'Đã hủy',
+        ];
+
+        $paymentLabels = [
+            'unpaid'   => 'Chưa thanh toán',
+            'paid'     => 'Đã thanh toán',
+            'refunded' => 'Hoàn tiền',
+        ];
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Đơn hàng');
+
+        $headers = [
+            'Mã đơn hàng', 'Khách hàng', 'Email', 'Điện thoại',
+            'Địa chỉ', 'Tỉnh/Thành', 'Tạm tính', 'Phí ship',
+            'Giảm giá', 'Tổng cộng', 'Trạng thái', 'Thanh toán',
+            'PTTT', 'Ngày tạo', 'Cập nhật lần cuối',
+        ];
+        $sheet->fromArray($headers, null, 'A1');
+        $sheet->getStyle('A1:O1')->getFont()->setBold(true);
+
+        $row = 2;
+        foreach ($orders as $order) {
+            $sheet->fromArray([
+                $order->tracking_number ?? '#' . $order->id,
+                $order->customer_name,
+                $order->customer_email,
+                $order->customer_phone,
+                $order->address,
+                $order->province ?? '',
+                (float) $order->total_amount,
+                (float) ($order->shipping_fee ?? 0),
+                (float) ($order->discount_amount ?? 0),
+                (float) ($order->total_amount + ($order->shipping_fee ?? 0) - ($order->discount_amount ?? 0)),
+                $statusLabels[$order->status] ?? $order->status,
+                $paymentLabels[$order->payment_status] ?? $order->payment_status,
+                strtoupper($order->payment_method ?? ''),
+                $order->created_at->format('d/m/Y H:i'),
+                $order->updated_at->format('d/m/Y H:i'),
+            ], null, 'A' . $row);
+            $row++;
+        }
+
+        foreach (range('A', 'O') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $filename = 'orders_' . now()->format('Ymd_His') . '.xlsx';
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
     private function exportCsv($orders)

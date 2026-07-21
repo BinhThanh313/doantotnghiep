@@ -56,6 +56,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/dashboard/export', [DashboardController::class, 'export']);
 
     // Admin Insights (gợi ý hành động: restock, bán chậm, xu hướng, combo, giỏ hàng bỏ quên, ...)
     Route::get('/insights', [InsightController::class, 'index']);
@@ -93,6 +94,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 
     Route::apiResource('categories', CategoryController::class);
     Route::apiResource('users', UserController::class);
+    Route::post('/vouchers/import', [VoucherController::class, 'import']);
     Route::apiResource('vouchers', VoucherController::class);
     Route::patch('/vouchers/{id}/toggle', [VoucherController::class, 'toggle']);
 
@@ -139,6 +141,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::put('/flash-sales/{id}',                       [FlashSaleController::class, 'update']);
     Route::delete('/flash-sales/{id}',                    [FlashSaleController::class, 'destroy']);
     Route::post('/flash-sales/{id}/items',                [FlashSaleController::class, 'addItem']);
+    Route::post('/flash-sales/{id}/items/import',          [FlashSaleController::class, 'importItems']);
     Route::put('/flash-sales/{saleId}/items/{itemId}',    [FlashSaleController::class, 'updateItem']);
     Route::delete('/flash-sales/{saleId}/items/{itemId}', [FlashSaleController::class, 'removeItem']);
     Route::get('/flash-sales/{id}/available-products',    [FlashSaleController::class, 'availableProducts']);

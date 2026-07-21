@@ -125,6 +125,239 @@ class DashboardController extends Controller
         ]);
     }
 
+    /**
+     * GET /api/admin/dashboard/export?period=7days
+     * Xuất báo cáo tổng hợp dashboard ra 1 file .xlsx nhiều sheet — bao phủ
+     * toàn bộ nội dung hiển thị trên trang dashboard:
+     * Tổng quan, Doanh thu theo ngày, Trạng thái đơn hàng, Phương thức
+     * thanh toán, Top sản phẩm, Đơn hàng gần đây, Tồn kho thấp.
+     */
+    public function export(Request $request)
+    {
+        $period = $request->get('period', '7days');
+        [$startDate, $endDate] = $this->getPeriodDates($period);
+        $today = Carbon::today();
+        $periodLabels = [
+            '7days'     => '7 ngày qua',
+            '30days'    => '30 ngày qua',
+            'thisMonth' => 'Tháng này',
+            'thisYear'  => 'Năm nay',
+        ];
+
+        $totalRevenue = Order::where('status', 'completed')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as rev')
+            ->value('rev');
+
+        $prevRevenue = Order::where('status', 'completed')
+            ->whereBetween('created_at', $this->getPrevPeriodDates($period))
+            ->selectRaw('COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as rev')
+            ->value('rev');
+
+        $revenueChange = $prevRevenue > 0
+            ? round((($totalRevenue - $prevRevenue) / $prevRevenue) * 100, 1)
+            : 0;
+
+        $newOrders      = Order::where('status', 'pending')->count();
+        $totalUsers     = User::where('role', '!=', 'admin')->count();
+        $activeProducts = Product::where('is_active', true)->count();
+        $outOfStock     = Product::where('stock', 0)->count();
+
+        $todayOrders  = Order::whereDate('created_at', $today)->count();
+        $todayRevenue = Order::where('status', 'completed')
+            ->whereDate('created_at', $today)
+            ->selectRaw('COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as rev')
+            ->value('rev');
+
+        $chartRaw = Order::where('status', 'completed')
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->selectRaw('DATE(created_at) as date, COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as revenue, COUNT(*) as orders')
+            ->groupBy(DB::raw('DATE(created_at)'))
+            ->orderBy('date')
+            ->get();
+
+        // Giống hệt dữ liệu 2 biểu đồ "Phân bổ trạng thái đơn hàng" và
+        // "Phương thức thanh toán" trên dashboard — cả 2 đều lấy TOÀN BỘ
+        // đơn hàng (không lọc theo period), khớp với OrderController@stats.
+        $byStatus = Order::selectRaw('status, COUNT(*) as count, COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as total')
+            ->groupBy('status')
+            ->get();
+
+        $byPaymentMethod = Order::selectRaw('payment_method, COUNT(*) as count')
+            ->groupBy('payment_method')
+            ->get();
+
+        $statusLabels = [
+            'pending'       => 'Chờ xử lý',
+            'processing'    => 'Đang chuẩn bị',
+            'ready_to_ship' => 'Sẵn sàng giao',
+            'shipped'       => 'Đang vận chuyển',
+            'delivered'     => 'Đã giao hàng',
+            'completed'     => 'Hoàn thành',
+            'cancelled'     => 'Đã hủy',
+        ];
+
+        $topProducts = OrderItem::select('product_id', 'product_name')
+            ->selectRaw('SUM(quantity) as total_sold, SUM(quantity * price) as total_revenue')
+            ->whereHas('order', function ($query) use ($startDate, $endDate) {
+                $query->where('status', 'completed')
+                      ->whereBetween('created_at', [$startDate, $endDate]);
+            })
+            ->groupBy('product_id', 'product_name')
+            ->orderByDesc('total_revenue')
+            ->limit(20)
+            ->get();
+
+        $recentOrders = Order::with('user:id,name')
+            ->latest()
+            ->limit(20)
+            ->get(['id', 'user_id', 'tracking_number', 'customer_name', 'total_amount', 'shipping_fee', 'discount_amount', 'status', 'payment_status', 'created_at']);
+
+        $lowStockProducts = Product::where('is_active', true)
+            ->where('stock', '<=', 5)
+            ->orderBy('stock')
+            ->get(['id', 'name', 'stock', 'price']);
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+
+        // ---- Sheet 1: Tổng quan ----
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Tổng quan');
+        $sheet->fromArray([
+            ['Báo cáo tổng quan dashboard', $periodLabels[$period] ?? $period],
+            ['Xuất lúc', now()->format('d/m/Y H:i')],
+            [],
+            ['Chỉ số', 'Giá trị'],
+            ['Tổng doanh thu (kỳ đã chọn)', (float) $totalRevenue],
+            ['So với kỳ trước', $revenueChange . '%'],
+            ['Đơn chờ xử lý', $newOrders],
+            ['Tổng khách hàng', $totalUsers],
+            ['Sản phẩm đang bán', $activeProducts],
+            ['Sản phẩm hết hàng', $outOfStock],
+            ['Đơn hàng hôm nay', $todayOrders],
+            ['Doanh thu hôm nay', (float) $todayRevenue],
+        ], null, 'A1');
+        $sheet->getStyle('A4:B4')->getFont()->setBold(true);
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(13);
+        foreach (['A', 'B'] as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // ---- Sheet 2: Doanh thu theo ngày ----
+        $revenueSheet = $spreadsheet->createSheet();
+        $revenueSheet->setTitle('Doanh thu theo ngày');
+        $revenueSheet->fromArray(['Ngày', 'Doanh thu', 'Số đơn'], null, 'A1');
+        $revenueSheet->getStyle('A1:C1')->getFont()->setBold(true);
+        $row = 2;
+        foreach ($chartRaw as $r) {
+            $revenueSheet->fromArray([$r->date, (float) $r->revenue, (int) $r->orders], null, 'A' . $row);
+            $row++;
+        }
+        foreach (['A', 'B', 'C'] as $col) {
+            $revenueSheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // ---- Sheet 3: Trạng thái đơn hàng ----
+        $statusSheet = $spreadsheet->createSheet();
+        $statusSheet->setTitle('Trạng thái đơn hàng');
+        $statusSheet->fromArray(['Trạng thái', 'Số đơn', 'Tổng giá trị'], null, 'A1');
+        $statusSheet->getStyle('A1:C1')->getFont()->setBold(true);
+        $row = 2;
+        foreach ($byStatus as $s) {
+            $statusSheet->fromArray([
+                $statusLabels[$s->status] ?? $s->status,
+                (int) $s->count,
+                (float) $s->total,
+            ], null, 'A' . $row);
+            $row++;
+        }
+        foreach (['A', 'B', 'C'] as $col) {
+            $statusSheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // ---- Sheet 4: Phương thức thanh toán ----
+        $paymentSheet = $spreadsheet->createSheet();
+        $paymentSheet->setTitle('Phương thức thanh toán');
+        $paymentSheet->fromArray(['Phương thức', 'Số đơn'], null, 'A1');
+        $paymentSheet->getStyle('A1:B1')->getFont()->setBold(true);
+        $row = 2;
+        foreach ($byPaymentMethod as $p) {
+            $paymentSheet->fromArray([
+                strtoupper($p->payment_method ?? 'Khác'),
+                (int) $p->count,
+            ], null, 'A' . $row);
+            $row++;
+        }
+        foreach (['A', 'B'] as $col) {
+            $paymentSheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // ---- Sheet 5: Top sản phẩm ----
+        $topSheet = $spreadsheet->createSheet();
+        $topSheet->setTitle('Top sản phẩm');
+        $topSheet->fromArray(['Sản phẩm', 'Số lượng bán', 'Doanh thu'], null, 'A1');
+        $topSheet->getStyle('A1:C1')->getFont()->setBold(true);
+        $row = 2;
+        foreach ($topProducts as $p) {
+            $topSheet->fromArray([$p->product_name, (int) $p->total_sold, (float) $p->total_revenue], null, 'A' . $row);
+            $row++;
+        }
+        foreach (['A', 'B', 'C'] as $col) {
+            $topSheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // ---- Sheet 6: Đơn hàng gần đây ----
+        $paymentLabels = [
+            'unpaid'   => 'Chưa thanh toán',
+            'paid'     => 'Đã thanh toán',
+            'refunded' => 'Hoàn tiền',
+        ];
+        $ordersSheet = $spreadsheet->createSheet();
+        $ordersSheet->setTitle('Đơn hàng gần đây');
+        $ordersSheet->fromArray(['Mã đơn', 'Khách hàng', 'Tổng tiền', 'Trạng thái', 'Thanh toán', 'Ngày tạo'], null, 'A1');
+        $ordersSheet->getStyle('A1:F1')->getFont()->setBold(true);
+        $row = 2;
+        foreach ($recentOrders as $o) {
+            $ordersSheet->fromArray([
+                $o->tracking_number ?? '#' . $o->id,
+                $o->customer_name,
+                (float) ($o->total_amount + $o->shipping_fee - $o->discount_amount),
+                $statusLabels[$o->status] ?? $o->status,
+                $paymentLabels[$o->payment_status] ?? $o->payment_status,
+                $o->created_at->format('d/m/Y H:i'),
+            ], null, 'A' . $row);
+            $row++;
+        }
+        foreach (['A', 'B', 'C', 'D', 'E', 'F'] as $col) {
+            $ordersSheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // ---- Sheet 7: Tồn kho thấp ----
+        $stockSheet = $spreadsheet->createSheet();
+        $stockSheet->setTitle('Tồn kho thấp');
+        $stockSheet->fromArray(['Sản phẩm', 'Tồn kho', 'Giá'], null, 'A1');
+        $stockSheet->getStyle('A1:C1')->getFont()->setBold(true);
+        $row = 2;
+        foreach ($lowStockProducts as $p) {
+            $stockSheet->fromArray([$p->name, $p->stock, (float) $p->price], null, 'A' . $row);
+            $row++;
+        }
+        foreach (['A', 'B', 'C'] as $col) {
+            $stockSheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $spreadsheet->setActiveSheetIndex(0);
+
+        $filename = 'dashboard_' . now()->format('Ymd_His') . '.xlsx';
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
     private function getPeriodDates(string $period): array
     {
         return match($period) {

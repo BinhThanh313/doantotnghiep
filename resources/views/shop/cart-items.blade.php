@@ -1,6 +1,11 @@
 @if(!empty($cart))
     @foreach($cart as $id => $item)
     <tr>
+        <td class="align-middle">
+            <input type="checkbox" class="form-check-input item-select" data-id="{{ $id }}"
+                   style="width: 1.2em; height: 1.2em;" checked
+                   aria-label="Chọn sản phẩm để thanh toán">
+        </td>
         <th scope="row">
             <div class="d-flex align-items-center">
                 <img src="{{ !empty($item['image']) ? asset('storage/' . $item['image']) : asset('img/product-3.png') }}" 
@@ -46,7 +51,7 @@
     @endforeach
 @else
     <tr>
-        <td colspan="6" class="text-center py-5 text-danger fw-bold">
+        <td colspan="7" class="text-center py-5 text-danger fw-bold">
             Giỏ hàng của bạn đang trống! <br><br>
             <a href="{{ route('shop.index') }}" class="btn btn-primary mt-2">Tiếp tục mua sắm</a>
         </td>

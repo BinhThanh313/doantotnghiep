@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { mdiTicketPercent, mdiPlus, mdiPencil, mdiTrashCan, mdiCheckCircle, mdiCloseCircle } from '@mdi/js'
+import { mdiTicketPercent, mdiPlus, mdiPencil, mdiTrashCan, mdiCheckCircle, mdiCloseCircle, mdiFileExcel } from '@mdi/js'
 import SectionMain from '@/components/SectionMain.vue'
 import CardBox from '@/components/CardBox.vue'
 import CardBoxModal from '@/components/CardBoxModal.vue'
@@ -49,6 +49,37 @@ const fetchVouchers = async (page = 1) => {
     lastPage.value = res.data.last_page
   } catch (e) {
     console.error(e)
+  }
+}
+
+// ── Nhập Excel ──
+const importing = ref(false)
+const importInput = ref(null)
+const triggerImport = () => importInput.value?.click()
+
+const handleImportFile = async (e) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  importing.value = true
+  try {
+    const res = await api.post('/api/admin/vouchers/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    let msg = res.data.message
+    if (res.data.errors?.length) {
+      msg += '\n' + res.data.errors.join('\n')
+    }
+    showToast(msg, res.data.errors?.length ? 'warning' : 'success')
+    fetchVouchers(currentPage.value)
+  } catch (err) {
+    showToast(err.response?.data?.message || 'Lỗi nhập file Excel', 'error')
+  } finally {
+    importing.value = false
+    e.target.value = ''
   }
 }
 
@@ -143,7 +174,18 @@ onMounted(() => fetchVouchers())
   <LayoutAuthenticated>
     <SectionMain>
       <SectionTitleLineWithButton :icon="mdiTicketPercent" title="Quản lý Voucher / Mã giảm giá" main>
-        <BaseButton :icon="mdiPlus" label="Tạo mới" color="success" rounded-full @click="openCreate" />
+        <div class="flex items-center gap-2">
+          <input ref="importInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="handleImportFile" />
+          <BaseButton
+            :icon="mdiFileExcel"
+            :label="importing ? 'Đang nhập...' : 'Nhập Excel'"
+            color="info"
+            :disabled="importing"
+            rounded-full
+            @click="triggerImport"
+          />
+          <BaseButton :icon="mdiPlus" label="Tạo mới" color="success" rounded-full @click="openCreate" />
+        </div>
       </SectionTitleLineWithButton>
 
       <CardBox has-table>

@@ -9,6 +9,7 @@ use App\Models\FlashSaleItem;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class FlashSaleController extends Controller
 {
@@ -120,6 +121,101 @@ class FlashSaleController extends Controller
         $item = FlashSaleItem::create($data);
 
         return response()->json($item->load('product:id,name,price,image,stock'), 201);
+    }
+
+    // POST /api/admin/flash-sales/{id}/items/import
+    /**
+     * Thêm hàng loạt sản phẩm vào 1 Flash Sale từ file Excel/CSV.
+     * Cột nhận diện (không phân biệt hoa thường, có dấu/không dấu đều OK):
+     *   product | sanpham | tensanpham   (bắt buộc — so khớp theo tên, không phân biệt hoa thường)
+     *   sale_price | giaflashsale | giaban   (bắt buộc)
+     *   qty_limit | soluonggioihan | soluong (tùy chọn — để trống = không giới hạn)
+     *
+     * Sản phẩm không tìm thấy hoặc đã có sẵn trong Flash Sale này sẽ bị bỏ qua
+     * và ghi vào errors, không dừng cả file.
+     */
+    public function importItems(Request $request, $id)
+    {
+        $sale = FlashSale::findOrFail($id);
+
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv',
+        ]);
+
+        $path = $request->file('file')->getRealPath();
+
+        try {
+            $spreadsheet = IOFactory::load($path);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Không đọc được file: ' . $e->getMessage()], 422);
+        }
+
+        $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
+
+        if (empty($rows)) {
+            return response()->json(['message' => 'File rỗng'], 422);
+        }
+
+        $rawHeader = array_shift($rows);
+        $aliasMap = [
+            'product' => 'product', 'sanpham' => 'product', 'tensanpham' => 'product',
+            'saleprice' => 'sale_price', 'giaflashsale' => 'sale_price', 'giaban' => 'sale_price', 'gia' => 'sale_price',
+            'qtylimit' => 'qty_limit', 'soluonggioihan' => 'qty_limit', 'soluong' => 'qty_limit',
+        ];
+
+        $header = [];
+        foreach ($rawHeader as $col) {
+            $key = \Illuminate\Support\Str::slug((string) $col, '');
+            $header[] = $aliasMap[$key] ?? $key;
+        }
+
+        $created = 0;
+        $errors  = [];
+
+        DB::transaction(function () use ($rows, $header, $sale, &$created, &$errors) {
+            foreach ($rows as $index => $row) {
+                $rowNumber = $index + 2;
+                $data = array_combine($header, array_pad($row, count($header), null));
+
+                $productName = trim((string) ($data['product'] ?? ''));
+                if ($productName === '') {
+                    continue; // dòng trống bỏ qua
+                }
+
+                $salePrice = $data['sale_price'] ?? null;
+                if ($salePrice === null || $salePrice === '') {
+                    $errors[] = "Dòng {$rowNumber}: Sản phẩm '{$productName}' thiếu giá Flash Sale (sale_price), đã bỏ qua.";
+                    continue;
+                }
+
+                $product = Product::whereRaw('LOWER(name) = ?', [mb_strtolower($productName)])->first();
+                if (!$product) {
+                    $errors[] = "Dòng {$rowNumber}: Không tìm thấy sản phẩm '{$productName}', đã bỏ qua.";
+                    continue;
+                }
+
+                if ($sale->items()->where('product_id', $product->id)->exists()) {
+                    $errors[] = "Dòng {$rowNumber}: '{$productName}' đã có trong Flash Sale này, đã bỏ qua.";
+                    continue;
+                }
+
+                FlashSaleItem::create([
+                    'flash_sale_id' => $sale->id,
+                    'product_id'    => $product->id,
+                    'sale_price'    => (float) $salePrice,
+                    'qty_limit'     => !empty($data['qty_limit']) ? (int) $data['qty_limit'] : null,
+                    'is_active'     => true,
+                ]);
+
+                $created++;
+            }
+        });
+
+        return response()->json([
+            'message' => "Đã thêm {$created} sản phẩm vào Flash Sale.",
+            'created' => $created,
+            'errors'  => $errors,
+        ]);
     }
 
     // PUT /api/admin/flash-sales/{saleId}/items/{itemId}

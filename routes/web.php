@@ -62,6 +62,7 @@ Route::middleware(['auth'])->group(function () {
     })->name('cart.clear-voucher');
 
     // Checkout
+    Route::post('/checkout/select-items', [CheckoutController::class, 'selectItems'])->name('checkout.select-items');
     Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
     Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
     Route::get('/checkout/success/{id}', [CheckoutController::class, 'success'])->name('checkout.success');

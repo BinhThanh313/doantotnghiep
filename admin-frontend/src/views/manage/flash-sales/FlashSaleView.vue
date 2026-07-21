@@ -5,6 +5,7 @@ import {
   mdiBolt, mdiPlus, mdiPencil, mdiTrashCan, mdiEye,
   mdiClose, mdiRefresh, mdiCheckCircle, mdiClockOutline,
   mdiStopCircle, mdiPackageVariant, mdiChevronLeft, mdiChevronRight,
+  mdiFileExcel,
 } from '@mdi/js'
 import SectionMain from '@/components/SectionMain.vue'
 import CardBox from '@/components/CardBox.vue'
@@ -214,6 +215,37 @@ const openAddItem = async () => {
     showToast('Lỗi tải danh sách sản phẩm', 'error')
   }
   isAddItemModal.value = true
+}
+
+// ── Nhập Excel hàng loạt sản phẩm vào Flash Sale đang xem ──
+const itemImporting = ref(false)
+const itemImportInput = ref(null)
+const triggerItemImport = () => itemImportInput.value?.click()
+
+const handleImportItemsFile = async (e) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+
+  const formData = new FormData()
+  formData.append('file', file)
+
+  itemImporting.value = true
+  try {
+    const res = await api.post(`/api/admin/flash-sales/${selectedSale.value.id}/items/import`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    let msg = res.data.message
+    if (res.data.errors?.length) {
+      msg += '\n' + res.data.errors.join('\n')
+    }
+    showToast(msg, res.data.errors?.length ? 'warning' : 'success')
+    openDetail(selectedSale.value)
+  } catch (err) {
+    showToast(err.response?.data?.message || 'Lỗi nhập file Excel', 'error')
+  } finally {
+    itemImporting.value = false
+    e.target.value = ''
+  }
 }
 
 // Tự động điền giá khi chọn sản phẩm
@@ -473,7 +505,13 @@ onMounted(() => fetchSales())
           <div class="p-4">
             <div class="flex justify-between items-center mb-4">
               <h4 class="font-bold">Sản phẩm trong Flash Sale ({{ saleItems.length }})</h4>
-              <BaseButton :icon="mdiPlus" color="success" small label="Thêm SP" @click="openAddItem" />
+              <div class="flex items-center gap-2">
+                <input ref="itemImportInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="handleImportItemsFile" />
+                <BaseButton :icon="mdiFileExcel" color="info" small
+                  :label="itemImporting ? 'Đang nhập...' : 'Nhập Excel'"
+                  :disabled="itemImporting" @click="triggerItemImport" />
+                <BaseButton :icon="mdiPlus" color="success" small label="Thêm SP" @click="openAddItem" />
+              </div>
             </div>
 
             <div v-if="detailLoading" class="text-center py-8 text-gray-400">Đang tải...</div>

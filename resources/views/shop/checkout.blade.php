@@ -136,6 +136,12 @@
                     
                     <!-- Bên phải -->
                     <div class="col-md-12 col-lg-6 col-xl-6 wow fadeInUp" data-wow-delay="0.3s">
+                        @if(!empty($isPartialCheckout))
+                        <div class="alert alert-info d-flex justify-content-between align-items-center py-2 px-3 mb-3">
+                            <span>Bạn đang thanh toán một phần giỏ hàng.</span>
+                            <a href="{{ route('cart.index') }}" class="ms-2 text-decoration-underline">Đổi lựa chọn</a>
+                        </div>
+                        @endif
                         <div class="table-responsive">
                             <table class="table">
                                 <thead>

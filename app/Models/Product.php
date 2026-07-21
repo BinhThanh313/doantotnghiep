@@ -176,10 +176,12 @@ class Product extends Model
     /**
      * Trừ kho và ghi log
      */
-    public function decreaseStock(int $quantity, int $orderId, ?int $variantId = null): void
+    public function decreaseStock(int $quantity, int $orderId, ?int $variantId = null, ?ProductVariant $variant = null): void
     {
         if ($variantId) {
-            $variant = $this->variants()->find($variantId);
+            // Nếu caller đã có sẵn variant (đã lockForUpdate trước đó trong transaction),
+            // dùng lại thay vì SELECT lại lần nữa.
+            $variant = $variant ?? $this->variants()->find($variantId);
             if ($variant) {
                 $variant->decrement('stock', $quantity);
             }

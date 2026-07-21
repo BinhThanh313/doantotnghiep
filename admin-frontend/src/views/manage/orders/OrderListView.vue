@@ -861,7 +861,7 @@ onMounted(() => fetchOrders())
       >
         <div class="p-6 space-y-4">
           <FormField label="Định dạng">
-            <FormControl v-model="exportFormat" :options="[{ id: 'csv', label: 'CSV (Excel)' }]" />
+            <FormControl v-model="exportFormat" :options="[{ id: 'csv', label: 'CSV' }, { id: 'xlsx', label: 'Excel (.xlsx)' }]" />
           </FormField>
           <FormField label="Trạng thái đơn hàng">
             <FormControl v-model="exportStatus" :options="statusOptions" />
@@ -874,7 +874,7 @@ onMounted(() => fetchOrders())
               <FormControl v-model="exportDateTo" type="date" />
             </FormField>
           </div>
-          <p class="text-xs text-gray-500">File CSV có thể mở bằng Excel, Google Sheets.</p>
+          <p class="text-xs text-gray-500">CSV và Excel (.xlsx) đều mở được bằng Excel, Google Sheets.</p>
         </div>
       </CardBoxModal>
 

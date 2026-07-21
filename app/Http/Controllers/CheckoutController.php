@@ -187,9 +187,15 @@ class CheckoutController extends Controller
 
                 // 1. Kiểm tra tồn kho — theo biến thể nếu khách chọn màu/size,
                 // ngược lại theo tồn kho chung của sản phẩm.
+                // Giữ lại $product/$variant đã lock để tái sử dụng ở bước 6,
+                // tránh việc phải SELECT lại cùng bản ghi lần thứ hai.
+                $lockedProducts = [];
+                $lockedVariants = [];
+
                 foreach ($cart as $item) {
                     $product = Product::lockForUpdate()->findOrFail($item['id']);
                     $label   = $product->name . (!empty($item['variant_name']) ? " ({$item['variant_name']})" : '');
+                    $lockedProducts[$item['id']] = $product;
 
                     if (!empty($item['variant_id'])) {
                         $variant = \App\Models\ProductVariant::lockForUpdate()->find($item['variant_id']);
@@ -197,6 +203,7 @@ class CheckoutController extends Controller
                             $available = $variant->stock ?? 0;
                             throw new \Exception("Sản phẩm '{$label}' chỉ còn {$available} trong kho.");
                         }
+                        $lockedVariants[$item['variant_id']] = $variant;
                     } elseif ($product->stock < $item['quantity']) {
                         throw new \Exception("Sản phẩm '{$label}' chỉ còn {$product->stock} trong kho.");
                     }
@@ -279,7 +286,12 @@ class CheckoutController extends Controller
                         'discount_percent'    => $discountPercent > 0 ? $discountPercent : null,
                     ]);
 
-                    Product::find($item['id'])->decreaseStock($item['quantity'], $order->id, $item['variant_id'] ?? null);
+                    $lockedProducts[$item['id']]->decreaseStock(
+                        $item['quantity'],
+                        $order->id,
+                        $item['variant_id'] ?? null,
+                        $item['variant_id'] ? ($lockedVariants[$item['variant_id']] ?? null) : null
+                    );
                 }
 
                 // 7. Lưu voucher usage (từng mã trong danh sách đã áp dụng)

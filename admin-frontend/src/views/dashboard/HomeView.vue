@@ -33,6 +33,7 @@ const revenueChartData = ref(null)
 const chartPeriod  = ref('7days') // '7days' | '30days' | 'monthly'
 const loading      = ref(false)
 const statsLoading = ref(false)
+const exportLoading = ref(false)
 
 // ── Formatters ──────────────────────────────────────────────────
 const formatPrice = (v) =>
@@ -124,6 +125,25 @@ const fetchDashboardData = async () => {
   }
 }
 
+const exportDashboard = async () => {
+  exportLoading.value = true
+  try {
+    const res  = await api.get('/api/admin/dashboard/export', { responseType: 'blob' })
+    const url  = window.URL.createObjectURL(new Blob([res.data]))
+    const link = document.createElement('a')
+    link.href  = url
+    link.setAttribute('download', `dashboard_${new Date().toISOString().slice(0, 10)}.xlsx`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (e) {
+    console.error('Dashboard export error:', e)
+  } finally {
+    exportLoading.value = false
+  }
+}
+
 const fetchOrderStats = async () => {
   statsLoading.value = true
   try {
@@ -205,6 +225,10 @@ onMounted(() => {
   <LayoutAuthenticated>
     <SectionMain>
       <SectionTitleLineWithButton :icon="mdiChartTimelineVariant" title="Tổng quan hệ thống" main>
+        <button @click="exportDashboard" :disabled="exportLoading"
+                class="text-sm text-blue-600 hover:underline flex items-center gap-1 mr-4 disabled:opacity-50">
+          ⬇ {{ exportLoading ? 'Đang xuất...' : 'Xuất Excel' }}
+        </button>
         <button @click="fetchDashboardData(); fetchOrderStats()"
                 class="text-sm text-blue-600 hover:underline flex items-center gap-1">
           ↻ Làm mới
@@ -323,7 +347,7 @@ onMounted(() => {
         <CardBox has-table>
           <div class="p-4 border-b border-gray-100 dark:border-slate-800 flex items-center justify-between">
             <h4 class="text-lg font-bold">Đơn hàng mới nhất</h4>
-            <a href="#/manage/orders" class="text-xs text-blue-600 hover:underline">Xem tất cả →</a>
+            <router-link to="/orders" class="text-xs text-blue-600 hover:underline">Xem tất cả →</router-link>
           </div>
           <table>
             <thead>

@@ -18,6 +18,11 @@
             <table class="table" id="cart-table">
                 <thead>
                     <tr>
+                        <th scope="col">
+                            <input type="checkbox" id="select-all-items" class="form-check-input"
+                                   style="width: 1.2em; height: 1.2em;" checked
+                                   title="Chọn / bỏ chọn tất cả">
+                        </th>
                         <th scope="col">Sản phẩm</th>
                         <th scope="col">Mã SP</th>
                         <th scope="col">Đơn giá</th>
@@ -132,8 +137,57 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(data => {
             document.getElementById('cart-body').innerHTML = data.cart_html;
             document.getElementById('cart-summary').innerHTML = data.summary_html;
+            const selectAll = document.getElementById('select-all-items');
+            if (selectAll) selectAll.checked = true;
         });
     }
+
+    // ====================== CHỌN SẢN PHẨM ĐỂ THANH TOÁN ======================
+    document.addEventListener('change', function (e) {
+        if (e.target.id === 'select-all-items') {
+            document.querySelectorAll('.item-select').forEach(cb => cb.checked = e.target.checked);
+        }
+        if (e.target.classList.contains('item-select')) {
+            const allBoxes = document.querySelectorAll('.item-select');
+            const selectAll = document.getElementById('select-all-items');
+            if (selectAll) {
+                selectAll.checked = allBoxes.length > 0 && Array.from(allBoxes).every(cb => cb.checked);
+            }
+        }
+    });
+
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('#checkout-btn')) {
+            const selectedIds = Array.from(document.querySelectorAll('.item-select:checked'))
+                .map(cb => cb.dataset.id);
+
+            if (selectedIds.length === 0) {
+                alert('Vui lòng chọn ít nhất 1 sản phẩm để thanh toán!');
+                return;
+            }
+
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{{ route("checkout.select-items") }}';
+
+            const tokenInput = document.createElement('input');
+            tokenInput.type = 'hidden';
+            tokenInput.name = '_token';
+            tokenInput.value = document.querySelector('meta[name="csrf-token"]').content;
+            form.appendChild(tokenInput);
+
+            selectedIds.forEach(id => {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'item_ids[]';
+                input.value = id;
+                form.appendChild(input);
+            });
+
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
 
     // ====================== VOUCHER ======================
     const applyBtn    = document.getElementById('apply-voucher-btn');

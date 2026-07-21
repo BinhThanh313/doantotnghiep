@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Voucher;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use PhpOffice\PhpSpreadsheet\IOFactory;
 
 class VoucherController extends Controller
 {
@@ -22,6 +25,130 @@ class VoucherController extends Controller
         }
 
         return response()->json($query->latest()->paginate(15));
+    }
+
+    /**
+     * POST /api/admin/vouchers/import
+     * Nhập hàng loạt voucher từ file Excel/CSV.
+     * - Nếu "code" đã tồn tại (không phân biệt hoa thường) => cập nhật voucher đó.
+     * - Nếu chưa có => tạo voucher mới.
+     *
+     * Cột nhận diện (không phân biệt hoa thường, có dấu/không dấu đều OK):
+     *   code | ma | maco                        (bắt buộc, duy nhất)
+     *   name | ten
+     *   discount_type | loaigiam        (percent | fixed — mặc định percent)
+     *   discount_value | giatrigiam     (bắt buộc)
+     *   min_amount | dontoithieu
+     *   max_discount | giamtoida
+     *   max_uses | soluottoida
+     *   max_uses_per_user | soluotmoinguoi
+     *   start_date | ngaybatdau         (định dạng Y-m-d hoặc do Excel tự nhận)
+     *   end_date | ngayketthuc
+     *   is_active | kichhoat            (1/0, true/false, có/không)
+     */
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv',
+        ]);
+
+        $path = $request->file('file')->getRealPath();
+
+        try {
+            $spreadsheet = IOFactory::load($path);
+        } catch (\Throwable $e) {
+            return response()->json(['message' => 'Không đọc được file: ' . $e->getMessage()], 422);
+        }
+
+        $rows = $spreadsheet->getActiveSheet()->toArray(null, true, true, false);
+
+        if (empty($rows)) {
+            return response()->json(['message' => 'File rỗng'], 422);
+        }
+
+        $rawHeader = array_shift($rows);
+        $aliasMap = [
+            'code' => 'code', 'ma' => 'code', 'maco' => 'code', 'mavoucher' => 'code',
+            'name' => 'name', 'ten' => 'name', 'tenvoucher' => 'name',
+            'discounttype' => 'discount_type', 'loaigiam' => 'discount_type',
+            'discountvalue' => 'discount_value', 'giatrigiam' => 'discount_value',
+            'minamount' => 'min_amount', 'dontoithieu' => 'min_amount',
+            'maxdiscount' => 'max_discount', 'giamtoida' => 'max_discount',
+            'maxuses' => 'max_uses', 'soluottoida' => 'max_uses',
+            'maxusesperuser' => 'max_uses_per_user', 'soluotmoinguoi' => 'max_uses_per_user',
+            'startdate' => 'start_date', 'ngaybatdau' => 'start_date',
+            'enddate' => 'end_date', 'ngayketthuc' => 'end_date',
+            'isactive' => 'is_active', 'kichhoat' => 'is_active',
+        ];
+
+        $header = [];
+        foreach ($rawHeader as $col) {
+            $key = Str::slug((string) $col, '');
+            $header[] = $aliasMap[$key] ?? $key;
+        }
+
+        $created = 0;
+        $updated = 0;
+        $errors  = [];
+
+        DB::transaction(function () use ($rows, $header, &$created, &$updated, &$errors) {
+            foreach ($rows as $index => $row) {
+                $rowNumber = $index + 2;
+                $data = array_combine($header, array_pad($row, count($header), null));
+
+                $code = strtoupper(trim((string) ($data['code'] ?? '')));
+                if ($code === '') {
+                    continue; // dòng trống bỏ qua
+                }
+
+                $discountValue = $data['discount_value'] ?? null;
+                if ($discountValue === null || $discountValue === '') {
+                    $errors[] = "Dòng {$rowNumber}: Voucher '{$code}' thiếu giá trị giảm (discount_value), đã bỏ qua.";
+                    continue;
+                }
+
+                $discountType = strtolower(trim((string) ($data['discount_type'] ?? 'percent')));
+                if (!in_array($discountType, ['percent', 'fixed'])) {
+                    $discountType = 'percent';
+                }
+
+                $isActiveRaw = $data['is_active'] ?? null;
+                $isActive = $isActiveRaw === null || $isActiveRaw === ''
+                    ? true
+                    : in_array(strtolower(trim((string) $isActiveRaw)), ['1', 'true', 'có', 'co', 'yes', 'x']);
+
+                $payload = [
+                    'name'                  => $data['name'] ?? null,
+                    'discount_type'         => $discountType,
+                    'discount_value'        => (float) $discountValue,
+                    'min_amount'            => !empty($data['min_amount']) ? (float) $data['min_amount'] : 0,
+                    'max_discount'          => !empty($data['max_discount']) ? (float) $data['max_discount'] : null,
+                    'max_uses'              => !empty($data['max_uses']) ? (int) $data['max_uses'] : null,
+                    'max_uses_per_user'     => !empty($data['max_uses_per_user']) ? (int) $data['max_uses_per_user'] : 1,
+                    'start_date'            => !empty($data['start_date']) ? $data['start_date'] : now()->format('Y-m-d H:i:s'),
+                    'end_date'              => !empty($data['end_date']) ? $data['end_date'] : null,
+                    'is_active'             => $isActive,
+                ];
+
+                $voucher = Voucher::whereRaw('UPPER(code) = ?', [$code])->first();
+
+                if ($voucher) {
+                    $voucher->update($payload);
+                    $updated++;
+                } else {
+                    $payload['code'] = $code;
+                    Voucher::create($payload);
+                    $created++;
+                }
+            }
+        });
+
+        return response()->json([
+            'message' => "Đã nhập xong: {$created} voucher mới, {$updated} voucher cập nhật.",
+            'created' => $created,
+            'updated' => $updated,
+            'errors'  => $errors,
+        ]);
     }
 
     public function store(Request $request)
