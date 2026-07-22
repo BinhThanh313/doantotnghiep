@@ -57,6 +57,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/dashboard/export', [DashboardController::class, 'export']);
+    Route::get('/dashboard/export-pdf', [DashboardController::class, 'exportPdf']);
 
     // Admin Insights (gợi ý hành động: restock, bán chậm, xu hướng, combo, giỏ hàng bỏ quên, ...)
     Route::get('/insights', [InsightController::class, 'index']);

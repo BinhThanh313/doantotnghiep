@@ -33,7 +33,8 @@ const revenueChartData = ref(null)
 const chartPeriod  = ref('7days') // '7days' | '30days' | 'monthly'
 const loading      = ref(false)
 const statsLoading = ref(false)
-const exportLoading = ref(false)
+const exportLoading    = ref(false)
+const exportPdfLoading = ref(false)
 
 // ── Formatters ──────────────────────────────────────────────────
 const formatPrice = (v) =>
@@ -144,6 +145,25 @@ const exportDashboard = async () => {
   }
 }
 
+const exportDashboardPdf = async () => {
+  exportPdfLoading.value = true
+  try {
+    const res  = await api.get('/api/admin/dashboard/export-pdf', { responseType: 'blob' })
+    const url  = window.URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+    const link = document.createElement('a')
+    link.href  = url
+    link.setAttribute('download', `dashboard_${new Date().toISOString().slice(0, 10)}.pdf`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    window.URL.revokeObjectURL(url)
+  } catch (e) {
+    console.error('Dashboard PDF export error:', e)
+  } finally {
+    exportPdfLoading.value = false
+  }
+}
+
 const fetchOrderStats = async () => {
   statsLoading.value = true
   try {
@@ -228,6 +248,10 @@ onMounted(() => {
         <button @click="exportDashboard" :disabled="exportLoading"
                 class="text-sm text-blue-600 hover:underline flex items-center gap-1 mr-4 disabled:opacity-50">
           ⬇ {{ exportLoading ? 'Đang xuất...' : 'Xuất Excel' }}
+        </button>
+        <button @click="exportDashboardPdf" :disabled="exportPdfLoading"
+                class="text-sm text-red-600 hover:underline flex items-center gap-1 mr-4 disabled:opacity-50">
+          ⬇ {{ exportPdfLoading ? 'Đang xuất...' : 'Xuất báo cáo PDF' }}
         </button>
         <button @click="fetchDashboardData(); fetchOrderStats()"
                 class="text-sm text-blue-600 hover:underline flex items-center gap-1">
