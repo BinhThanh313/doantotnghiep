@@ -170,7 +170,7 @@ onMounted(() => fetchPayments())
   <LayoutAuthenticated>
     <SectionMain>
       <SectionTitleLineWithButton :icon="mdiCreditCardOutline" title="Quản lý Thanh toán" main>
-        <BaseButton :icon="mdiRefresh" color="info" small @click="fetchPayments(currentPage)" />
+        <BaseButton :icon="mdiRefresh" color="info" small rounded-full @click="fetchPayments(currentPage)" />
       </SectionTitleLineWithButton>
 
       <!-- Filters -->
@@ -186,7 +186,7 @@ onMounted(() => fetchPayments())
             <FormControl v-model="filterSearch" placeholder="Mã GD, mã đơn hàng..."
               @keyup.enter="fetchPayments(1)" />
           </FormField>
-          <BaseButton color="info" :icon="mdiFilter" label="Lọc" @click="fetchPayments(1)" />
+          <BaseButton color="info" :icon="mdiFilter" label="Lọc" rounded-full @click="fetchPayments(1)" />
           <BaseButton v-if="hasFilters" color="warning" :icon="mdiFilterOff" outline label="Xóa lọc" @click="clearFilters" />
         </div>
       </CardBox>

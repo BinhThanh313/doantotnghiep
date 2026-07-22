@@ -96,20 +96,38 @@ onMounted(() => fetchReviews())
 <template>
   <LayoutAuthenticated>
     <SectionMain>
-      <SectionTitleLineWithButton :icon="mdiStar" title="Quản lý Đánh giá sản phẩm" main />
+      <SectionTitleLineWithButton :icon="mdiStar" title="Quản lý Đánh giá sản phẩm" main>
+        <span></span>
+      </SectionTitleLineWithButton>
 
       <!-- Filters -->
       <CardBox class="mb-4">
-        <div class="flex flex-wrap gap-4 items-end p-2">
-          <FormField label="Lọc theo sao" class="mb-0">
-            <FormControl v-model="filterRating" :options="ratingOptions" />
-          </FormField>
-          <FormField label="Hiển thị" class="mb-0">
-            <FormControl v-model="filterVisible" :options="visibleOptions" />
-          </FormField>
-          <BaseButton color="info" label="Lọc" @click="fetchReviews(1)" />
-        </div>
-      </CardBox>
+  <div class="flex items-end gap-4 w-full p-2">
+    <FormField label="Lọc theo sao" class="flex-1 mb-0">
+      <FormControl
+        v-model="filterRating"
+        :options="ratingOptions"
+        class="w-full"
+      />
+    </FormField>
+
+    <FormField label="Hiển thị" class="flex-1 mb-0">
+      <FormControl
+        v-model="filterVisible"
+        :options="visibleOptions"
+        class="w-full"
+      />
+    </FormField>
+
+    <BaseButton
+      color="info"
+      label="Lọc"
+      rounded-full
+      class="flex-none"
+      @click="fetchReviews(1)"
+    />
+  </div>
+</CardBox>
 
       <!-- Reviews Table -->
       <CardBox has-table>

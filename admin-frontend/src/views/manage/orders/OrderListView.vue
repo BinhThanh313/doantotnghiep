@@ -416,8 +416,8 @@ onMounted(() => fetchOrders())
     <SectionMain>
       <SectionTitleLineWithButton :icon="mdiCartOutline" title="Quản lý Đơn hàng" main>
         <div class="flex gap-2">
-          <BaseButton :icon="mdiDownload" color="success" small label="Xuất file" @click="isExportModalActive = true" />
-          <BaseButton :icon="mdiRefresh" color="info" small @click="fetchOrders(currentPage)" />
+          <BaseButton :icon="mdiDownload" color="success" small rounded-full label="Xuất file" @click="isExportModalActive = true" />
+          <BaseButton :icon="mdiRefresh" color="info" small rounded-full @click="fetchOrders(currentPage)" />
         </div>
       </SectionTitleLineWithButton>
 
@@ -454,8 +454,8 @@ onMounted(() => fetchOrders())
               <FormControl v-model="sortOrder" :options="[{ id: 'desc', label: 'Mới nhất' }, { id: 'asc', label: 'Cũ nhất' }]" />
             </FormField>
             <div class="flex gap-2 mb-0">
-              <BaseButton color="info" :icon="mdiFilter" label="Lọc" @click="fetchOrders(1)" />
-              <BaseButton v-if="hasActiveFilters" color="warning" :icon="mdiFilterOff" outline label="Xóa lọc" @click="clearFilters" />
+              <BaseButton color="info" :icon="mdiFilter" label="Lọc" rounded-full @click="fetchOrders(1)" />
+              <BaseButton v-if="hasActiveFilters" color="warning" :icon="mdiFilterOff" outline rounded-full label="Xóa lọc" @click="clearFilters" />
             </div>
           </div>
         </div>

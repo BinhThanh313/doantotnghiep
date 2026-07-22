@@ -96,6 +96,7 @@ onMounted(() => fetchMessages())
             :label="onlyUnread ? 'Đang lọc: Chưa đọc' : 'Xem tất cả'"
             :color="onlyUnread ? 'danger' : 'whiteDark'"
             small
+            rounded-full
             @click="toggleFilter"
           />
         </BaseButtons>

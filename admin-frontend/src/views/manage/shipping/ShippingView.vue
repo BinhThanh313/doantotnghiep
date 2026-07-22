@@ -154,7 +154,9 @@ onMounted(() => {
 <template>
   <LayoutAuthenticated>
     <SectionMain>
-      <SectionTitleLineWithButton :icon="mdiTruck" title="Quản lý Vận chuyển" main />
+      <SectionTitleLineWithButton :icon="mdiTruck" title="Quản lý Vận chuyển" main>
+        <span></span>
+      </SectionTitleLineWithButton>
 
       <!-- Tabs -->
       <div class="flex gap-2 mb-6">
@@ -172,7 +174,13 @@ onMounted(() => {
         <CardBox class="mb-4">
           <div class="p-4 flex justify-between items-center">
             <h3 class="text-lg font-bold">Nhà vận chuyển</h3>
-            <BaseButton :icon="mdiPlus" label="Thêm mới" color="success" small @click="openCreateCarrier" />
+            <BaseButton
+          :icon="mdiPlus"
+          label="Thêm mới"
+          color="success"
+          rounded-full
+          @click="openModal()"
+        />
           </div>
         </CardBox>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

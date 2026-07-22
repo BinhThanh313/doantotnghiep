@@ -330,7 +330,7 @@ onMounted(() => fetchSales())
   <LayoutAuthenticated>
     <SectionMain>
       <SectionTitleLineWithButton :icon="mdiBolt" title="Quản lý Flash Sale" main>
-        <BaseButton :icon="mdiPlus" color="success" label="Tạo Flash Sale" @click="openCreateSale" />
+        <BaseButton :icon="mdiPlus" color="success" label="Tạo Flash Sale" rounded-full @click="openCreateSale" />
       </SectionTitleLineWithButton>
 
       <!-- Filter -->
@@ -339,8 +339,8 @@ onMounted(() => fetchSales())
           <FormField label="Trạng thái" class="mb-0 flex-1 min-w-40">
             <FormControl v-model="filterStatus" :options="statusFilterOptions" />
           </FormField>
-          <BaseButton color="info" label="Lọc" @click="fetchSales(1)" />
-          <BaseButton color="info" :icon="mdiRefresh" small @click="fetchSales(currentPage)" />
+          <BaseButton color="info" label="Lọc" rounded-full @click="fetchSales(1)" />
+          <BaseButton color="info" :icon="mdiRefresh" small rounded-full @click="fetchSales(currentPage)" />
         </div>
       </CardBox>
 

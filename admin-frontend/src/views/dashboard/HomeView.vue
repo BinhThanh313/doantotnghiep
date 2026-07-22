@@ -2,7 +2,8 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import {
   mdiChartTimelineVariant, mdiCartOutline, mdiAccountMultiple,
-  mdiPackageVariant, mdiCashMultiple, mdiAlertCircle, mdiTrendingUp
+  mdiPackageVariant, mdiCashMultiple, mdiAlertCircle, mdiTrendingUp,
+  mdiFileExcel, mdiFilePdfBox, mdiRefresh
 } from '@mdi/js'
 import SectionMain from '@/components/SectionMain.vue'
 import CardBoxWidget from '@/components/CardBoxWidget.vue'
@@ -10,6 +11,7 @@ import CardBox from '@/components/CardBox.vue'
 import LineChart from '@/components/Charts/LineChart.vue'
 import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
 import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.vue'
+import BaseButton from '@/components/BaseButton.vue'
 import api from '@/services/api'
 
 // ── State ───────────────────────────────────────────────────────
@@ -245,18 +247,16 @@ onMounted(() => {
   <LayoutAuthenticated>
     <SectionMain>
       <SectionTitleLineWithButton :icon="mdiChartTimelineVariant" title="Tổng quan hệ thống" main>
-        <button @click="exportDashboard" :disabled="exportLoading"
-                class="text-sm text-blue-600 hover:underline flex items-center gap-1 mr-4 disabled:opacity-50">
-          ⬇ {{ exportLoading ? 'Đang xuất...' : 'Xuất Excel' }}
-        </button>
-        <button @click="exportDashboardPdf" :disabled="exportPdfLoading"
-                class="text-sm text-red-600 hover:underline flex items-center gap-1 mr-4 disabled:opacity-50">
-          ⬇ {{ exportPdfLoading ? 'Đang xuất...' : 'Xuất báo cáo PDF' }}
-        </button>
-        <button @click="fetchDashboardData(); fetchOrderStats()"
-                class="text-sm text-blue-600 hover:underline flex items-center gap-1">
-          ↻ Làm mới
-        </button>
+        <div class="flex gap-2">
+          <BaseButton :icon="mdiFileExcel" color="success" small rounded-full
+                      :label="exportLoading ? 'Đang xuất...' : 'Xuất Excel'"
+                      :disabled="exportLoading" @click="exportDashboard" />
+          <BaseButton :icon="mdiFilePdfBox" color="danger" small rounded-full
+                      :label="exportPdfLoading ? 'Đang xuất...' : 'Xuất báo cáo PDF'"
+                      :disabled="exportPdfLoading" @click="exportDashboardPdf" />
+          <BaseButton :icon="mdiRefresh" color="info" small rounded-full
+                      @click="fetchDashboardData(); fetchOrderStats()" title="Làm mới" />
+        </div>
       </SectionTitleLineWithButton>
 
       <!-- Widgets Row 1 -->
