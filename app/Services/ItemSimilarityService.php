@@ -75,6 +75,29 @@ class ItemSimilarityService
     }
 
     /**
+     * Bản gộp query của topSimilar() — lấy sản phẩm tương đồng cho NHIỀU
+     * sản phẩm nguồn cùng lúc bằng 1 câu query duy nhất (thay vì gọi
+     * topSimilar() trong vòng lặp, tốn 1 query/sản phẩm nguồn — N+1).
+     * Vì build() chỉ lưu tối đa top-20 similar/sản phẩm, lấy hết rồi group
+     * + cắt limit trong PHP vẫn rẻ hơn nhiều so với N round-trip DB.
+     *
+     * @return array<int, \Illuminate\Support\Collection> [product_id => Collection<ProductSimilarity>]
+     */
+    public function topSimilarBatch(array $productIds, int $limit = 10): array
+    {
+        if (empty($productIds)) {
+            return [];
+        }
+
+        return ProductSimilarity::whereIn('product_id', $productIds)
+            ->orderByDesc('score')
+            ->get()
+            ->groupBy('product_id')
+            ->map(fn ($rows) => $rows->take($limit))
+            ->all();
+    }
+
+    /**
      * Xây ma trận [user_id => [product_id => trọng_số]] từ đơn hàng đã
      * hoàn tất (mua = 3) và lượt xem có gắn user_id (xem = 1, bỏ qua lượt
      * xem của khách vãng lai vì không có định danh nhất quán để đối chiếu).

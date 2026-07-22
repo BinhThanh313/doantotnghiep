@@ -143,8 +143,10 @@ class ShopController extends Controller
             ->get();
 
         // Danh mục dùng để trỏ link cho các banner quảng cáo
-        $cameraCategory = Category::where('name', 'Máy ảnh')->first();
-        $watchCategory  = Category::where('name', 'Đồng hồ thông minh')->first();
+        // (gộp 2 truy vấn where()->first() thành 1 truy vấn whereIn)
+        $adCategories   = Category::whereIn('name', ['Máy ảnh', 'Đồng hồ thông minh'])->get()->keyBy('name');
+        $cameraCategory = $adCategories->get('Máy ảnh');
+        $watchCategory  = $adCategories->get('Đồng hồ thông minh');
 
         return view('shop.bestseller', compact(
             'products', 'categories', 'allProducts', 'newArrivals', 'featuredProducts',

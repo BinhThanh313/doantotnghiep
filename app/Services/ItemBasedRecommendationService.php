@@ -41,8 +41,10 @@ class ItemBasedRecommendationService
 
         $scores = collect();
 
+        $similarByProduct = $this->similarityService->topSimilarBatch($sourceWeights->keys()->all(), 10);
+
         foreach ($sourceWeights as $productId => $weight) {
-            $similar = $this->similarityService->topSimilar($productId, 10);
+            $similar = $similarByProduct[$productId] ?? collect();
 
             foreach ($similar as $row) {
                 if ($boughtIds->contains($row->similar_product_id)) {
