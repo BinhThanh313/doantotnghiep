@@ -23,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        \Illuminate\Support\Facades\URL::forceScheme('https'); // FIX MIXED CONTENT ON RENDER
+        
         Schema::defaultStringLength(191); // THÊM DÒNG NÀY
         Paginator::useBootstrapFive();
 
