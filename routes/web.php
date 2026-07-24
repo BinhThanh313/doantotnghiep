@@ -15,6 +15,13 @@ use App\Http\Controllers\ContactController;
 |--------------------------------------------------------------------------
 */
 
+Route::get('/clear-cache', function () {
+    \Illuminate\Support\Facades\Artisan::call('cache:clear');
+    \Illuminate\Support\Facades\Artisan::call('config:clear');
+    \Illuminate\Support\Facades\Artisan::call('view:clear');
+    return "Cache is cleared!";
+});
+
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/home', [HomeController::class, 'index']);
 
