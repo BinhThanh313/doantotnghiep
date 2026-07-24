@@ -24,20 +24,35 @@ Route::get('/run-seed', function () {
     ini_set('max_execution_time', '300');
     ini_set('memory_limit', '512M');
     
-    file_put_contents(public_path('seeder-log.txt'), "Đang chạy tạo dữ liệu... Vui lòng F5 lại file này sau 1-2 phút nữa.\n");
+    file_put_contents(storage_path('logs/seeder-log.txt'), "Đang chạy tạo dữ liệu... Vui lòng F5 lại trang /view-seeder-log sau 1-2 phút nữa.\n");
     
     try {
         \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
         $output = \Illuminate\Support\Facades\Artisan::output();
-        file_put_contents(public_path('seeder-log.txt'), "TẠO DỮ LIỆU MẪU THÀNH CÔNG!\n\n" . $output);
-        return "Xong! Hãy truy cập /seeder-log.txt để xem kết quả.";
+        file_put_contents(storage_path('logs/seeder-log.txt'), "TẠO DỮ LIỆU MẪU THÀNH CÔNG!\n\n" . $output);
+        return "Xong! Hãy truy cập /view-seeder-log để xem kết quả.";
     } catch (\Throwable $e) {
         $error = "CÓ LỖI XẢY RA: \n" . $e->getMessage() . "\nLine: " . $e->getLine() . " in " . $e->getFile();
-        file_put_contents(public_path('seeder-log.txt'), $error);
+        file_put_contents(storage_path('logs/seeder-log.txt'), $error);
         return $error;
     }
 });
+// Route xem log để debug
+Route::get('/view-logs', function () {
+    $logFile = storage_path('logs/laravel.log');
+    if (file_exists($logFile)) {
+        return nl2br(file_get_contents($logFile));
+    }
+    return "Không có file log.";
+});
 
+Route::get('/view-seeder-log', function () {
+    $logFile = storage_path('logs/seeder-log.txt');
+    if (file_exists($logFile)) {
+        return nl2br(file_get_contents($logFile));
+    }
+    return "Chưa có log seeder.";
+});
 Route::get('/shop', [ShopController::class, 'index'])->name('shop.index');
 Route::get('/shop/{id}', [ShopController::class, 'show'])->name('shop.show');
 Route::get('/vouchers', [ShopController::class, 'vouchers'])->name('shop.vouchers');
