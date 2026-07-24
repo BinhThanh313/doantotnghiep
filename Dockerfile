@@ -6,12 +6,13 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     libfreetype6-dev \
     libpq-dev \
+    libzip-dev \
     zip \
     unzip \
     git \
     curl \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install pdo pdo_mysql pdo_pgsql gd
+    && docker-php-ext-install pdo pdo_mysql pdo_pgsql gd zip
 
 # Bật Apache mod_rewrite cho Laravel
 RUN a2enmod rewrite
