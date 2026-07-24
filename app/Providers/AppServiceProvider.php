@@ -25,6 +25,11 @@ class AppServiceProvider extends ServiceProvider
     {
         \Illuminate\Support\Facades\URL::forceScheme('https'); // FIX MIXED CONTENT ON RENDER
         
+        // Bắt buộc Laravel dùng đúng tên miền gốc (bỏ qua cổng 10000 của Render)
+        if (env('APP_URL')) {
+            \Illuminate\Support\Facades\URL::forceRootUrl(env('APP_URL'));
+        }
+        
         Schema::defaultStringLength(191); // THÊM DÒNG NÀY
         Paginator::useBootstrapFive();
 
