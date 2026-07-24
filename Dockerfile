@@ -38,7 +38,7 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 # Cài đặt dependencies PHP (Laravel)
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV COMPOSER_MEMORY_LIMIT=-1
-RUN composer install --no-dev --optimize-autoloader --ignore-platform-reqs
+RUN composer install --optimize-autoloader --ignore-platform-reqs
 
 # Build Frontend (nếu dự án chính có dùng Mix/Vite)
 RUN npm install && npm run build
