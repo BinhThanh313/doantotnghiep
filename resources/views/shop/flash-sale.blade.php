@@ -36,9 +36,9 @@
         </div>
 
         {{-- Products Grid --}}
-        @if($flashSale->items->isNotEmpty())
+        @if($flashSale->activeItems->isNotEmpty())
         <div class="row g-4">
-            @foreach($flashSale->items as $item)
+            @foreach($flashSale->activeItems as $item)
             @php $product = $item->product; @endphp
             @if($product)
             <div class="col-md-6 col-lg-4 col-xl-3 wow fadeInUp">

@@ -23,6 +23,13 @@ class FlashSale extends Model
         return $this->hasMany(FlashSaleItem::class);
     }
 
+    public function activeItems()
+    {
+        return $this->hasMany(FlashSaleItem::class)
+            ->where('is_active', true)
+            ->whereRaw('(qty_limit IS NULL OR qty_sold < qty_limit)');
+    }
+
     public function isRunning(): bool
     {
         $now = Carbon::now();

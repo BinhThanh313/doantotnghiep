@@ -21,87 +21,89 @@ class DashboardController extends Controller
         $today = Carbon::today();
 
         // ==================== WIDGETS (Doanh thu & Tổng quan) ====================
-        // Tổng doanh thu kỳ hiện tại
-        $totalRevenue = Order::where('status', 'completed')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->selectRaw('COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as rev')
-            ->value('rev');
+        // Cache toàn bộ trang dashboard 60s để tăng tốc (hoặc tách riêng từng widget)
+        $cacheKey = "admin_dashboard_{$period}_{$today->toDateString()}";
+        
+        $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($period, $startDate, $endDate, $today) {
+            $totalRevenue = Order::where('status', 'completed')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw('COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as rev')
+                ->value('rev');
 
-        // Tổng doanh thu kỳ trước (để so sánh)
-        $prevRevenue = Order::where('status', 'completed')
-            ->whereBetween('created_at', $this->getPrevPeriodDates($period))
-            ->selectRaw('COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as rev')
-            ->value('rev');
+            $prevRevenue = Order::where('status', 'completed')
+                ->whereBetween('created_at', $this->getPrevPeriodDates($period))
+                ->selectRaw('COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as rev')
+                ->value('rev');
 
-        $revenueChange = $prevRevenue > 0 
-            ? round((($totalRevenue - $prevRevenue) / $prevRevenue) * 100, 1) 
-            : 0;
+            $revenueChange = $prevRevenue > 0 
+                ? round((($totalRevenue - $prevRevenue) / $prevRevenue) * 100, 1) 
+                : 0;
 
-        $newOrders      = Order::where('status', 'pending')->count();
-        $totalUsers     = User::where('role', '!=', 'admin')->count(); // Chỉ đếm khách hàng
-        $activeProducts = Product::where('is_active', true)->count();
-        $outOfStock     = Product::where('stock', 0)->count();
+            $newOrders      = Order::where('status', 'pending')->count();
+            $totalUsers     = User::where('role', '!=', 'admin')->count(); 
+            $activeProducts = Product::where('is_active', true)->count();
+            $outOfStock     = Product::where('stock', 0)->count();
 
-        // ==================== TODAY STATS ====================
-        $todayOrders  = Order::whereDate('created_at', $today)->count();
-        $todayRevenue = Order::where('status', 'completed')
-            ->whereDate('created_at', $today)
-            ->selectRaw('COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as rev')
-            ->value('rev');
+            $todayOrders  = Order::whereDate('created_at', $today)->count();
+            $todayRevenue = Order::where('status', 'completed')
+                ->whereDate('created_at', $today)
+                ->selectRaw('COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as rev')
+                ->value('rev');
 
-        // ==================== CHART (Doanh thu theo ngày) ====================
-        // Tối ưu: Lấy toàn bộ dữ liệu trong 1 query duy nhất (Từ File 2)
-        $chartRaw = Order::where('status', 'completed')
-            ->whereBetween('created_at', [$startDate, $endDate])
-            ->selectRaw('DATE(created_at) as date, COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as revenue')
-            ->groupBy(DB::raw('DATE(created_at)'))
-            ->orderBy('date')
-            ->pluck('revenue', 'date');
+            $chartRaw = Order::where('status', 'completed')
+                ->whereBetween('created_at', [$startDate, $endDate])
+                ->selectRaw('DATE(created_at) as date, COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as revenue')
+                ->groupBy(DB::raw('DATE(created_at)'))
+                ->orderBy('date')
+                ->pluck('revenue', 'date');
 
-        $chartLabels = [];
-        $chartData   = [];
-        $currentDate = $startDate->copy();
+            $chartLabels = [];
+            $chartData   = [];
+            $currentDate = $startDate->copy();
 
-        // Lấp đầy các ngày không có đơn hàng bằng số 0
-        while ($currentDate <= $endDate) {
-            $dateString = $currentDate->format('Y-m-d');
-            
-            // Nếu là 'thisYear', bạn có thể muốn đổi format hiển thị thành tháng (m/Y) thay vì ngày
-            $chartLabels[] = $period === 'thisYear' ? $currentDate->format('d/m/Y') : $currentDate->format('d/m');
-            $chartData[]   = $chartRaw[$dateString] ?? 0;
-            
-            $currentDate->addDay();
-        }
+            while ($currentDate <= $endDate) {
+                $dateString = $currentDate->format('Y-m-d');
+                $chartLabels[] = $period === 'thisYear' ? $currentDate->format('d/m/Y') : $currentDate->format('d/m');
+                $chartData[]   = $chartRaw[$dateString] ?? 0;
+                $currentDate->addDay();
+            }
 
-        // ==================== TOP PRODUCTS ====================
-        $topProducts = OrderItem::select('product_id', 'product_name')
-            ->selectRaw('SUM(quantity) as total_sold, SUM(quantity * price) as total_revenue')
-            ->with('product:id,name,image')
-            ->whereHas('order', function ($query) use ($startDate, $endDate) {
-                $query->where('status', 'completed')
-                      ->whereBetween('created_at', [$startDate, $endDate]);
-            })
-            ->groupBy('product_id', 'product_name')
-            ->orderByDesc('total_revenue') // Sắp xếp theo tổng tiền mang lại (từ File 2)
-            ->limit(10)
-            ->get();
+            $topProducts = OrderItem::select('product_id', 'product_name')
+                ->selectRaw('SUM(quantity) as total_sold, SUM(quantity * price) as total_revenue')
+                ->with('product:id,name,image')
+                ->whereHas('order', function ($query) use ($startDate, $endDate) {
+                    $query->where('status', 'completed')
+                          ->whereBetween('created_at', [$startDate, $endDate]);
+                })
+                ->groupBy('product_id', 'product_name')
+                ->orderByDesc('total_revenue')
+                ->limit(10)
+                ->get();
 
-        // ==================== RECENT ORDERS ====================
-        $recentOrders = Order::with('user:id,name')
-            ->latest()
-            ->limit(8)
-            ->get([
-                'id', 'user_id', 'tracking_number', 'customer_name', 'total_amount', 
-                'shipping_fee', 'discount_amount', 'status', 'payment_status', 'created_at'
-            ]);
+            $recentOrders = Order::with('user:id,name')
+                ->latest()
+                ->limit(8)
+                ->get([
+                    'id', 'user_id', 'tracking_number', 'customer_name', 'total_amount', 
+                    'shipping_fee', 'discount_amount', 'status', 'payment_status', 'created_at'
+                ]);
 
-        // ==================== LOW STOCK ALERTS ====================
-        $lowStockProducts = Product::where('is_active', true)
-            ->where('stock', '<=', 5)
-            ->where('stock', '>', 0) // Loại trừ các sản phẩm đã hết hàng hẳn (out of stock)
-            ->orderBy('stock')
-            ->limit(10)
-            ->get(['id', 'name', 'stock', 'price', 'image']);
+            $lowStockProducts = Product::where('is_active', true)
+                ->where('stock', '<=', 5)
+                ->where('stock', '>', 0)
+                ->orderBy('stock')
+                ->limit(10)
+                ->get(['id', 'name', 'stock', 'image', 'price']);
+
+            return compact(
+                'totalRevenue', 'prevRevenue', 'revenueChange', 
+                'newOrders', 'totalUsers', 'activeProducts', 'outOfStock',
+                'todayOrders', 'todayRevenue', 
+                'chartLabels', 'chartData', 'topProducts', 'recentOrders', 'lowStockProducts'
+            );
+        });
+
+        extract($data);
 
         return response()->json([
             'widgets' => [
