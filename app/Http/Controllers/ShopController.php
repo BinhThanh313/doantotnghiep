@@ -16,9 +16,7 @@ class ShopController extends Controller
      */
     private function categoriesWithCounts()
     {
-        return \Illuminate\Support\Facades\Cache::remember('shop_categories_with_counts', 3600, fn() => 
-            Category::withCount('products')->get()
-        );
+        return Category::withCount('products')->get();
     }
 
     public function index(Request $request)
@@ -79,19 +77,11 @@ class ShopController extends Controller
         ]);
 
         // Gợi ý sản phẩm: liên quan / khách hàng cũng mua / dành riêng cho bạn
-        // Caching theo product_id và user_id để tăng tốc độ load trang chi tiết sản phẩm
-        $recommendations = \Illuminate\Support\Facades\Cache::remember(
-            'product_recommendations_' . $product->id . '_' . (Auth::id() ?? 'guest'),
-            3600,
-            fn() => $recommendationService->forProductPage($product, Auth::user())
-        );
+        // Sửa auth()->user() thành Auth::user()
+        $recommendations = $recommendationService->forProductPage($product, Auth::user());
 
         // Combo do admin tạo (từ gợi ý "thường mua cùng") liên quan tới sản phẩm này
-        $combos = \Illuminate\Support\Facades\Cache::remember(
-            'product_combos_' . $product->id,
-            3600,
-            fn() => \App\Models\ProductCombo::activeForProduct($product->id)
-        );
+        $combos = \App\Models\ProductCombo::activeForProduct($product->id);
 
         return view('shop.show', compact('product', 'categories', 'recommendations', 'combos'));
     }
@@ -99,23 +89,21 @@ class ShopController extends Controller
     public function vouchers()
     {
         
-        $vouchers = \Illuminate\Support\Facades\Cache::remember('shop_vouchers_active', 3600, fn() => 
-            Voucher::where('is_active', true)
-                ->where(function ($query) {
-                    $query->whereNull('end_date')
-                        ->orWhere('end_date', '>=', now());
-                })
-                ->where(function ($query) {
-                    $query->whereNull('start_date')
-                        ->orWhere('start_date', '<=', now());
-                })
-                ->where(function ($query) {
-                    $query->whereNull('max_uses')
-                        ->orWhereColumn('used_count', '<', 'max_uses');
-                })
-                ->orderBy('created_at', 'desc')
-                ->get()
-        );
+        $vouchers = Voucher::where('is_active', true)
+            ->where(function ($query) {
+                $query->whereNull('end_date')
+                    ->orWhere('end_date', '>=', now());
+            })
+            ->where(function ($query) {
+                $query->whereNull('start_date')
+                    ->orWhere('start_date', '<=', now());
+            })
+            ->where(function ($query) {
+                $query->whereNull('max_uses')
+                    ->orWhereColumn('used_count', '<', 'max_uses');
+            })
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         // Trả về file view resources/views/shop/vouchers.blade.php
         return view('shop.vouchers', compact('vouchers'));
@@ -131,24 +119,31 @@ class ShopController extends Controller
         $categories = $this->categoriesWithCounts();
 
         // Tab "Tất cả" trong khối "Sản Phẩm Của Chúng Tôi"
-        $allProducts = \Illuminate\Support\Facades\Cache::remember('home_products', 3600, fn() => 
-            Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true)->latest()->limit(8)->get()
-        );
+        $allProducts = Product::with(['category', 'activeFlashSaleItem'])
+            ->where('is_active', true)
+            ->latest()
+            ->limit(8)
+            ->get();
 
         // Tab "Hàng Mới Về"
-        $newArrivals = \Illuminate\Support\Facades\Cache::remember('home_new_arrivals', 3600, fn() => 
-            Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true)->where('is_new', true)->latest()->limit(8)->get()
-        );
+        $newArrivals = Product::with(['category', 'activeFlashSaleItem'])
+            ->where('is_active', true)
+            ->where('is_new', true)
+            ->latest()
+            ->limit(8)
+            ->get();
 
         // Tab "Nổi Bật"
-        $featuredProducts = \Illuminate\Support\Facades\Cache::remember('home_featured_products', 3600, fn() => 
-            Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true)->orderByDesc('view_count')->orderByDesc('is_bestseller')->latest()->limit(8)->get()
-        );
+        $featuredProducts = Product::with(['category', 'activeFlashSaleItem'])
+            ->where('is_active', true)
+            ->orderByDesc('view_count')
+            ->orderByDesc('is_bestseller')
+            ->latest()
+            ->limit(8)
+            ->get();
 
         // Danh mục dùng để trỏ link cho các banner quảng cáo
-        $adCategories   = \Illuminate\Support\Facades\Cache::remember('bestseller_ad_categories', 3600, fn() => 
-            Category::whereIn('name', ['Máy ảnh', 'Đồng hồ thông minh'])->get()->keyBy('name')
-        );
+        $adCategories   = Category::whereIn('name', ['Máy ảnh', 'Đồng hồ thông minh'])->get()->keyBy('name');
         $cameraCategory = $adCategories->get('Máy ảnh');
         $watchCategory  = $adCategories->get('Đồng hồ thông minh');
 
