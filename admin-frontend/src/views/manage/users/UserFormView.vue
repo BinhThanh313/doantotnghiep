@@ -15,7 +15,7 @@ import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.
 const route = useRoute()
 const router = useRouter()
 const isEditMode = ref(false)
-const apiUrl = 'http://localhost/doantotnghiep/public/api/admin/users'
+const apiUrl = api.defaults.baseURL + '/api/admin/users'
 
 const form = reactive({
   name: '',

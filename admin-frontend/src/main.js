@@ -43,9 +43,13 @@ async function bootstrap() {
         name: res.data.name,
         email: res.data.email,
       })
-    } catch (e) {
+    } catch (error) {
       localStorage.removeItem('admin_token')
-      window.location.replace('/doantotnghiep/public/admin/login#/login')
+      // 401 Unauthorized -> Đẩy về login (Dùng basePath động)
+      if (error.response?.status === 401) {
+        const basePath = window.location.pathname.includes('/doantotnghiep/public') ? '/doantotnghiep/public' : '';
+        window.location.replace(basePath + '/admin/login#/login')
+      }
       return // dừng hẳn, không mount app với dữ liệu cũ/rỗng
     }
   }

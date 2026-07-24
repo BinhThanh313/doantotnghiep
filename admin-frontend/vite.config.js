@@ -9,8 +9,8 @@ export default defineConfig({
     tailwindcss()
   ],
 
-  // Sửa base cho khớp với WampServer
-  base: '/doantotnghiep/public/admin/',
+  // Sửa base cho Render hoặc WampServer
+  base: process.env.IS_DOCKER_BUILD ? '/admin/' : '/doantotnghiep/public/admin/',
 
   build: {
     outDir: '../public/admin',

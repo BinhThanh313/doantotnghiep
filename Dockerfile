@@ -43,6 +43,9 @@ RUN composer install --optimize-autoloader --ignore-platform-reqs
 # Build Frontend (nếu dự án chính có dùng Mix/Vite)
 RUN npm install && npm run build
 
+# Cung cấp cờ môi trường để Vite biên dịch đúng đường dẫn cho production
+ENV IS_DOCKER_BUILD=1
+
 # Build Admin Vue (nếu có thư mục admin-frontend)
 RUN if [ -d "admin-frontend" ]; then cd admin-frontend && npm install && npm run build; fi
 

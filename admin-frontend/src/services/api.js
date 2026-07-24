@@ -1,8 +1,10 @@
 import axios from 'axios'
 
 // ── Instance ─────────────────────────────────────────────────────
+const basePath = window.location.pathname.includes('/doantotnghiep/public') ? '/doantotnghiep/public' : '';
+
 const api = axios.create({
-  baseURL: 'http://localhost/doantotnghiep/public',
+  baseURL: window.location.origin + basePath,
   withCredentials: true,
   timeout: 30000,
   headers: {
@@ -38,9 +40,9 @@ api.interceptors.response.use(
     switch (status) {
       case 401:
         // Hết phiên → về login
-        if (!url.includes('/login')) {
-          localStorage.removeItem('admin_token')
-          window.location.href = '/doantotnghiep/public/admin/login#/login'
+        // Tránh lặp vô hạn nếu đang ở trang login
+        if (!window.location.hash.includes('/login')) {
+          window.location.href = basePath + '/admin/login#/login'
         }
         break
 
