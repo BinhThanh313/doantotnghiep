@@ -50,6 +50,25 @@ Route::get('/run-seed', function () {
         return $error;
     }
 });
+
+Route::get('/test-users', function () {
+    return \App\Models\User::all();
+});
+Route::get('/fix-migrations', function () {
+    \Illuminate\Support\Facades\DB::table('migrations')->where('migration', 'like', '%contact_messages%')->delete();
+    \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+    return "Đã fix bảng contact_messages!";
+});
+
+// Route tự động đăng nhập admin để test
+Route::get('/test-admin', function () {
+    $admin = \App\Models\User::where('email', 'admin@electro.vn')->first();
+    if ($admin) {
+        \Illuminate\Support\Facades\Auth::login($admin);
+        return redirect('/admin');
+    }
+    return "Lỗi: Không tìm thấy tài khoản admin@electro.vn trong cơ sở dữ liệu!";
+});
 // Route xem log để debug
 Route::get('/view-logs', function () {
     $logFile = storage_path('logs/laravel.log');
