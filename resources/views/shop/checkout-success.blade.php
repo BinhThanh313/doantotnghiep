@@ -1,4 +1,3 @@
-// resources/views/shop/checkout-success.blade.php
 @extends('layouts.app')
 @section('title', 'Đặt hàng thành công - Electro')
 @section('content')

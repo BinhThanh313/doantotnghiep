@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function fetchReviews(productId, page = 1) {
-    fetch(`/doantotnghiep/public/api/products/${productId}/reviews?page=${page}`)
+    fetch(`/api/products/${productId}/reviews?page=${page}`)
         .then(res => res.json())
         .then(data => {
             renderReviews(data.reviews.data);
@@ -96,8 +96,7 @@ async function submitReview(e) {
     msg.innerHTML = '';
 
     try {
-        // Sửa từ /api/products sang /doantotnghiep/public/api/products
-        const response = await fetch(`/doantotnghiep/public/api/products/${currentProductId}/reviews`, {
+        const response = await fetch(`/api/products/${currentProductId}/reviews`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',

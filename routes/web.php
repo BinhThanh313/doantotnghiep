@@ -22,6 +22,16 @@ Route::get('/clear-cache', function () {
     return "Cache is cleared!";
 });
 
+Route::get('/reset-admin', function () {
+    $u = \App\Models\User::where('email', 'admin@electro.vn')->first();
+    if ($u) {
+        $u->password = \Illuminate\Support\Facades\Hash::make('password');
+        $u->save();
+        return 'Admin password reset to password';
+    }
+    return 'Admin not found';
+});
+
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/home', [HomeController::class, 'index']);
 
