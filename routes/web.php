@@ -27,7 +27,18 @@ Route::get('/run-seed', function () {
     file_put_contents(storage_path('logs/seeder-log.txt'), "Đang chạy tạo dữ liệu... Vui lòng F5 lại trang /view-seeder-log sau 1-2 phút nữa.\n");
     
     try {
-        \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
+        // Xóa sạch dữ liệu các bảng (trừ bảng migrations) để tránh lỗi duplicate key mà KHÔNG drop schema (vì drop schema gây lỗi trên connection pooler)
+        \Illuminate\Support\Facades\DB::unprepared("
+            DO $$ DECLARE
+                r RECORD;
+            BEGIN
+                FOR r IN (SELECT tablename FROM pg_tables WHERE schemaname = current_schema() AND tablename != 'migrations') LOOP
+                    EXECUTE 'TRUNCATE TABLE ' || quote_ident(r.tablename) || ' CASCADE';
+                END LOOP;
+            END $$;
+        ");
+        
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
         $output = \Illuminate\Support\Facades\Artisan::output();
         file_put_contents(storage_path('logs/seeder-log.txt'), "TẠO DỮ LIỆU MẪU THÀNH CÔNG!\n\n" . $output);
         return "Xong! Hãy truy cập /view-seeder-log để xem kết quả.";
