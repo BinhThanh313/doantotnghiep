@@ -39,7 +39,7 @@ Route::get('/run-seed', function () {
         $artisanPath = base_path('artisan');
         $logPath = storage_path('logs/seeder-log.txt');
         
-        $cmd = "php {$artisanPath} db:seed --force >> {$logPath} 2>&1 &";
+        $cmd = "php {$artisanPath} migrate --force >> {$logPath} 2>&1 && php {$artisanPath} db:seed --force >> {$logPath} 2>&1 &";
         exec($cmd);
         
         return "Đã ra lệnh dọn dẹp và chạy ngầm thành công! <br>Quá trình tạo dữ liệu sẽ mất khoảng 3-5 phút (do mạng Supabase chậm). <br>Trình duyệt của bạn sẽ không bị treo nữa. <br><br>Hãy truy cập /view-seeder-log để theo dõi tiến độ.";
@@ -54,9 +54,31 @@ Route::get('/test-users', function () {
     return \App\Models\User::all();
 });
 Route::get('/fix-migrations', function () {
-    \Illuminate\Support\Facades\DB::table('migrations')->where('migration', 'like', '%contact_messages%')->delete();
-    \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
-    return "Đã fix bảng contact_messages!";
+    try {
+        $tablesToDrop = [
+            'chat_messages',
+            'chat_conversations',
+            'contact_messages',
+            'cart_items',
+            'product_combos',
+            'product_similarities',
+            'product_specifications',
+            'product_views'
+        ];
+        foreach ($tablesToDrop as $table) {
+            \Illuminate\Support\Facades\DB::statement("DROP TABLE IF EXISTS \"{$table}\" CASCADE");
+        }
+        
+        // Xóa records rác trong bảng migrations để nó chạy lại
+        \Illuminate\Support\Facades\DB::table('migrations')->where('migration', 'like', '2026_07%')->delete();
+        
+        \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        
+        // Thêm lại các Seeder đã comment lúc nãy vì giờ đã có đủ bảng
+        return "Đã xóa các bảng bị kẹt và chạy Migrate thành công! Các bảng đã được tạo lại hoàn chỉnh.";
+    } catch (\Throwable $e) {
+        return "LỖI: " . $e->getMessage();
+    }
 });
 
 // Route tự động đăng nhập admin để test
