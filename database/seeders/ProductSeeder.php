@@ -130,6 +130,7 @@ class ProductSeeder extends Seeder
                 'stock'          => rand(5, 100),
                 'is_new'         => $index < 15,
                 'is_bestseller'  => in_array($name, $bestsellerNames, true),
+                'image'          => 'products/product-' . (($index % 18) + 1) . '.png',
                 'is_active'      => true,
                 'created_at'     => now(),
                 'updated_at'     => now(),

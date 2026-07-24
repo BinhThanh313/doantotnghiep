@@ -11,56 +11,35 @@ class HomeController extends Controller
 {
     public function index(ItemBasedRecommendationService $recommendationService)
     {
-        // Tab "Tất cả": 8 sản phẩm mới nhất
-        $products = Product::with(['category', 'activeFlashSaleItem'])
-                           ->where('is_active', true)
-                           ->latest()
-                           ->limit(8)
-                           ->get();
+        // Dùng Cache để giảm độ trễ (latency) khi gọi nhiều query qua Supabase (máy chủ xa)
+        $products = \Illuminate\Support\Facades\Cache::remember('home_products', 3600, fn() => 
+            Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true)->latest()->limit(8)->get()
+        );
 
-        // Tab "Hàng mới về": sản phẩm được đánh dấu is_new
-        $newArrivals = Product::with(['category', 'activeFlashSaleItem'])
-                           ->where('is_active', true)
-                           ->where('is_new', true)
-                           ->latest()
-                           ->limit(8)
-                           ->get();
+        $newArrivals = \Illuminate\Support\Facades\Cache::remember('home_new_arrivals', 3600, fn() => 
+            Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true)->where('is_new', true)->latest()->limit(8)->get()
+        );
 
-        // Tab "Nổi bật": xếp theo lượt xem, ưu tiên bán chạy nếu view_count bằng nhau
-        $featuredProducts = Product::with(['category', 'activeFlashSaleItem'])
-                           ->where('is_active', true)
-                           ->orderByDesc('view_count')
-                           ->orderByDesc('is_bestseller')
-                           ->latest()
-                           ->limit(8)
-                           ->get();
+        $featuredProducts = \Illuminate\Support\Facades\Cache::remember('home_featured_products', 3600, fn() => 
+            Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true)->orderByDesc('view_count')->orderByDesc('is_bestseller')->latest()->limit(8)->get()
+        );
 
-        // 6 sản phẩm bán chạy (is_bestseller = true)
-        $bestsellers = Product::with(['category', 'activeFlashSaleItem'])
-                            ->where('is_active', true)
-                            ->where('is_bestseller', true)
-                            ->latest()
-                            ->limit(6)
-                            ->get();
+        $bestsellers = \Illuminate\Support\Facades\Cache::remember('home_bestsellers', 3600, fn() => 
+            Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true)->where('is_bestseller', true)->latest()->limit(6)->get()
+        );
 
-        // Sản phẩm cho carousel "Tất cả sản phẩm" ở cuối trang
-        $exploreProducts = Product::with(['category', 'activeFlashSaleItem'])
-                            ->where('is_active', true)
-                            ->inRandomOrder()
-                            ->limit(10)
-                            ->get();
+        $exploreProducts = \Illuminate\Support\Facades\Cache::remember('home_explore_products', 3600, fn() => 
+            Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true)->inRandomOrder()->limit(10)->get()
+        );
 
-        $categories = Category::withCount('products')->get();
+        $categories = \Illuminate\Support\Facades\Cache::remember('home_categories', 3600, fn() => 
+            Category::withCount('products')->get()
+        );
 
-        // Sản phẩm nổi bật cho banner hero (ưu tiên Máy tính bảng đang giảm giá,
-        // fallback sang sản phẩm mới nhất nếu danh mục chưa có dữ liệu)
-        $heroProduct = Product::with(['category', 'activeFlashSaleItem'])
-                            ->where('is_active', true)
-                            ->whereHas('category', fn($q) => $q->where('name', 'Máy tính bảng'))
-                            ->whereNotNull('original_price')
-                            ->latest()
-                            ->first()
-                        ?? Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true)->latest()->first();
+        $heroProduct = \Illuminate\Support\Facades\Cache::remember('home_hero_product', 3600, fn() => 
+            Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true)->whereHas('category', fn($q) => $q->where('name', 'Máy tính bảng'))->whereNotNull('original_price')->latest()->first()
+            ?? Product::with(['category', 'activeFlashSaleItem'])->where('is_active', true)->latest()->first()
+        );
 
         // Danh mục dùng để trỏ link cho các banner quảng cáo giữa/cuối trang
         // (gộp 3 truy vấn where()->first() riêng lẻ thành 1 truy vấn whereIn)
