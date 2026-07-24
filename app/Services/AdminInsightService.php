@@ -286,7 +286,7 @@ class AdminInsightService
             ->where('is_visible', true)
             ->selectRaw('product_id, COUNT(*) as bad_count, AVG(rating) as avg_rating')
             ->groupBy('product_id')
-            ->having('bad_count', '>=', $minCount)
+            ->havingRaw('COUNT(*) >= ?', [$minCount])
             ->orderByDesc('bad_count')
             ->take($limit)
             ->get();

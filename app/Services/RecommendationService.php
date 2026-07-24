@@ -120,7 +120,7 @@ class RecommendationService
             ->where('product_id', '!=', $product->id)
             ->select('product_id', DB::raw('count(distinct order_id) as cooccurrence'))
             ->groupBy('product_id')
-            ->having('cooccurrence', '>=', $minCooccurrence)
+            ->havingRaw('count(distinct order_id) >= ?', [$minCooccurrence])
             ->pluck('cooccurrence', 'product_id');
 
         if ($cooccurrences->isEmpty()) {

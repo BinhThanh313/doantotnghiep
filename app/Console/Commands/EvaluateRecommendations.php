@@ -103,7 +103,7 @@ class EvaluateRecommendations extends Command
             ->select('user_id', DB::raw('count(*) as total'))
             ->whereNotNull('user_id')
             ->groupBy('user_id')
-            ->having('total', '>=', 2)
+            ->havingRaw('count(*) >= 2')
             ->pluck('user_id');
     }
 
