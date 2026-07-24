@@ -35,12 +35,11 @@ Route::get('/run-seed', function () {
             END $$;
         ");
         
-        // Chạy lệnh artisan db:seed ngầm hoàn toàn qua CLI (không bị giới hạn time out của trình duyệt)
+        // Chạy lệnh artisan db:seed ngầm hoàn toàn qua CLI
         $artisanPath = base_path('artisan');
         $logPath = storage_path('logs/seeder-log.txt');
         
-        // Lệnh chạy ngầm trên Linux (Chạy migrate trước để đảm bảo đủ bảng, sau đó chạy seed)
-        $cmd = "php {$artisanPath} migrate --force >> {$logPath} 2>&1 && php {$artisanPath} db:seed --force >> {$logPath} 2>&1 &";
+        $cmd = "php {$artisanPath} db:seed --force >> {$logPath} 2>&1 &";
         exec($cmd);
         
         return "Đã ra lệnh dọn dẹp và chạy ngầm thành công! <br>Quá trình tạo dữ liệu sẽ mất khoảng 3-5 phút (do mạng Supabase chậm). <br>Trình duyệt của bạn sẽ không bị treo nữa. <br><br>Hãy truy cập /view-seeder-log để theo dõi tiến độ.";
