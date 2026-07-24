@@ -33,6 +33,11 @@
     RewriteCond %{HTTP:x-xsrf-token} .
     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
 
+    # Fix Render port 10000 bug for /admin directory
+    # (Ngăn mod_dir của Apache tự động thêm / và đính kèm port 10000)
+    RewriteCond %{REQUEST_URI} ^/admin$
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}/admin/ [L,R=301]
+
     # Redirect Trailing Slashes If Not A Folder...
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_URI} (.+)/$
