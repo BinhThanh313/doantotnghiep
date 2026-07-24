@@ -20,6 +20,7 @@ Route::get('/home', [HomeController::class, 'index']);
 
 // TẠM THỜI: Route để chạy Seeder thủ công qua trình duyệt
 Route::get('/run-seed', function () {
+    ignore_user_abort(true);
     ini_set('max_execution_time', '300');
     ini_set('memory_limit', '512M');
     try {

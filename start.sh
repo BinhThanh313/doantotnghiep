@@ -8,9 +8,6 @@ php artisan view:clear
 # Migrate database (force is required in production)
 php artisan migrate --force
 
-# Tự động chạy Seeder tạo dữ liệu mẫu
-php artisan db:seed --force
-
 # Link storage
 php artisan storage:link
 
