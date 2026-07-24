@@ -18,6 +18,16 @@ use App\Http\Controllers\ContactController;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/home', [HomeController::class, 'index']);
 
+// TẠM THỜI: Route để chạy Seeder thủ công qua trình duyệt
+Route::get('/run-seed', function () {
+    try {
+        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
+        return "TẠO DỮ LIỆU MẪU THÀNH CÔNG! <br><br> Kết quả: <br>" . nl2br(\Illuminate\Support\Facades\Artisan::output());
+    } catch (\Exception $e) {
+        return "CÓ LỖI XẢY RA KHI TẠO DỮ LIỆU: <br><br>" . $e->getMessage() . "<br> Line: " . $e->getLine() . " in " . $e->getFile();
+    }
+});
+
 Route::get('/shop', [ShopController::class, 'index'])->name('shop.index');
 Route::get('/shop/{id}', [ShopController::class, 'show'])->name('shop.show');
 Route::get('/vouchers', [ShopController::class, 'vouchers'])->name('shop.vouchers');
