@@ -23,11 +23,18 @@ Route::get('/run-seed', function () {
     ignore_user_abort(true);
     ini_set('max_execution_time', '300');
     ini_set('memory_limit', '512M');
+    
+    file_put_contents(public_path('seeder-log.txt'), "Đang chạy tạo dữ liệu... Vui lòng F5 lại file này sau 1-2 phút nữa.\n");
+    
     try {
         \Illuminate\Support\Facades\Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
-        return "TẠO DỮ LIỆU MẪU THÀNH CÔNG! <br><br> Kết quả: <br>" . nl2br(\Illuminate\Support\Facades\Artisan::output());
+        $output = \Illuminate\Support\Facades\Artisan::output();
+        file_put_contents(public_path('seeder-log.txt'), "TẠO DỮ LIỆU MẪU THÀNH CÔNG!\n\n" . $output);
+        return "Xong! Hãy truy cập /seeder-log.txt để xem kết quả.";
     } catch (\Throwable $e) {
-        return "CÓ LỖI XẢY RA KHI TẠO DỮ LIỆU: <br><br>" . $e->getMessage() . "<br> Line: " . $e->getLine() . " in " . $e->getFile();
+        $error = "CÓ LỖI XẢY RA: \n" . $e->getMessage() . "\nLine: " . $e->getLine() . " in " . $e->getFile();
+        file_put_contents(public_path('seeder-log.txt'), $error);
+        return $error;
     }
 });
 
