@@ -20,14 +20,11 @@ Route::get('/home', [HomeController::class, 'index']);
 
 // TẠM THỜI: Route để chạy Seeder thủ công qua trình duyệt
 Route::get('/run-seed', function () {
-    ignore_user_abort(true);
-    ini_set('max_execution_time', '300');
-    ini_set('memory_limit', '512M');
-    
-    file_put_contents(storage_path('logs/seeder-log.txt'), "Đang chạy tạo dữ liệu... Vui lòng F5 lại trang /view-seeder-log sau 1-2 phút nữa.\n");
+    // Ghi file log tạm
+    file_put_contents(storage_path('logs/seeder-log.txt'), "Đang chạy tạo dữ liệu trong NỀN (Background Process)...\n\nVui lòng F5 lại trang /view-seeder-log sau 3-5 phút nữa.\n\n");
     
     try {
-        // Xóa sạch dữ liệu các bảng (trừ bảng migrations) để tránh lỗi duplicate key mà KHÔNG drop schema (vì drop schema gây lỗi trên connection pooler)
+        // Xóa sạch dữ liệu các bảng (trừ bảng migrations)
         \Illuminate\Support\Facades\DB::unprepared("
             DO $$ DECLARE
                 r RECORD;
@@ -38,13 +35,18 @@ Route::get('/run-seed', function () {
             END $$;
         ");
         
-        \Illuminate\Support\Facades\Artisan::call('db:seed', ['--force' => true]);
-        $output = \Illuminate\Support\Facades\Artisan::output();
-        file_put_contents(storage_path('logs/seeder-log.txt'), "TẠO DỮ LIỆU MẪU THÀNH CÔNG!\n\n" . $output);
-        return "Xong! Hãy truy cập /view-seeder-log để xem kết quả.";
+        // Chạy lệnh artisan db:seed ngầm hoàn toàn qua CLI (không bị giới hạn time out của trình duyệt)
+        $artisanPath = base_path('artisan');
+        $logPath = storage_path('logs/seeder-log.txt');
+        
+        // Lệnh chạy ngầm trên Linux
+        $cmd = "php {$artisanPath} db:seed --force >> {$logPath} 2>&1 &";
+        exec($cmd);
+        
+        return "Đã ra lệnh dọn dẹp và chạy ngầm thành công! <br>Quá trình tạo dữ liệu sẽ mất khoảng 3-5 phút (do mạng Supabase chậm). <br>Trình duyệt của bạn sẽ không bị treo nữa. <br><br>Hãy truy cập /view-seeder-log để theo dõi tiến độ.";
     } catch (\Throwable $e) {
         $error = "CÓ LỖI XẢY RA: \n" . $e->getMessage() . "\nLine: " . $e->getLine() . " in " . $e->getFile();
-        file_put_contents(storage_path('logs/seeder-log.txt'), $error);
+        file_put_contents(storage_path('logs/seeder-log.txt'), $error, FILE_APPEND);
         return $error;
     }
 });
