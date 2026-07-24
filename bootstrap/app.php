@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Fix Render forwarding port 10000 issue
+        $middleware->trustProxies(at: '*');
+
         // KHÔNG dùng $middleware->statefulApi() toàn cục — nếu bật cho cả
         // route /admin/*, Sanctum sẽ ưu tiên xác thực qua session 'web'
         // (dùng chung với storefront khách hàng) thay vì Bearer token,
