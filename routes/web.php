@@ -18,7 +18,28 @@ use App\Http\Controllers\ContactController;
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/home', [HomeController::class, 'index']);
 
-// TẠM THỜI: Route để chạy Seeder thủ công qua trình duyệt
+// TẠM THỜI: Route test cache để tìm lỗi serialization
+Route::get('/test-cache', function () {
+    try {
+        $data = \Illuminate\Support\Facades\Cache::remember('test_cache_route', 10, function() {
+            return \App\Models\Category::withCount('products')->get();
+        });
+        return "Cache Categories Success: " . count($data);
+    } catch (\Throwable $e) {
+        return "ERROR: " . get_class($e) . " - " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine();
+    }
+});
+
+Route::get('/test-cache-product', function () {
+    try {
+        $data = \Illuminate\Support\Facades\Cache::remember('test_cache_route_product', 10, function() {
+            return \App\Models\Product::with(['category', 'activeFlashSaleItem'])->latest()->first();
+        });
+        return "Cache Product Success: " . $data->name;
+    } catch (\Throwable $e) {
+        return "ERROR: " . get_class($e) . " - " . $e->getMessage() . " in " . $e->getFile() . ":" . $e->getLine();
+    }
+});
 Route::get('/run-seed', function () {
     // Ghi file log tạm
     file_put_contents(storage_path('logs/seeder-log.txt'), "Đang chạy tạo dữ liệu trong NỀN (Background Process)...\n\nVui lòng F5 lại trang /view-seeder-log sau 3-5 phút nữa.\n\n");
