@@ -3,6 +3,7 @@
     <tr>
         <td class="align-middle">
             <input type="checkbox" class="form-check-input item-select" data-id="{{ $id }}"
+                   data-subtotal="{{ $item['price'] * $item['quantity'] }}"
                    style="width: 1.2em; height: 1.2em;" checked
                    aria-label="Chọn sản phẩm để thanh toán">
         </td>

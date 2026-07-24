@@ -507,8 +507,8 @@ document.addEventListener('DOMContentLoaded', function () {
     function setSelectedCarrier(carrierId, fee) {
         carrierIdInput.value  = carrierId;
         shippingFeeInput.value = fee;
-        currentShippingFee    = fee;
-        updateShippingDisplay(fee);
+        currentShippingFee    = Number(fee) || 0;
+        updateShippingDisplay(currentShippingFee);
     }
 
     function updateShippingDisplay(fee) {
@@ -520,7 +520,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function recalcTotal() {
-        const newTotal = currentSubtotal + currentShippingFee - currentDiscount;
+        const newTotal = Number(currentSubtotal) + Number(currentShippingFee) - Number(currentDiscount);
         if (finalTotalEl) finalTotalEl.textContent = new Intl.NumberFormat('vi-VN').format(newTotal) + 'đ';
     }
 

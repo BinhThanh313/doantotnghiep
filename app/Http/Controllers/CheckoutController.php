@@ -52,17 +52,43 @@ class CheckoutController extends Controller
             ->toArray();
     }
 
+    /**
+     * Nhận danh sách cart_item IDs đã chọn từ trang giỏ hàng,
+     * lưu vào session rồi chuyển hướng sang trang thanh toán.
+     */
+    public function selectItems(Request $request)
+    {
+        $request->validate([
+            'item_ids'   => 'required|array|min:1',
+            'item_ids.*' => 'integer',
+        ]);
+
+        session(['checkout_item_ids' => $request->input('item_ids')]);
+
+        return redirect()->route('checkout');
+    }
+
     public function index()
     {
+        $selectedIds = session('checkout_item_ids', []);
+
         $cart = $this->getCart();
+
+        // Nếu có danh sách item đã chọn, chỉ giữ lại các item đó
+        if (!empty($selectedIds)) {
+            $selectedIds = array_map('intval', $selectedIds);
+            $cart = array_filter($cart, fn($item, $key) => in_array((int) $key, $selectedIds), ARRAY_FILTER_USE_BOTH);
+        }
+
         if (empty($cart)) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng đang trống!');
         }
 
         $subtotal = collect($cart)->sum(fn($item) => $item['price'] * $item['quantity']);
         $carriers = ShippingCarrier::where('is_active', true)->get();
+        $isPartialCheckout = !empty($selectedIds);
 
-        return view('shop.checkout', compact('cart', 'subtotal', 'carriers'));
+        return view('shop.checkout', compact('cart', 'subtotal', 'carriers', 'isPartialCheckout'));
     }
 
     /**
@@ -178,6 +204,14 @@ class CheckoutController extends Controller
         ]);
 
         $cart = $this->getCart();
+
+        // Chỉ lấy các sản phẩm đã chọn từ trang giỏ hàng
+        $selectedIds = session('checkout_item_ids', []);
+        if (!empty($selectedIds)) {
+            $selectedIds = array_map('intval', $selectedIds);
+            $cart = array_filter($cart, fn($item, $key) => in_array((int) $key, $selectedIds), ARRAY_FILTER_USE_BOTH);
+        }
+
         if (empty($cart)) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống!');
         }
@@ -341,8 +375,16 @@ class CheckoutController extends Controller
                 return $order;
             });
 
-            CartItem::where('user_id', Auth::id())->delete();
-            session()->forget('applied_vouchers');
+            // Chỉ xóa các sản phẩm đã thanh toán, giữ lại phần còn lại trong giỏ
+            $checkoutItemIds = session('checkout_item_ids', []);
+            if (!empty($checkoutItemIds)) {
+                CartItem::where('user_id', Auth::id())
+                    ->whereIn('id', $checkoutItemIds)
+                    ->delete();
+            } else {
+                CartItem::where('user_id', Auth::id())->delete();
+            }
+            session()->forget(['applied_vouchers', 'checkout_item_ids']);
 
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([

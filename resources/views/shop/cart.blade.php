@@ -139,13 +139,40 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('cart-summary').innerHTML = data.summary_html;
             const selectAll = document.getElementById('select-all-items');
             if (selectAll) selectAll.checked = true;
+            updateSelectedTotal();
         });
     }
 
     // ====================== CHỌN SẢN PHẨM ĐỂ THANH TOÁN ======================
+    function updateSelectedTotal() {
+        let selectedTotal = 0;
+        document.querySelectorAll('.item-select:checked').forEach(cb => {
+            selectedTotal += parseFloat(cb.dataset.subtotal) || 0;
+        });
+
+        // Cập nhật tạm tính
+        const summaryEl = document.getElementById('cart-summary');
+        if (summaryEl) {
+            const subtotalEl = summaryEl.querySelector('.d-flex.justify-content-between.mb-3 p');
+            if (subtotalEl) {
+                subtotalEl.textContent = new Intl.NumberFormat('vi-VN').format(selectedTotal) + 'đ';
+            }
+            // Cập nhật tổng cộng
+            const totalEl = summaryEl.querySelector('.d-flex.justify-content-between.border-top.pt-3 p');
+            if (totalEl) {
+                totalEl.textContent = new Intl.NumberFormat('vi-VN').format(selectedTotal) + 'đ';
+            }
+        }
+
+        // Cập nhật hidden input
+        const hiddenInput = document.getElementById('cart-total-hidden');
+        if (hiddenInput) hiddenInput.value = selectedTotal;
+    }
+
     document.addEventListener('change', function (e) {
         if (e.target.id === 'select-all-items') {
             document.querySelectorAll('.item-select').forEach(cb => cb.checked = e.target.checked);
+            updateSelectedTotal();
         }
         if (e.target.classList.contains('item-select')) {
             const allBoxes = document.querySelectorAll('.item-select');
@@ -153,6 +180,7 @@ document.addEventListener('DOMContentLoaded', function () {
             if (selectAll) {
                 selectAll.checked = allBoxes.length > 0 && Array.from(allBoxes).every(cb => cb.checked);
             }
+            updateSelectedTotal();
         }
     });
 
