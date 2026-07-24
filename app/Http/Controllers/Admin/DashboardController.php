@@ -21,10 +21,10 @@ class DashboardController extends Controller
         $today = Carbon::today();
 
         // ==================== WIDGETS (Doanh thu & Tổng quan) ====================
-        // Cache toàn bộ trang dashboard 60s để tăng tốc (hoặc tách riêng từng widget)
-        $cacheKey = "admin_dashboard_{$period}_{$today->toDateString()}";
+        // Cache chỉ các chỉ số tính toán nặng (60s)
+        $cacheKey = "admin_dashboard_stats_{$period}_{$today->toDateString()}";
         
-        $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($period, $startDate, $endDate, $today) {
+        $stats = \Illuminate\Support\Facades\Cache::remember($cacheKey, 60, function () use ($period, $startDate, $endDate, $today) {
             $totalRevenue = Order::where('status', 'completed')
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->selectRaw('COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as rev')
@@ -68,42 +68,45 @@ class DashboardController extends Controller
                 $currentDate->addDay();
             }
 
-            $topProducts = OrderItem::select('product_id', 'product_name')
-                ->selectRaw('SUM(quantity) as total_sold, SUM(quantity * price) as total_revenue')
-                ->with('product:id,name,image')
-                ->whereHas('order', function ($query) use ($startDate, $endDate) {
-                    $query->where('status', 'completed')
-                          ->whereBetween('created_at', [$startDate, $endDate]);
-                })
-                ->groupBy('product_id', 'product_name')
-                ->orderByDesc('total_revenue')
-                ->limit(10)
-                ->get();
-
-            $recentOrders = Order::with('user:id,name')
-                ->latest()
-                ->limit(8)
-                ->get([
-                    'id', 'user_id', 'tracking_number', 'customer_name', 'total_amount', 
-                    'shipping_fee', 'discount_amount', 'status', 'payment_status', 'created_at'
-                ]);
-
-            $lowStockProducts = Product::where('is_active', true)
-                ->where('stock', '<=', 5)
-                ->where('stock', '>', 0)
-                ->orderBy('stock')
-                ->limit(10)
-                ->get(['id', 'name', 'stock', 'image', 'price']);
-
             return compact(
                 'totalRevenue', 'prevRevenue', 'revenueChange', 
                 'newOrders', 'totalUsers', 'activeProducts', 'outOfStock',
                 'todayOrders', 'todayRevenue', 
-                'chartLabels', 'chartData', 'topProducts', 'recentOrders', 'lowStockProducts'
+                'chartLabels', 'chartData'
             );
         });
 
-        extract($data);
+        extract($stats);
+
+        // ==================== TOP PRODUCTS (KHÔNG CACHE ĐỂ TRÁNH LỖI) ====================
+        $topProducts = OrderItem::select('product_id', 'product_name')
+            ->selectRaw('SUM(quantity) as total_sold, SUM(quantity * price) as total_revenue')
+            ->with('product:id,name,image')
+            ->whereHas('order', function ($query) use ($startDate, $endDate) {
+                $query->where('status', 'completed')
+                      ->whereBetween('created_at', [$startDate, $endDate]);
+            })
+            ->groupBy('product_id', 'product_name')
+            ->orderByDesc('total_revenue')
+            ->limit(10)
+            ->get();
+
+        // ==================== RECENT ORDERS ====================
+        $recentOrders = Order::with('user:id,name')
+            ->latest()
+            ->limit(8)
+            ->get([
+                'id', 'user_id', 'tracking_number', 'customer_name', 'total_amount', 
+                'shipping_fee', 'discount_amount', 'status', 'payment_status', 'created_at'
+            ]);
+
+        // ==================== LOW STOCK ALERTS ====================
+        $lowStockProducts = Product::where('is_active', true)
+            ->where('stock', '<=', 5)
+            ->where('stock', '>', 0)
+            ->orderBy('stock')
+            ->limit(10)
+            ->get(['id', 'name', 'stock', 'image', 'price']);
 
         return response()->json([
             'widgets' => [
