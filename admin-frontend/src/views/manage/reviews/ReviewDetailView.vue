@@ -9,6 +9,7 @@ import BaseButton from '@/components/BaseButton.vue'
 import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.vue'
 import api from '@/services/api'
 import { imgUrl } from '@/utils/image'
+import { showToast } from '@/composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
@@ -19,7 +20,7 @@ const fetchReview = async () => {
     const res = await api.get(`/api/admin/reviews/${route.params.id}`)
     review.value = res.data
   } catch (e) {
-    alert('Không tìm thấy đánh giá!')
+    showToast('Không tìm thấy đánh giá!', 'error')
     router.push('/manage/reviews')
   }
 }

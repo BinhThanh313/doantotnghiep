@@ -11,6 +11,8 @@ import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
 import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
 import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.vue'
+import api from '@/services/api'
+import { showToast } from '@/composables/useToast'
 
 const route = useRoute()
 const router = useRouter()
@@ -37,7 +39,7 @@ const fetchUser = async (id) => {
     form.password = '' // Để trống mật khẩu khi sửa
   } catch (error) {
     console.error('Lỗi tải thông tin thành viên:', error)
-    alert('Không thể tải thông tin thành viên này.')
+    showToast('Không thể tải thông tin thành viên này.', 'error')
   }
 }
 
@@ -51,17 +53,17 @@ const submit = async () => {
         delete updateData.password
       }
       await axios.put(`${apiUrl}/${route.params.id}`, updateData, { headers: getHeaders() })
-      alert('Cập nhật người dùng thành công!')
+      showToast('Cập nhật người dùng thành công!')
     } else {
       // Chế độ Thêm mới -> POST thông thường
       await axios.post(apiUrl, form, { headers: getHeaders() })
-      alert('Thêm người dùng mới thành công!')
+      showToast('Thêm người dùng mới thành công!')
     }
     // Thành công -> Quay lại trang danh sách người dùng
     router.push('/users')
   } catch (error) {
     console.error('Lỗi lưu thông tin:', error)
-    alert('Có lỗi xảy ra (Email có thể đã bị trùng hoặc dữ liệu không hợp lệ).')
+    showToast('Có lỗi xảy ra (Email có thể đã bị trùng hoặc dữ liệu không hợp lệ).', 'error')
   }
 }
 

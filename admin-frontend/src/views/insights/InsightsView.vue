@@ -9,6 +9,9 @@ import CardBox from '@/components/CardBox.vue'
 import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
 import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.vue'
 import BaseButton from '@/components/BaseButton.vue'
+import CardBoxModal from '@/components/CardBoxModal.vue'
+import FormField from '@/components/FormField.vue'
+import FormControl from '@/components/FormControl.vue'
 import api from '@/services/api'
 import { showToast } from '@/composables/useToast'
 import { imgUrl } from '@/utils/image'
@@ -47,15 +50,23 @@ const isComboCreated = (c) => createdCombos.value.some(
     (existing.product_id === c.product_b.id && existing.combo_product_id === c.product_a.id)
 )
 
-const createCombo = async (c) => {
-  const percentStr = window.prompt(`Nhập % giảm giá cho combo ${c.product_a.name} + ${c.product_b.name}:`, '5')
-  if (percentStr === null) return // User cancelled
-  
-  const percent = parseInt(percentStr)
+const isComboModalActive = ref(false)
+const comboForm = ref({ discount_percent: 5, c: null })
+
+const openComboModal = (c) => {
+  comboForm.value = { discount_percent: 5, c }
+  isComboModalActive.value = true
+}
+
+const confirmCreateCombo = async () => {
+  const { discount_percent, c } = comboForm.value
+  const percent = parseInt(discount_percent)
   if (isNaN(percent) || percent < 1 || percent > 99) {
     showToast('Phần trăm giảm giá không hợp lệ!', 'error')
     return
   }
+
+  isComboModalActive.value = false // close modal
 
   const key = `${c.product_a.id}-${c.product_b.id}`
   creatingComboKey.value = key
@@ -113,6 +124,23 @@ onMounted(fetchInsights)
 
 <template>
   <LayoutAuthenticated>
+    <CardBoxModal
+      v-model="isComboModalActive"
+      title="Thiết lập giảm giá Combo"
+      button="success"
+      buttonLabel="Tạo Combo"
+      hasCancel
+      isForm
+      @confirm="confirmCreateCombo"
+    >
+      <div v-if="comboForm.c" class="mb-4">
+        Tạo combo cho: <b>{{ comboForm.c.product_a.name }}</b> + <b>{{ comboForm.c.product_b.name }}</b>
+      </div>
+      <FormField label="Phần trăm giảm giá (1 - 99%)">
+        <FormControl v-model="comboForm.discount_percent" type="number" min="1" max="99" required />
+      </FormField>
+    </CardBoxModal>
+
     <SectionMain>
       <SectionTitleLineWithButton :icon="mdiBullhorn" title="Gợi ý cho Admin" main>
         <BaseButton :icon="mdiRefresh" color="whiteDark" label="Làm mới" rounded-full @click="fetchInsights" />
@@ -230,7 +258,7 @@ onMounted(fetchInsights)
                 color="success"
                 label="Tạo combo"
                 :disabled="creatingComboKey === `${c.product_a.id}-${c.product_b.id}`"
-                @click="createCombo(c)"
+                @click="openComboModal(c)"
               />
               <span v-else class="text-xs text-emerald-600 font-medium">Đã tạo ✓</span>
             </div>

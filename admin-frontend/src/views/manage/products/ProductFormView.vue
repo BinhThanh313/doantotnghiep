@@ -15,6 +15,7 @@ import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.
 import ProductSpecificationManager from './ProductSpecificationManager.vue'
 import ProductImageManager from './ProductImageManager.vue'
 import ProductVariantManager from './ProductVariantManager.vue'
+import { showToast } from '@/composables/useToast'
 import api from '@/services/api'
 
 const route = useRoute()
@@ -79,10 +80,10 @@ const submit = async () => {
     if (isEditMode.value) {
       formData.append('_method', 'PUT')
       await api.post(`/api/admin/products/${route.params.id}`, formData, config)
-      alert('Cập nhật thành công!')
+      showToast('Cập nhật thành công!')
     } else {
       await api.post('/api/admin/products', formData, config)
-      alert('Thêm mới thành công!')
+      showToast('Thêm mới thành công!')
     }
     router.push('/products')
   } catch (error) {
@@ -90,10 +91,10 @@ const submit = async () => {
       const errors = error.response.data.errors
       let msg = 'Dữ liệu không hợp lệ:\n'
       for (let field in errors) msg += `- ${errors[field][0]}\n`
-      alert(msg)
+      showToast(msg, 'error')
     } else {
       console.error('Lỗi lưu sản phẩm', error.response?.data || error)
-      alert('Có lỗi xảy ra, vui lòng kiểm tra lại console.')
+      showToast('Có lỗi xảy ra, vui lòng kiểm tra lại console.', 'error')
     }
   }
 }
