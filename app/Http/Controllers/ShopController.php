@@ -62,7 +62,7 @@ class ShopController extends Controller
         return view('shop.shop', compact('products', 'categories'));
     }
 
-    public function show($id, RecommendationService $recommendationService)
+    public function show($id, RecommendationService $recommendationService, \App\Services\ItemBasedRecommendationService $itemBasedRecommendationService)
     {
         $product    = Product::with(['category', 'specifications', 'activeFlashSaleItem', 'images', 'variants'])->findOrFail($id);
         $categories = $this->categoriesWithCounts();
@@ -77,7 +77,10 @@ class ShopController extends Controller
         ]);
 
         // Gợi ý sản phẩm: liên quan / khách hàng cũng mua / dành riêng cho bạn
-        $recommendations = $recommendationService->forProductPage($product, \Illuminate\Support\Facades\Auth::user());
+        $recommendations = $recommendationService->forProductPage($product, null); // Pass null here so it doesn't run the old logic
+        $recommendations['for_you'] = Auth::check() 
+            ? $itemBasedRecommendationService->forUser(Auth::user(), 8)
+            : collect();
 
         // Combo do admin tạo (từ gợi ý "thường mua cùng") liên quan tới sản phẩm này
         $combos = \App\Models\ProductCombo::activeForProduct($product->id);
