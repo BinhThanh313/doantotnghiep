@@ -34,15 +34,16 @@ class AdminInsightService
             ->groupBy('product_id')
             ->pluck('total_sold', 'product_id');
 
-        if ($sold->isEmpty()) {
-            return collect();
-        }
-
-        return Product::whereIn('id', $sold->keys())
-            ->where('is_active', true)
+        return Product::where('is_active', true)
+            ->where(function ($query) use ($sold) {
+                $query->whereIn('id', $sold->keys())
+                      ->orWhere(function ($q) {
+                          $q->where('stock', '<=', 5)->where('stock', '>', 0);
+                      });
+            })
             ->get()
             ->map(function ($product) use ($sold, $windowDays) {
-                $totalSold      = (int) $sold[$product->id];
+                $totalSold      = (int) ($sold[$product->id] ?? 0);
                 $avgDailySales  = $totalSold / $windowDays;
                 $daysLeft       = $avgDailySales > 0 ? $product->stock / $avgDailySales : null;
 
@@ -56,8 +57,10 @@ class AdminInsightService
                     'days_left'       => $daysLeft !== null ? round($daysLeft, 1) : null,
                 ];
             })
-            ->filter(fn ($row) => $row['days_left'] !== null && $row['days_left'] < 7)
-            ->sortBy('days_left')
+            ->filter(fn ($row) => ($row['days_left'] !== null && $row['days_left'] < 7) || ($row['stock'] <= 5 && $row['stock'] > 0))
+            ->sortBy(function ($row) {
+                return $row['days_left'] ?? 9999;
+            })
             ->take($limit)
             ->values();
     }

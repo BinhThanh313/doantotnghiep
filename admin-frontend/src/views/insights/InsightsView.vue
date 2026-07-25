@@ -128,7 +128,7 @@ onMounted(fetchInsights)
               </div>
             </div>
             <span class="text-red-600 text-sm font-semibold whitespace-nowrap ml-2">
-              còn {{ p.days_left }} ngày
+              {{ p.days_left !== null ? `còn ${p.days_left} ngày` : 'Sắp hết' }}
             </span>
           </div>
         </CardBox>
