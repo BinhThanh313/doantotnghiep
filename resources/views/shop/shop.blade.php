@@ -60,21 +60,7 @@
 @endsection
 
 @push('scripts')
-<style>
-    /* Phân trang */
-    #pagination .pagination {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        justify-content: center;
-        gap: 6px;
-        margin-bottom: 0;
-    }
-    
-    #pagination .page-item { display: inline-block !important; }
-    /* Dòng "Showing X to Y of Z results" được ẩn ở public/css/style.css (áp dụng luôn cho
-       cả nội dung phân trang nạp qua AJAX), không cần lặp lại ở đây. */
-</style>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {

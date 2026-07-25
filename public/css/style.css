@@ -637,7 +637,16 @@
 
 /*** Pagination Start ***/
 .pagination {
-    display: inline-block;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 0;
+}
+
+.pagination .page-item { 
+    display: inline-block !important; 
 }
 
   
