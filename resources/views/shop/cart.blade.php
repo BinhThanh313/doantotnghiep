@@ -130,64 +130,86 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function loadCart() {
-        // Lấy danh sách đang được tick trước khi reload
         const selectedIds = Array.from(document.querySelectorAll('.item-select:checked'))
-                                 .map(cb => cb.dataset.id);
+                                 .map(cb => cb.dataset.id)
+                                 .join(',');
 
-        fetch('{{ route("cart.index") }}?ajax=1', {
+        const cartTable = document.getElementById('cart-table');
+        const summaryEl = document.getElementById('cart-summary');
+        if (cartTable) cartTable.style.opacity = '0.5';
+        if (summaryEl) summaryEl.style.opacity = '0.5';
+
+        fetch('{{ route("cart.index") }}?ajax=1&selected_ids=' + selectedIds, {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(r => r.json())
         .then(data => {
             document.getElementById('cart-body').innerHTML = data.cart_html;
+            if (summaryEl) {
+                summaryEl.innerHTML = data.summary_html;
+            }
             
             // Khôi phục lại trạng thái tick
-            if (selectedIds.length > 0) {
+            const selectedArr = selectedIds ? selectedIds.split(',') : [];
+            if (selectedArr.length > 0) {
                 document.querySelectorAll('.item-select').forEach(cb => {
-                    if (selectedIds.includes(cb.dataset.id)) {
-                        cb.checked = true;
-                    } else {
-                        cb.checked = false;
-                    }
+                    cb.checked = selectedArr.includes(cb.dataset.id);
                 });
-                // Cập nhật nút check all
                 const allBoxes = document.querySelectorAll('.item-select');
                 const selectAll = document.getElementById('select-all-items');
                 if (selectAll) {
                     selectAll.checked = allBoxes.length > 0 && Array.from(allBoxes).every(cb => cb.checked);
                 }
             } else {
-                // Nếu chưa có gì (hoặc vừa load trang xong), tick all
                 const selectAll = document.getElementById('select-all-items');
                 if (selectAll) selectAll.checked = true;
             }
 
-            updateSelectedTotal();
+            if (cartTable) cartTable.style.opacity = '1';
+            if (summaryEl) summaryEl.style.opacity = '1';
+
+            updateHiddenInputTotal();
         });
     }
 
     // ====================== CHỌN SẢN PHẨM ĐỂ THANH TOÁN ======================
+    let summaryDebounceTimer = null;
+
     function updateSelectedTotal() {
-        const selectedIds = Array.from(document.querySelectorAll('.item-select:checked'))
-                                 .map(cb => cb.dataset.id)
-                                 .join(',');
-        
-        // Gọi AJAX để lấy lại summary_html
-        fetch('{{ route("cart.index") }}?ajax=1&selected_ids=' + selectedIds, {
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
-        })
-        .then(r => r.json())
-        .then(data => {
-            document.getElementById('cart-summary').innerHTML = data.summary_html;
+        const summaryEl = document.getElementById('cart-summary');
+        if (summaryEl) {
+            summaryEl.style.opacity = '0.5';
+            summaryEl.style.pointerEvents = 'none';
+        }
+
+        clearTimeout(summaryDebounceTimer);
+        summaryDebounceTimer = setTimeout(() => {
+            const selectedIds = Array.from(document.querySelectorAll('.item-select:checked'))
+                                     .map(cb => cb.dataset.id)
+                                     .join(',');
             
-            // Tính lại selectedTotal cho hidden input
-            let selectedTotal = 0;
-            document.querySelectorAll('.item-select:checked').forEach(cb => {
-                selectedTotal += parseFloat(cb.dataset.subtotal) || 0;
+            fetch('{{ route("cart.index") }}?ajax=1&selected_ids=' + selectedIds, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (summaryEl) {
+                    summaryEl.innerHTML = data.summary_html;
+                    summaryEl.style.opacity = '1';
+                    summaryEl.style.pointerEvents = 'auto';
+                }
+                updateHiddenInputTotal();
             });
-            const hiddenInput = document.getElementById('cart-total-hidden');
-            if (hiddenInput) hiddenInput.value = selectedTotal;
+        }, 300);
+    }
+
+    function updateHiddenInputTotal() {
+        let selectedTotal = 0;
+        document.querySelectorAll('.item-select:checked').forEach(cb => {
+            selectedTotal += parseFloat(cb.dataset.subtotal) || 0;
         });
+        const hiddenInput = document.getElementById('cart-total-hidden');
+        if (hiddenInput) hiddenInput.value = selectedTotal;
     }
 
     document.addEventListener('change', function (e) {
