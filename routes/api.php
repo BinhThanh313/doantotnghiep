@@ -153,7 +153,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 // Nhóm này dùng session 'web' của storefront (khách hàng không có Bearer
 // token, chỉ đăng nhập qua session) — cần EnsureFrontendRequestsAreStateful
 // để Sanctum chấp nhận session làm phương thức xác thực hợp lệ ở đây.
-Route::middleware([EnsureFrontendRequestsAreStateful::class, 'auth:sanctum'])->group(function () {
+Route::middleware([EnsureFrontendRequestsAreStateful::class, 'auth:sanctum', 'verified'])->group(function () {
     Route::post('/products/{productId}/reviews', [ReviewController::class, 'store']);
     Route::post('/reviews/{reviewId}/helpful',   [ReviewController::class, 'helpful']);
     Route::get('/reviews/{reviewId}',            [ReviewController::class, 'show']);

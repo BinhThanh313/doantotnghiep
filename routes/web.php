@@ -137,7 +137,7 @@ Route::get('/faq', fn() => view('faq'))->name('faq');
 Route::get('/return-policy', fn() => view('return-policy'))->name('return-policy');
 Route::get('/bestseller', [ShopController::class, 'bestsellers'])->name('bestseller');
 Route::get('/flash-sale', [FlashSalePageController::class, 'index'])->name('flash-sale');
-Auth::routes();
+Auth::routes(['verify' => true]);
 
 /*
 |--------------------------------------------------------------------------
@@ -145,7 +145,7 @@ Auth::routes();
 |--------------------------------------------------------------------------
 */
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
 
     Route::get('/profile', function() {
         $orders = \App\Models\Order::where('user_id', Auth::id())

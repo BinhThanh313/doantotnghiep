@@ -124,7 +124,8 @@ class DemoInsightSeeder extends Seeder
             ['email' => $identity['email']],
             [
                 'name'     => $identity['name'],
-                'password' => Hash::make('demo_seed_password'),
+                'email_verified_at' => now(),
+                    'password' => Hash::make('demo_seed_password'),
                 'role'     => 'user',
             ]
         );
@@ -172,6 +173,7 @@ class DemoInsightSeeder extends Seeder
                 ['email' => $identity['email']],
                 [
                     'name'     => $identity['name'],
+                    'email_verified_at' => now(),
                     'password' => Hash::make('demo_seed_password'),
                     'role'     => 'user',
                 ]

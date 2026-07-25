@@ -126,6 +126,7 @@ class ContactMessageSeeder extends Seeder
                 ['email' => $identity['email']],
                 [
                     'name'     => $identity['name'],
+                    'email_verified_at' => now(),
                     'password' => Hash::make('demo_seed_password'),
                     'role'     => 'user',
                 ]
