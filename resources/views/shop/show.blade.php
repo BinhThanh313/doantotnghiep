@@ -169,7 +169,7 @@
                                 <button type="submit" class="btn btn-primary border border-secondary rounded-pill px-4 py-2 text-white"
                                         id="addToCartBtn"
                                         {{ $defaultVariant && $defaultVariant->stock <= 0 ? 'disabled' : '' }}>
-                                    <i class="fa fa-shopping-bag me-2"></i> Thêm vào giỏ hàng
+                                    <i class="fa fa-shopping-bag me-2"></i> Thêm vào giỏ
                                 </button>
                             </form>
 

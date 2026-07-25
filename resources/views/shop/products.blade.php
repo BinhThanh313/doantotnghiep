@@ -28,7 +28,7 @@
     <button type="button" 
             class="btn btn-primary rounded-pill py-2 px-4 add-to-cart"
             data-id="{{ $product->id }}">
-        <i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ hàng
+        <i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ
     </button>
 </div>
         </div>
