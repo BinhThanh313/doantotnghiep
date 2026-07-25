@@ -88,7 +88,32 @@ class CheckoutController extends Controller
         $carriers = ShippingCarrier::where('is_active', true)->get();
         $isPartialCheckout = !empty($selectedIds);
 
-        return view('shop.checkout', compact('cart', 'subtotal', 'carriers', 'isPartialCheckout'));
+        // Lấy discount từ combo
+        $comboDiscountResult = \App\Models\ProductCombo::calculateCartDiscount($cart);
+        $comboDiscount = $comboDiscountResult['amount'];
+        $comboDetails = $comboDiscountResult['details'];
+
+        $initialVouchers = [];
+        foreach ($comboDetails as $cd) {
+            $initialVouchers[] = [
+                'code' => $cd['name'],
+                'discount' => $cd['discount_amount'],
+                'is_combo' => true
+            ];
+        }
+
+        $appliedVoucherCodes = session('applied_vouchers', []);
+        if (!empty($appliedVoucherCodes)) {
+            $vouchers = \App\Models\Voucher::whereIn('code', $appliedVoucherCodes)
+                ->get()
+                ->sortBy(fn($v) => array_search($v->code, $appliedVoucherCodes))
+                ->values();
+
+            $result = \App\Models\Voucher::calculateStackedDiscount($vouchers, $subtotal - $comboDiscount);
+            $initialVouchers = array_merge($initialVouchers, $result['breakdown']);
+        }
+
+        return view('shop.checkout', compact('cart', 'subtotal', 'carriers', 'isPartialCheckout', 'comboDiscount', 'comboDetails', 'initialVouchers'));
     }
 
     /**
@@ -120,11 +145,16 @@ class CheckoutController extends Controller
             return response()->json(['success' => false, 'message' => 'Bạn đã sử dụng mã này rồi'], 422);
         }
 
+        // Lấy discount từ combo
+        $cart = $this->getCart();
+        $comboDiscountResult = \App\Models\ProductCombo::calculateCartDiscount($cart);
+        $comboDiscount = $comboDiscountResult['amount'];
+
         // Tính lại discount cho TOÀN BỘ danh sách (mã cũ + mã mới) theo đúng
         // thứ tự áp dụng, để đảm bảo mã mới còn tác dụng khi stack với các mã trước.
         $newAppliedCodes = [...$appliedCodes, $code];
         $vouchers        = $this->loadVouchersInOrder($newAppliedCodes);
-        $result          = Voucher::calculateStackedDiscount($vouchers, $request->amount);
+        $result          = Voucher::calculateStackedDiscount($vouchers, $request->amount - $comboDiscount);
 
         $newVoucherEntry = collect($result['breakdown'])->firstWhere('code', $code);
 
@@ -139,11 +169,19 @@ class CheckoutController extends Controller
 
         session(['applied_vouchers' => $newAppliedCodes]);
 
+        $breakdown = $result['breakdown'];
+        foreach ($comboDiscountResult['details'] as $cd) {
+            array_unshift($breakdown, [
+                'code' => $cd['name'],
+                'discount' => $cd['discount_amount']
+            ]);
+        }
+
         return response()->json([
             'success'  => true,
             'message'  => 'Áp dụng mã "' . $code . '" thành công! Giảm thêm ' . number_format($newVoucherEntry['discount'], 0, ',', '.') . 'đ',
-            'discount' => $result['total'],
-            'vouchers' => $result['breakdown'],
+            'discount' => $result['total'] + $comboDiscount,
+            'vouchers' => $breakdown,
         ]);
     }
 
@@ -163,14 +201,26 @@ class CheckoutController extends Controller
 
         session(['applied_vouchers' => $appliedCodes]);
 
+        $cart = $this->getCart();
+        $comboDiscountResult = \App\Models\ProductCombo::calculateCartDiscount($cart);
+        $comboDiscount = $comboDiscountResult['amount'];
+
         $result = empty($appliedCodes)
             ? ['total' => 0, 'breakdown' => []]
-            : Voucher::calculateStackedDiscount($this->loadVouchersInOrder($appliedCodes), $request->amount);
+            : Voucher::calculateStackedDiscount($this->loadVouchersInOrder($appliedCodes), $request->amount - $comboDiscount);
+
+        $breakdown = $result['breakdown'];
+        foreach ($comboDiscountResult['details'] as $cd) {
+            array_unshift($breakdown, [
+                'code' => $cd['name'],
+                'discount' => $cd['discount_amount']
+            ]);
+        }
 
         return response()->json([
             'success'  => true,
-            'discount' => $result['total'],
-            'vouchers' => $result['breakdown'],
+            'discount' => $result['total'] + $comboDiscount,
+            'vouchers' => $breakdown,
         ]);
     }
 
@@ -254,9 +304,23 @@ class CheckoutController extends Controller
                     $shippingFee = $zone ? $zone->fee : ($carrier?->base_fee ?? 0);
                 }
 
-                // 4. Áp dụng voucher (hỗ trợ nhiều mã cùng lúc, tính tuần tự)
-                $discountAmount  = 0;
-                $appliedVouchers = []; // [['voucher' => Voucher, 'discount' => float], ...]
+                // 4. Lấy discount từ combo
+                $comboDiscountResult = \App\Models\ProductCombo::calculateCartDiscount($cart);
+                $discountAmount  = $comboDiscountResult['amount'];
+                $appliedVouchers = []; 
+                
+                // Lưu combo details
+                foreach ($comboDiscountResult['details'] as $cd) {
+                    $appliedVouchers[] = [
+                        'voucher' => new \App\Models\Voucher([
+                            'code' => $cd['name'],
+                            'id' => 0 // id=0 to avoid inserting to voucher_usage
+                        ]),
+                        'discount' => $cd['discount_amount']
+                    ];
+                }
+
+                // 4.1 Áp dụng voucher (hỗ trợ nhiều mã cùng lúc, tính tuần tự)
                 $voucherCodes    = $request->input('voucher_codes') ?: session('applied_vouchers', []);
                 $voucherCodes    = array_values(array_unique(array_map('strtoupper', $voucherCodes)));
 
@@ -267,7 +331,7 @@ class CheckoutController extends Controller
                         ->sortBy(fn($v) => array_search($v->code, $voucherCodes))
                         ->values();
 
-                    $remaining = $subtotal;
+                    $remaining = $subtotal - $discountAmount;
 
                     foreach ($vouchers as $voucher) {
                         if (!$voucher->isValid()) continue;
@@ -330,6 +394,8 @@ class CheckoutController extends Controller
 
                 // 7. Lưu voucher usage (từng mã trong danh sách đã áp dụng)
                 foreach ($appliedVouchers as $entry) {
+                    if ($entry['voucher']->id == 0) continue; // Bỏ qua nếu là mã sinh ra từ Combo
+                    
                     $order->vouchers()->attach($entry['voucher']->id, ['discount_amount' => $entry['discount']]);
 
                     if (Auth::check()) {

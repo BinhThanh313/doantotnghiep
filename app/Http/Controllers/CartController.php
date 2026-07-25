@@ -69,18 +69,32 @@ class CartController extends Controller
             $total += $item['price'] * $item['quantity'];
         }
 
+        // Lấy discount từ combo
+        $comboDiscountResult = \App\Models\ProductCombo::calculateCartDiscount($cart);
+        $discount += $comboDiscountResult['amount'];
+        $comboDetails = $comboDiscountResult['details'];
+
         // Lấy discount từ session nếu có voucher (hỗ trợ nhiều mã cùng lúc)
         $appliedVoucherCodes = session('applied_vouchers', []);
         $appliedVouchers = [];
+        
+        // Thêm các combo vào danh sách voucher để hiển thị ở view
+        foreach ($comboDetails as $cd) {
+            $appliedVouchers[] = [
+                'code' => $cd['name'],
+                'discount' => $cd['discount_amount']
+            ];
+        }
+
         if (!empty($appliedVoucherCodes)) {
             $vouchers = \App\Models\Voucher::whereIn('code', $appliedVoucherCodes)
                 ->get()
                 ->sortBy(fn($v) => array_search($v->code, $appliedVoucherCodes))
                 ->values();
 
-            $result = \App\Models\Voucher::calculateStackedDiscount($vouchers, $total);
-            $discount = $result['total'];
-            $appliedVouchers = $result['breakdown'];
+            $result = \App\Models\Voucher::calculateStackedDiscount($vouchers, $total - $comboDiscountResult['amount']);
+            $discount += $result['total'];
+            $appliedVouchers = array_merge($appliedVouchers, $result['breakdown']);
         }
 
         if ($request->ajax() || $request->get('ajax')) {

@@ -298,7 +298,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const subtotalEl = document.getElementById('subtotal-display');
     const currentSubtotal = parseFloat(subtotalEl ? subtotalEl.dataset.value : '0') || 0;
 
-    let appliedVouchers    = []; // [{code, name, discount}, ...] - danh sách mã đang áp dụng
+    let appliedVouchers    = {!! json_encode($initialVouchers ?? []) !!};
     let currentShippingFee = 0;
     let currentDiscount    = 0;
 
@@ -313,7 +313,7 @@ document.addEventListener('DOMContentLoaded', function () {
             appliedListEl.innerHTML = appliedVouchers.map(v => `
                 <span class="badge bg-success-subtle text-success border border-success d-inline-flex align-items-center gap-2 py-2 px-3">
                     ${escapeHtml(v.code)} (-${Number(v.discount).toLocaleString('vi-VN')}đ)
-                    <button type="button" class="btn-close btn-close-sm remove-voucher-btn" data-code="${escapeHtml(v.code)}" style="font-size:0.6rem;" aria-label="Gỡ mã"></button>
+                    ${!v.is_combo && v.code.indexOf('Combo') !== 0 ? `<button type="button" class="btn-close btn-close-sm remove-voucher-btn" data-code="${escapeHtml(v.code)}" style="font-size:0.6rem;" aria-label="Gỡ mã"></button>` : ''}
                 </span>
             `).join('');
         }
@@ -632,6 +632,9 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     }
+
+    // Khởi tạo hiển thị ban đầu
+    renderAppliedVouchers(appliedVouchers);
 });
 </script>
 @endpush
