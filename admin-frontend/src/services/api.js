@@ -6,7 +6,7 @@ const basePath = window.location.pathname.includes('/doantotnghiep/public') ? '/
 const api = axios.create({
   baseURL: window.location.origin + basePath,
   withCredentials: true,
-  timeout: 30000,
+  timeout: 600000,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
