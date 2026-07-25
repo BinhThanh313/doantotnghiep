@@ -31,7 +31,7 @@ const asideLgCloseClick = (event) => {
     <div class="aside flex flex-1 flex-col overflow-hidden lg:rounded-2xl dark:bg-slate-900">
       <div class="aside-brand flex h-14 flex-row items-center justify-between dark:bg-slate-900">
         <div class="flex-1 text-center lg:pl-6 lg:text-left xl:pl-0 xl:text-center">
-          <b class="font-black">One</b>
+          <b class="font-black">Electro</b>
         </div>
         <button class="hidden p-3 lg:inline-block xl:hidden" @click.prevent="asideLgCloseClick">
           <BaseIcon :path="mdiClose" />

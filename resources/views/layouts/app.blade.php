@@ -42,7 +42,7 @@
             
             <div class="col-lg-3 text-start">
                 <a href="{{ route('home') }}" class="navbar-brand p-0">
-                    <h1 class="display-5 text-primary m-0">
+                    <h1 class="display-5 text-primary m-0 logo-text">
                         <i class="fas fa-shopping-bag text-secondary me-2"></i>Electro
                     </h1>
                 </a>
@@ -152,7 +152,7 @@
             <div class="col-12 col-lg-9">
                 <nav class="navbar navbar-expand-lg navbar-light bg-primary">
                     <a href="{{ route('home') }}" class="navbar-brand d-block d-lg-none">
-                        <h1 class="display-5 text-secondary m-0">
+                        <h1 class="display-5 text-secondary m-0 logo-text">
                             <i class="fas fa-shopping-bag text-white me-2"></i>Electro
                         </h1>
                     </a>
@@ -215,7 +215,7 @@
                 <div class="col-md-6 col-lg-6 col-xl-3">
                     <div class="rounded p-4">
                         <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mb-4" style="width: 70px; height: 70px;">
-                            <i class="fas fa-map-marker-alt fa-2x text-primary"></i>
+                            <i class="fas fa-map-marked-alt fa-2x text-primary"></i>
                         </div>
                         <h4 class="text-white">Địa chỉ</h4>
                         <p class="mb-2">123 Đường ABC, Hà Nội, Việt Nam</p>
@@ -224,7 +224,7 @@
                 <div class="col-md-6 col-lg-6 col-xl-3">
                     <div class="rounded p-4">
                         <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mb-4" style="width: 70px; height: 70px;">
-                            <i class="fas fa-envelope fa-2x text-primary"></i>
+                            <i class="fas fa-envelope-open-text fa-2x text-primary"></i>
                         </div>
                         <h4 class="text-white">Gửi Email</h4>
                         <p class="mb-2">info@electroshop.com</p>
@@ -233,7 +233,7 @@
                 <div class="col-md-6 col-lg-6 col-xl-3">
                     <div class="rounded p-4">
                         <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mb-4" style="width: 70px; height: 70px;">
-                            <i class="fa fa-phone-alt fa-2x text-primary"></i>
+                            <i class="fas fa-headset fa-2x text-primary"></i>
                         </div>
                         <h4 class="text-white">Điện thoại</h4>
                         <p class="mb-2">(+012) 3456 7890</p>
@@ -242,7 +242,7 @@
                 <div class="col-md-6 col-lg-6 col-xl-3">
                     <div class="rounded p-4">
                         <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center mb-4" style="width: 70px; height: 70px;">
-                            <i class="fab fa-firefox-browser fa-2x text-primary"></i>
+                            <i class="fas fa-globe fa-2x text-primary"></i>
                         </div>
                         <h4 class="text-white">Trang web</h4>
                         <p class="mb-2">www.electroshop.com</p>
