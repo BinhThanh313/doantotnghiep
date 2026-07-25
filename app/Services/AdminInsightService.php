@@ -73,13 +73,11 @@ class AdminInsightService
     {
         $since = Carbon::now()->subDays($windowDays);
 
-        $soldProductIds = OrderItem::whereHas('order', fn ($q) => $q->where('created_at', '>=', $since))
-            ->pluck('product_id')
-            ->unique();
-
         return Product::where('is_active', true)
             ->where('stock', '>', $minStock)
-            ->whereNotIn('id', $soldProductIds)
+            ->whereDoesntHave('orderItems.order', function ($q) use ($since) {
+                $q->where('created_at', '>=', $since);
+            })
             ->orderByDesc('stock')
             ->take($limit)
             ->get(['id', 'name', 'image', 'stock', 'price'])
@@ -216,9 +214,10 @@ class AdminInsightService
     public function abandonedCarts(int $hoursThreshold = 24, int $limit = 20)
     {
         $cutoff = Carbon::now()->subHours($hoursThreshold);
+        $cutoffLower = Carbon::now()->subDays(14); // Giới hạn chỉ quét giỏ hàng trong 14 ngày gần nhất để tăng tốc
 
         $items = CartItem::with(['product:id,name,image,price', 'user:id,name,email'])
-            ->where('created_at', '<=', $cutoff)
+            ->whereBetween('created_at', [$cutoffLower, $cutoff])
             ->get()
             ->filter(fn ($item) => $item->product && $item->user);
 
@@ -263,8 +262,13 @@ class AdminInsightService
     {
         return Product::where('is_active', true)
             ->withCount('images')
+            ->where(function ($q) {
+                $q->doesntHave('images')
+                  ->orWhereNull('description')
+                  ->orWhereRaw('CHAR_LENGTH(description) < 100');
+            })
+            ->take($limit)
             ->get()
-            ->filter(fn ($p) => $p->images_count === 0 || mb_strlen(strip_tags((string) $p->description)) < 100)
             ->map(fn ($p) => [
                 'product_id'      => $p->id,
                 'name'            => $p->name,
@@ -272,7 +276,6 @@ class AdminInsightService
                 'has_gallery'     => $p->images_count > 0,
                 'description_len' => mb_strlen(strip_tags((string) $p->description)),
             ])
-            ->take($limit)
             ->values();
     }
 
