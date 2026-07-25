@@ -72,7 +72,9 @@
                     @endforeach
                 </tbody>
             </table>
-            <div class="p-3">{{ $orders->links() }}</div>
+            <div class="d-flex justify-content-center mt-4" id="pagination">
+                {{ $orders->links('pagination::bootstrap-5') }}
+            </div>
         @endif
     </div>
 </div>    
