@@ -37,6 +37,11 @@ Route::get('/trigger-recommendation', function () {
     return 'Đã kích hoạt chạy nền cập nhật dữ liệu gợi ý thành công! Kết quả: <br>' . nl2br(\Illuminate\Support\Facades\Artisan::output());
 });
 
+Route::get('/seed-interactions', function () {
+    \Illuminate\Support\Facades\Artisan::call('db:seed', ['--class' => 'InteractionDataSeeder', '--force' => true]);
+    return 'Đã tự động tạo xong hàng loạt đơn hàng và lượt xem ảo cho các tài khoản thật! <br>Kết quả: <br>' . nl2br(\Illuminate\Support\Facades\Artisan::output()) . '<br><br><a href="/trigger-recommendation">Click vào đây để chạy tính toán lại gợi ý ngay bây giờ</a>';
+});
+
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/home', [HomeController::class, 'index']);
 
