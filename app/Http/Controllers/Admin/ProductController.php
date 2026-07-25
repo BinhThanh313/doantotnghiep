@@ -396,7 +396,12 @@ class ProductController extends Controller
                 continue;
             }
 
-            $storedPath = $this->downloadProductImage($url, $product->slug, $nextSortOrder + $i, $failReason);
+            // Nếu URL đã là link Cloudinary, gán thẳng luôn không cần tải về
+            if (str_starts_with($url, 'https://res.cloudinary.com/')) {
+                $storedPath = $url;
+            } else {
+                $storedPath = $this->downloadProductImage($url, $product->slug, $nextSortOrder + $i, $failReason);
+            }
 
             if (!$storedPath) {
                 $reasonText = $failReason ? " (Lý do: {$failReason})" : '';
