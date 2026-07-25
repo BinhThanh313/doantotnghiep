@@ -61,16 +61,29 @@ class CartController extends Controller
 
     public function index(Request $request)
     {
-        $cart = $this->getCart();
+        $fullCart = $this->getCart();
+        $cartForSummary = $fullCart;
+
+        // Nếu có truyền danh sách ID được chọn (từ file cart.blade.php gửi lên AJAX)
+        if ($request->has('selected_ids')) {
+            $selectedIds = array_filter(explode(',', $request->selected_ids));
+            if (!empty($selectedIds)) {
+                $selectedIds = array_map('intval', $selectedIds);
+                $cartForSummary = array_filter($fullCart, fn($item, $key) => in_array((int) $key, $selectedIds), ARRAY_FILTER_USE_BOTH);
+            } else {
+                $cartForSummary = [];
+            }
+        }
+
         $total = 0;
         $discount = 0;
 
-        foreach ($cart as $item) {
+        foreach ($cartForSummary as $item) {
             $total += $item['price'] * $item['quantity'];
         }
 
         // Lấy discount từ combo
-        $comboDiscountResult = \App\Models\ProductCombo::calculateCartDiscount($cart);
+        $comboDiscountResult = \App\Models\ProductCombo::calculateCartDiscount($cartForSummary);
         $discount += $comboDiscountResult['amount'];
         $comboDetails = $comboDiscountResult['details'];
 
@@ -86,7 +99,7 @@ class CartController extends Controller
             ];
         }
 
-        if (!empty($appliedVoucherCodes)) {
+        if (!empty($appliedVoucherCodes) && $total > 0) {
             $vouchers = \App\Models\Voucher::whereIn('code', $appliedVoucherCodes)
                 ->get()
                 ->sortBy(fn($v) => array_search($v->code, $appliedVoucherCodes))
@@ -99,12 +112,22 @@ class CartController extends Controller
 
         if ($request->ajax() || $request->get('ajax')) {
             return response()->json([
-                'cart_html'    => view('shop.cart-items', compact('cart'))->render(),
-                'summary_html' => view('shop.cart-summary', compact('cart', 'total', 'discount', 'appliedVouchers'))->render(),
+                'cart_html'    => view('shop.cart-items', ['cart' => $fullCart])->render(),
+                'summary_html' => view('shop.cart-summary', [
+                    'cart' => $cartForSummary, 
+                    'total' => $total, 
+                    'discount' => $discount, 
+                    'appliedVouchers' => $appliedVouchers
+                ])->render(),
             ]);
         }
 
-        return view('shop.cart', compact('cart', 'total', 'discount', 'appliedVouchers'));
+        return view('shop.cart', [
+            'cart' => $fullCart, 
+            'total' => $total, 
+            'discount' => $discount, 
+            'appliedVouchers' => $appliedVouchers
+        ]);
     }
 
     public function add(Request $request)
