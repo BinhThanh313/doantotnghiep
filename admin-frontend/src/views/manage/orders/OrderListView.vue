@@ -230,8 +230,14 @@ const executeBulkAction = async () => {
       ids:    selectedIds.value,
       action: bulkAction.value,
     }
-    if (bulkAction.value === 'update_status')         payload.status         = bulkStatus.value
-    if (bulkAction.value === 'update_payment_status') payload.payment_status = bulkStatus.value
+    if (bulkAction.value === 'update_status') {
+      if (!bulkStatus.value) bulkStatus.value = statusOptions[1].id
+      payload.status = bulkStatus.value
+    }
+    if (bulkAction.value === 'update_payment_status') {
+      if (!bulkStatus.value) bulkStatus.value = paymentStatusOptions[1].id
+      payload.payment_status = bulkStatus.value
+    }
 
     const res = await api.post('/api/admin/orders/bulk', payload)
     showToast(res.data.message)
