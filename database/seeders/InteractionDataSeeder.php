@@ -87,10 +87,8 @@ class InteractionDataSeeder extends Seeder
                         'order_id' => $order->id,
                         'product_id' => $pid,
                         'product_name' => $prod->name,
-                        'product_sku' => $prod->sku,
                         'quantity' => rand(1, 2),
                         'price' => $price,
-                        'total' => $price * 1,
                     ]);
                 }
             }
