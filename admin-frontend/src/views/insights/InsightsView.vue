@@ -48,12 +48,22 @@ const isComboCreated = (c) => createdCombos.value.some(
 )
 
 const createCombo = async (c) => {
+  const percentStr = window.prompt(`Nhập % giảm giá cho combo ${c.product_a.name} + ${c.product_b.name}:`, '5')
+  if (percentStr === null) return // User cancelled
+  
+  const percent = parseInt(percentStr)
+  if (isNaN(percent) || percent < 1 || percent > 99) {
+    showToast('Phần trăm giảm giá không hợp lệ!', 'error')
+    return
+  }
+
   const key = `${c.product_a.id}-${c.product_b.id}`
   creatingComboKey.value = key
   try {
     await api.post('/api/admin/combos', {
       product_id: c.product_a.id,
       combo_product_id: c.product_b.id,
+      discount_percent: percent,
       similarity_score: c.score,
     })
     showToast('Đã tạo combo — sẽ hiển thị ở trang chi tiết sản phẩm')
