@@ -32,6 +32,11 @@ Route::get('/reset-admin', function () {
     return 'Admin not found';
 });
 
+Route::get('/trigger-recommendation', function () {
+    \Illuminate\Support\Facades\Artisan::call('recommendation:build-similarity');
+    return 'Đã kích hoạt chạy nền cập nhật dữ liệu gợi ý thành công! Kết quả: <br>' . nl2br(\Illuminate\Support\Facades\Artisan::output());
+});
+
 Route::get('/', [HomeController::class, 'index'])->name('home');
 Route::get('/home', [HomeController::class, 'index']);
 
