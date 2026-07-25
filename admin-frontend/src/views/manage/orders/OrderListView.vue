@@ -266,7 +266,7 @@ const viewOrder = async (id) => {
 
 const updateStatus = async (orderId, newStatus) => {
   try {
-    await api.put(`/api/admin/orders/${orderId}`, { status: newStatus })
+    await api.post(`/api/admin/orders/${orderId}`, { _method: 'PUT', status: newStatus })
     await fetchOrders(currentPage.value)
     if (selectedOrder.value?.id === orderId) {
       selectedOrder.value.status = newStatus
@@ -282,7 +282,7 @@ const updatePaymentStatus = async (orderId, newPaymentStatus) => {
   if (paymentStatusUpdating.value) return
   paymentStatusUpdating.value = true
   try {
-    await api.put(`/api/admin/orders/${orderId}`, { payment_status: newPaymentStatus })
+    await api.post(`/api/admin/orders/${orderId}`, { _method: 'PUT', payment_status: newPaymentStatus })
     await fetchOrders(currentPage.value)
     if (selectedOrder.value?.id === orderId) {
       selectedOrder.value.payment_status = newPaymentStatus

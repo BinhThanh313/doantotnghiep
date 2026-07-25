@@ -24,6 +24,17 @@ api.interceptors.request.use(
     const csrf = document.cookie.match(/XSRF-TOKEN=([^;]+)/)
     if (csrf) config.headers['X-XSRF-TOKEN'] = decodeURIComponent(csrf[1])
 
+    // Workaround for PHP 8.3 + Symfony 7.1 request_parse_body fatal error on Render
+    if (config.method && ['put', 'patch'].includes(config.method.toLowerCase())) {
+      if (config.data && !(config.data instanceof FormData)) {
+        config.data = {
+          ...config.data,
+          _method: config.method.toUpperCase()
+        }
+        config.method = 'post'
+      }
+    }
+
     return config
   },
   error => Promise.reject(error)
