@@ -52,8 +52,8 @@ class DashboardController extends Controller
 
             $chartRaw = Order::where('status', 'completed')
                 ->whereBetween('created_at', [$startDate, $endDate])
-                ->selectRaw('DATE(created_at) as date, COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as revenue')
-                ->groupBy(DB::raw('DATE(created_at)'))
+                ->selectRaw('CAST(created_at AS DATE) as date, COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as revenue')
+                ->groupBy(DB::raw('CAST(created_at AS DATE)'))
                 ->orderBy('date')
                 ->pluck('revenue', 'date');
 
@@ -177,8 +177,8 @@ class DashboardController extends Controller
 
         $chartRaw = Order::where('status', 'completed')
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->selectRaw('DATE(created_at) as date, COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as revenue, COUNT(*) as orders')
-            ->groupBy(DB::raw('DATE(created_at)'))
+            ->selectRaw('CAST(created_at AS DATE) as date, COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as revenue, COUNT(*) as orders')
+            ->groupBy(DB::raw('CAST(created_at AS DATE)'))
             ->orderBy('date')
             ->get();
 
@@ -414,8 +414,8 @@ class DashboardController extends Controller
 
         $chartRaw = Order::where('status', 'completed')
             ->whereBetween('created_at', [$startDate, $endDate])
-            ->selectRaw('DATE(created_at) as date, COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as revenue, COUNT(*) as orders')
-            ->groupBy(DB::raw('DATE(created_at)'))
+            ->selectRaw('CAST(created_at AS DATE) as date, COALESCE(SUM(total_amount + shipping_fee - discount_amount), 0) as revenue, COUNT(*) as orders')
+            ->groupBy(DB::raw('CAST(created_at AS DATE)'))
             ->orderBy('date')
             ->get();
         $maxRevenue = $chartRaw->max('revenue') ?: 1;

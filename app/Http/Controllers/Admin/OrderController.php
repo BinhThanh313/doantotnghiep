@@ -207,7 +207,7 @@ class OrderController extends Controller
         // Biểu đồ doanh thu 30 ngày
         $revenueChart = Order::where('status', 'completed')
             ->where('created_at', '>=', now()->subDays(30))
-            ->selectRaw('DATE(created_at) as date, COALESCE(sum(total_amount + shipping_fee - discount_amount), 0) as revenue, count(*) as orders')
+            ->selectRaw('CAST(created_at AS DATE) as date, COALESCE(sum(total_amount + shipping_fee - discount_amount), 0) as revenue, count(*) as orders')
             ->groupBy('date')
             ->orderBy('date')
             ->get();
@@ -493,34 +493,34 @@ class OrderController extends Controller
                 $query->whereYear('created_at', $year)
                       ->whereMonth('created_at', $month);
                 $data = $query->selectRaw(
-                    'DAY(created_at) as day,
+                    'EXTRACT(DAY FROM created_at) as day,
                      count(*) as total_orders,
-                     sum(case when status = "completed" then 1 else 0 end) as completed,
-                     sum(case when status = "cancelled" then 1 else 0 end) as cancelled,
-                     COALESCE(sum(case when status = "completed" then total_amount + shipping_fee - discount_amount else 0 end), 0) as revenue'
-                )->groupByRaw('DAY(created_at)')->orderByRaw('DAY(created_at)')->get();
+                     sum(case when status = \'completed\' then 1 else 0 end) as completed,
+                     sum(case when status = \'cancelled\' then 1 else 0 end) as cancelled,
+                     COALESCE(sum(case when status = \'completed\' then total_amount + shipping_fee - discount_amount else 0 end), 0) as revenue'
+                )->groupByRaw('EXTRACT(DAY FROM created_at)')->orderByRaw('EXTRACT(DAY FROM created_at)')->get();
                 break;
 
             case 'monthly':
                 // Báo cáo theo tháng trong 1 năm
                 $query->whereYear('created_at', $year);
                 $data = $query->selectRaw(
-                    'MONTH(created_at) as month,
+                    'EXTRACT(MONTH FROM created_at) as month,
                      count(*) as total_orders,
-                     sum(case when status = "completed" then 1 else 0 end) as completed,
-                     sum(case when status = "cancelled" then 1 else 0 end) as cancelled,
-                     COALESCE(sum(case when status = "completed" then total_amount + shipping_fee - discount_amount else 0 end), 0) as revenue'
-                )->groupByRaw('MONTH(created_at)')->orderByRaw('MONTH(created_at)')->get();
+                     sum(case when status = \'completed\' then 1 else 0 end) as completed,
+                     sum(case when status = \'cancelled\' then 1 else 0 end) as cancelled,
+                     COALESCE(sum(case when status = \'completed\' then total_amount + shipping_fee - discount_amount else 0 end), 0) as revenue'
+                )->groupByRaw('EXTRACT(MONTH FROM created_at)')->orderByRaw('EXTRACT(MONTH FROM created_at)')->get();
                 break;
 
             case 'yearly':
                 $data = $query->selectRaw(
-                    'YEAR(created_at) as year,
+                    'EXTRACT(YEAR FROM created_at) as year,
                      count(*) as total_orders,
-                     sum(case when status = "completed" then 1 else 0 end) as completed,
-                     sum(case when status = "cancelled" then 1 else 0 end) as cancelled,
-                     COALESCE(sum(case when status = "completed" then total_amount + shipping_fee - discount_amount else 0 end), 0) as revenue'
-                )->groupByRaw('YEAR(created_at)')->orderByRaw('YEAR(created_at)')->get();
+                     sum(case when status = \'completed\' then 1 else 0 end) as completed,
+                     sum(case when status = \'cancelled\' then 1 else 0 end) as cancelled,
+                     COALESCE(sum(case when status = \'completed\' then total_amount + shipping_fee - discount_amount else 0 end), 0) as revenue'
+                )->groupByRaw('EXTRACT(YEAR FROM created_at)')->orderByRaw('EXTRACT(YEAR FROM created_at)')->get();
                 break;
         }
 
