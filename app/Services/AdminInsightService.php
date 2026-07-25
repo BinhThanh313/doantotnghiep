@@ -73,11 +73,17 @@ class AdminInsightService
     {
         $since = Carbon::now()->subDays($windowDays);
 
+        // Lấy ID các sản phẩm CÓ bán trong thời gian qua (dùng JOIN nhanh hơn whereDoesntHave rất nhiều)
+        $soldProductIds = DB::table('order_items')
+            ->join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('orders.created_at', '>=', $since)
+            ->pluck('product_id')
+            ->unique()
+            ->toArray();
+
         return Product::where('is_active', true)
             ->where('stock', '>', $minStock)
-            ->whereDoesntHave('orderItems.order', function ($q) use ($since) {
-                $q->where('created_at', '>=', $since);
-            })
+            ->whereNotIn('id', $soldProductIds)
             ->orderByDesc('stock')
             ->take($limit)
             ->get(['id', 'name', 'image', 'stock', 'price'])
@@ -100,12 +106,14 @@ class AdminInsightService
         $weekStart  = $now->copy()->subDays(7);
         $prevStart  = $now->copy()->subDays(14);
 
-        $thisWeek = OrderItem::whereHas('order', fn ($q) => $q->where('created_at', '>=', $weekStart))
+        $thisWeek = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('orders.created_at', '>=', $weekStart)
             ->selectRaw('product_id, SUM(quantity) as qty')
             ->groupBy('product_id')
             ->pluck('qty', 'product_id');
 
-        $prevWeek = OrderItem::whereHas('order', fn ($q) => $q->whereBetween('created_at', [$prevStart, $weekStart]))
+        $prevWeek = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->whereBetween('orders.created_at', [$prevStart, $weekStart])
             ->selectRaw('product_id, SUM(quantity) as qty')
             ->groupBy('product_id')
             ->pluck('qty', 'product_id');
@@ -145,8 +153,10 @@ class AdminInsightService
     {
         $since = Carbon::now()->subDays($windowDays);
 
-        $stats = OrderItem::whereHas('order', fn ($q) => $q->where('created_at', '>=', $since)->where('status', 'completed'))
-            ->selectRaw('product_id, SUM(quantity) as qty, SUM(quantity * price) as revenue')
+        $stats = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
+            ->where('orders.created_at', '>=', $since)
+            ->where('orders.status', 'completed')
+            ->selectRaw('product_id, SUM(quantity) as qty, SUM(order_items.quantity * order_items.price) as revenue')
             ->groupBy('product_id')
             ->orderByDesc('revenue')
             ->take($limit)
@@ -176,6 +186,7 @@ class AdminInsightService
         $rows = ProductSimilarity::with(['product:id,name,image', 'similarProduct:id,name,image'])
             ->where('score', '>=', $minScore)
             ->orderByDesc('score')
+            ->take($limit * 4) // Lấy ra một lượng dư để bù trừ các cặp trùng
             ->get();
 
         $seenPairs = [];
