@@ -459,9 +459,8 @@ class ProductController extends Controller
                     // protection ở nhiều CDN (Bing, các trang thương mại điện tử...).
                     'Referer'    => parse_url($url, PHP_URL_SCHEME) . '://' . parse_url($url, PHP_URL_HOST) . '/',
                 ])
-                ->timeout(20)
-                ->connectTimeout(10)
-                ->retry(2, 400)
+                ->timeout(5)
+                ->connectTimeout(3)
                 ->withOptions(['allow_redirects' => ['max' => 5]])
                 ->get($url);
         } catch (\Throwable $e) {
