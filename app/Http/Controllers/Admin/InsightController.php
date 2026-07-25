@@ -15,8 +15,21 @@ class InsightController extends Controller
     /**
      * Trả về toàn bộ 7 nhóm insight cùng lúc — dùng cho trang dashboard insight.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json($this->insightService->all());
+        $cacheKey = 'admin_dashboard_insights';
+
+        if ($request->has('refresh') || $request->input('force') === 'true') {
+            \Illuminate\Support\Facades\Cache::forget($cacheKey);
+        }
+
+        // Cache toàn bộ kết quả nặng nề trong 15 phút.
+        // Điều này khắc phục triệt để độ trễ mạng (Network Latency) khi Web Server 
+        // và Database (Supabase) nằm cách xa nhau về mặt địa lý.
+        $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 900, function () {
+            return $this->insightService->all();
+        });
+
+        return response()->json($data);
     }
 }
