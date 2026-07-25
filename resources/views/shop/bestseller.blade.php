@@ -150,9 +150,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="products-mini-add border-top p-2 text-center">
-                        <button type="button" class="btn btn-primary btn-sm rounded-pill px-3 add-to-cart" data-id="{{ $product->id }}">
-                            <i class="fas fa-shopping-cart me-2"></i>Thêm vào giỏ
+                    <div class="products-mini-add border-top p-3 text-center">
+                        <button type="button" class="btn btn-primary rounded-pill py-2 px-4 add-to-cart" data-id="{{ $product->id }}">
+                            <i class="fas fa-shopping-cart me-2"></i> Thêm vào giỏ hàng
                         </button>
                     </div>
                 </div>
