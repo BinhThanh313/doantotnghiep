@@ -124,7 +124,7 @@
                     <div class="row g-0">
                         <div class="col-5">
                             <div class="products-mini-img border-end h-100">
-                                <img src="{{ $product->image ? asset('storage/' . $product->image) : asset('img/product-3.png') }}"
+                                <img src="{{ img_url($product->image, asset('img/product-3.png')) }}"
                                      class="img-fluid w-100 h-100" style="object-fit:cover" alt="{{ $product->name }}">
                                 <div class="products-mini-icon rounded-circle bg-primary">
                                     <a href="{{ route('shop.show', $product->id) }}"><i class="fa fa-eye text-white"></i></a>

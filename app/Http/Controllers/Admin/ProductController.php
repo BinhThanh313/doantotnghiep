@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 use App\Models\Category;
 use App\Models\InventoryLog;
 use App\Models\ProductImage;
+use App\Services\CloudinaryService;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use App\Http\Controllers\Controller;
@@ -268,8 +269,7 @@ class ProductController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')
-                                     ->store('products', 'public');
+            $data['image'] = CloudinaryService::upload($request->file('image'), 'products');
         } elseif (!empty($data['image_url'])) {
             $data['image'] = $data['image_url'];
         }
@@ -311,17 +311,11 @@ class ProductController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            // Xóa ảnh cũ nếu có (chỉ khi nó là file thật do hệ thống lưu,
-            // không phải URL dán từ ngoài).
-            if ($product->image && !is_external_image_url($product->image)) {
-                Storage::disk('public')->delete($product->image);
-            }
-            $data['image'] = $request->file('image')
-                                     ->store('products', 'public');
+            // Xóa ảnh cũ nếu có
+            CloudinaryService::delete($product->image);
+            $data['image'] = CloudinaryService::upload($request->file('image'), 'products');
         } elseif (!empty($data['image_url'])) {
-            if ($product->image && !is_external_image_url($product->image)) {
-                Storage::disk('public')->delete($product->image);
-            }
+            CloudinaryService::delete($product->image);
             $data['image'] = $data['image_url'];
         }
         unset($data['image_url']);
@@ -336,7 +330,7 @@ class ProductController extends Controller
         $product = Product::findOrFail($id);
 
         if ($product->image) {
-            Storage::disk('public')->delete($product->image);
+            CloudinaryService::delete($product->image);
         }
 
         $product->delete();
@@ -373,12 +367,12 @@ class ProductController extends Controller
         if ($replaceExisting) {
             foreach ($product->images as $oldImage) {
                 if ($oldImage->image_url) {
-                    Storage::disk('public')->delete($oldImage->image_url);
+                    CloudinaryService::delete($oldImage->image_url);
                 }
                 $oldImage->delete();
             }
             if ($product->image) {
-                Storage::disk('public')->delete($product->image);
+                CloudinaryService::delete($product->image);
                 $product->update(['image' => null]);
             }
             $product->refresh();
@@ -497,11 +491,8 @@ class ProductController extends Controller
         }
 
         $filename = "{$slug}-{$index}-" . Str::random(6) . ".{$extension}";
-        $path = "products/{$filename}";
 
-        Storage::disk('public')->put($path, $body);
-
-        return $path;
+        return CloudinaryService::uploadFromContent($body, $filename, 'products');
     }
 
     /**

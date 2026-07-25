@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\InventoryLog;
 use App\Models\Product;
 use App\Models\ProductVariant;
+use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -52,7 +53,7 @@ class ProductVariantController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('products/variants', 'public');
+            $data['image'] = CloudinaryService::upload($request->file('image'), 'products/variants');
         } elseif (!empty($data['image_url'])) {
             $data['image'] = $data['image_url'];
         } else {
@@ -105,19 +106,13 @@ class ProductVariantController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            if ($variant->image && !is_external_image_url($variant->image)) {
-                Storage::disk('public')->delete($variant->image);
-            }
-            $data['image'] = $request->file('image')->store('products/variants', 'public');
+            CloudinaryService::delete($variant->image);
+            $data['image'] = CloudinaryService::upload($request->file('image'), 'products/variants');
         } elseif (!empty($data['image_url'])) {
-            if ($variant->image && !is_external_image_url($variant->image)) {
-                Storage::disk('public')->delete($variant->image);
-            }
+            CloudinaryService::delete($variant->image);
             $data['image'] = $data['image_url'];
         } elseif ($request->boolean('remove_image')) {
-            if ($variant->image && !is_external_image_url($variant->image)) {
-                Storage::disk('public')->delete($variant->image);
-            }
+            CloudinaryService::delete($variant->image);
             $data['image'] = null;
         } else {
             // Không gửi ảnh mới và không yêu cầu xoá -> giữ nguyên ảnh hiện tại

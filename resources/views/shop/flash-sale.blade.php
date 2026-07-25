@@ -54,7 +54,7 @@
                     @endif
 
                     <a href="{{ route('shop.show', $product->id) }}">
-                        <img src="{{ $product->image ? asset('storage/'.$product->image) : asset('img/product-3.png') }}"
+                        <img src="{{ img_url($product->image, asset('img/product-3.png')) }}"
                              class="card-img-top" style="height:220px;object-fit:cover;"
                              alt="{{ $product->name }}">
                     </a>

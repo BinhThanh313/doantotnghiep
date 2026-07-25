@@ -7,6 +7,7 @@ use App\Models\Product;
 use App\Models\Review;
 use App\Models\ReviewHelpful;
 use App\Models\ReviewImage;
+use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -104,7 +105,7 @@ class ReviewController extends Controller
         // Upload ảnh nếu có
         if ($request->hasFile('images')) {
             foreach ($request->file('images') as $image) {
-                $path = $image->store('reviews', 'public');
+                $path = CloudinaryService::upload($image, 'reviews');
                 ReviewImage::create([
                     'review_id' => $review->id,
                     'image_url' => $path,
@@ -114,7 +115,7 @@ class ReviewController extends Controller
 
         // Upload video nếu có
         if ($request->hasFile('video')) {
-            $videoPath = $request->file('video')->store('reviews/videos', 'public');
+            $videoPath = CloudinaryService::upload($request->file('video'), 'reviews/videos');
             $review->update(['video_url' => $videoPath]);
         }
 

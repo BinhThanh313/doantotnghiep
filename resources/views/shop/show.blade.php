@@ -63,8 +63,8 @@
                                 $gallery = $product->images; // đã eager-load ở ShopController
                                 $primaryImg = $gallery->firstWhere('is_primary', true) ?? $gallery->first();
                                 $mainImageUrl = $primaryImg
-                                    ? asset('storage/' . $primaryImg->image_url)
-                                    : ($product->image ? asset('storage/' . $product->image) : asset('img/product-4.png'));
+                                    ? img_url($primaryImg->image_url)
+                                    : img_url($product->image, asset('img/product-4.png'));
                             @endphp
                             <div class="single-inner bg-light rounded p-2 mb-2">
                                 <img id="mainProductImage" src="{{ $mainImageUrl }}" class="img-fluid rounded w-100" style="aspect-ratio: 1 / 1; object-fit: cover;" alt="{{ $product->name }}">
@@ -72,7 +72,7 @@
                             @if($gallery->count() > 1)
                                 <div class="d-flex gap-2 flex-wrap">
                                     @foreach($gallery as $img)
-                                        @php $thumbUrl = asset('storage/' . $img->image_url); @endphp
+                                        @php $thumbUrl = img_url($img->image_url); @endphp
                                         <img src="{{ $thumbUrl }}"
                                              class="product-thumb rounded border {{ $thumbUrl === $mainImageUrl ? 'border-primary border-2' : '' }}"
                                              style="width: 64px; height: 64px; object-fit: cover; cursor: pointer;"
@@ -121,7 +121,7 @@
                                                     data-variant-id="{{ $v->id }}"
                                                     data-price="{{ $v->price !== null ? $v->price : $product->price }}"
                                                     data-stock="{{ $v->stock }}"
-                                                    data-image="{{ $v->image ? asset('storage/' . $v->image) : '' }}"
+                                                    data-image="{{ $v->image ? img_url($v->image) : '' }}"
                                                     @if($v->stock <= 0) title="Tạm hết hàng" @endif>
                                                 {{ $v->name }}
                                                 @if($v->stock <= 0) <span class="small">(hết hàng)</span> @endif

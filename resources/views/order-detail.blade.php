@@ -37,7 +37,7 @@
                         <div class="flex-shrink-0 me-3">
                             <div class="bg-light rounded-3" style="width:64px;height:64px;display:flex;align-items:center;justify-content:center;">
                                 @if($item->product?->image)
-                                    <img src="{{ asset('storage/' . $item->product->image) }}"
+                                    <img src="{{ img_url($item->product->image) }}"
                                          class="img-fluid rounded-3" style="max-width:60px;max-height:60px;object-fit:cover;">
                                 @else
                                     <i class="fas fa-box text-muted"></i>

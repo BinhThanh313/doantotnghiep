@@ -13,7 +13,7 @@
                 <div class="border rounded p-3 d-flex align-items-center combo-suggestion"
                      data-product-id="{{ $product->id }}"
                      data-partner-id="{{ $partner->id }}">
-                    <img src="{{ $partner->image ? asset('storage/' . $partner->image) : asset('img/product-4.png') }}"
+                    <img src="{{ img_url($partner->image, asset('img/product-4.png')) }}"
                          class="rounded me-3" style="width: 70px; height: 70px; object-fit: cover;" alt="{{ $partner->name }}">
                     <div class="flex-grow-1">
                         <p class="mb-1 small text-muted">Thường được mua cùng</p>

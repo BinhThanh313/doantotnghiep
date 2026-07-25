@@ -3,7 +3,7 @@
     <div class="product-item rounded">
         <div class="product-item-inner border rounded">
             <div class="product-item-inner-item">
-                <img src="{{ $product->image ? asset('storage/' . $product->image) : asset('img/product-3.png') }}"
+                <img src="{{ img_url($product->image, asset('img/product-3.png')) }}"
                      class="img-fluid w-100 rounded-top" alt="{{ $product->name }}" loading="lazy">
                 @if($product->is_new ?? false)
                     <div class="product-new">Mới</div>

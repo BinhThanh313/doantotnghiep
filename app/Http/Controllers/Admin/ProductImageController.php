@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Services\CloudinaryService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
@@ -70,7 +71,7 @@ class ProductImageController extends Controller
         // (lưu nguyên URL vào image_url, img_url() helper sẽ tự nhận diện
         // và không ghép thêm "storage/" khi hiển thị).
         $path = $request->hasFile('image')
-            ? $request->file('image')->store('products', 'public')
+            ? CloudinaryService::upload($request->file('image'), 'products')
             : $data['image_url'];
 
         $isFirstImage = $product->images()->count() === 0;
@@ -113,16 +114,11 @@ class ProductImageController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            // Chỉ xoá file cũ trên disk nếu nó THẬT SỰ là file do hệ thống
-            // lưu (không phải URL dán từ ngoài) — tránh gọi xoá 1 URL http.
-            if ($image->image_url && !is_external_image_url($image->image_url)) {
-                Storage::disk('public')->delete($image->image_url);
-            }
-            $image->image_url = $request->file('image')->store('products', 'public');
+            // Xóa file cũ (Cloudinary hoặc local)
+            CloudinaryService::delete($image->image_url);
+            $image->image_url = CloudinaryService::upload($request->file('image'), 'products');
         } elseif (!empty($data['image_url'])) {
-            if ($image->image_url && !is_external_image_url($image->image_url)) {
-                Storage::disk('public')->delete($image->image_url);
-            }
+            CloudinaryService::delete($image->image_url);
             $image->image_url = $data['image_url'];
         }
 
@@ -161,7 +157,7 @@ class ProductImageController extends Controller
         $wasPrimary = $image->is_primary;
 
         if ($image->image_url) {
-            Storage::disk('public')->delete($image->image_url);
+            CloudinaryService::delete($image->image_url);
         }
         $image->delete();
 
