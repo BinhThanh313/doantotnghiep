@@ -34,3 +34,27 @@ export function imgUrl(path, fallback = '') {
 export function isExternalImageUrl(path) {
   return !!path && /^(https?:)?\/\//i.test(path)
 }
+
+/**
+ * Lấy URL ảnh thu nhỏ (thumbnail) từ Cloudinary nếu có thể
+ * Giúp tối ưu tốc độ tải trang đáng kể
+ */
+export function thumbUrl(path, width = 150, fallback = '') {
+  const url = imgUrl(path, fallback)
+  if (!url) return fallback
+  
+  const cloudinaryRegex = /^(https?:\/\/res\.cloudinary\.com\/[^\/]+\/image\/upload\/)(.*)$/i
+  
+  // Nếu là ảnh Cloudinary và chưa có tham số transform nào
+  if (cloudinaryRegex.test(url) && !url.includes('/w_')) {
+    // Nếu URL có versioning kiểu v123...
+    if (url.match(/\/v\d+\//)) {
+      return url.replace(/^(https?:\/\/res\.cloudinary\.com\/[^\/]+\/image\/upload\/)(v\d+\/.*)$/i, `$1w_${width},c_fill,q_auto,f_auto/$2`)
+    } else {
+      // Nếu không có versioning
+      return url.replace(cloudinaryRegex, `$1w_${width},c_fill,q_auto,f_auto/$2`)
+    }
+  }
+  
+  return url
+}
