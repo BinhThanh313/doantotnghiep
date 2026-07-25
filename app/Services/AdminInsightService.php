@@ -218,51 +218,68 @@ class AdminInsightService
         return $result;
     }
 
-    /**
-     * #7 — Giỏ hàng bị bỏ quên: sản phẩm nằm trong cart_items quá $hoursThreshold
-     * giờ mà chưa có order tương ứng của user đó kể từ thời điểm thêm vào giỏ.
-     */
     public function abandonedCarts(int $hoursThreshold = 24, int $limit = 20)
     {
         $cutoff = Carbon::now()->subHours($hoursThreshold);
-        $cutoffLower = Carbon::now()->subDays(14); // Giới hạn chỉ quét giỏ hàng trong 14 ngày gần nhất để tăng tốc
+        $cutoffLower = Carbon::now()->subDays(14); // Quét 14 ngày
 
-        $items = CartItem::with(['product:id,name,image,price', 'user:id,name,email'])
+        // Đếm tổng số cart_items cũ hơn ngưỡng để tính tỷ lệ
+        $totalOldItems = DB::table('cart_items')
             ->whereBetween('created_at', [$cutoffLower, $cutoff])
-            ->get()
-            ->filter(fn ($item) => $item->product && $item->user);
+            ->count();
 
-        if ($items->isEmpty()) {
+        if ($totalOldItems === 0) {
             return ['rate' => 0, 'items' => collect()];
         }
 
-        // Loại các cart_items mà user đã đặt đơn SAU thời điểm thêm vào giỏ
-        // (nghĩa là họ đã checkout, không còn "bị bỏ quên" nữa).
-        $userIds = $items->pluck('user_id')->unique();
-        $latestOrderByUser = \App\Models\Order::whereIn('user_id', $userIds)
-            ->selectRaw('user_id, MAX(created_at) as latest_order_at')
-            ->groupBy('user_id')
-            ->pluck('latest_order_at', 'user_id');
+        // Truy vấn thuần SQL để tìm giỏ hàng bị bỏ quên
+        // (Không có order nào của user đó được tạo ra SAU thời điểm thêm vào giỏ)
+        $abandoned = DB::table('cart_items')
+            ->join('users', 'cart_items.user_id', '=', 'users.id')
+            ->join('products', 'cart_items.product_id', '=', 'products.id')
+            ->whereBetween('cart_items.created_at', [$cutoffLower, $cutoff])
+            ->leftJoin('orders', function ($join) {
+                $join->on('orders.user_id', '=', 'cart_items.user_id')
+                     ->on('orders.created_at', '>', 'cart_items.created_at');
+            })
+            ->whereNull('orders.id')
+            ->select(
+                'users.name as user_name',
+                'users.email as user_email',
+                'products.id as product_id',
+                'products.name as product_name',
+                'cart_items.quantity',
+                'cart_items.created_at'
+            )
+            ->orderByDesc('cart_items.created_at')
+            ->limit($limit)
+            ->get();
 
-        $abandoned = $items->filter(function ($item) use ($latestOrderByUser) {
-            $latestOrder = $latestOrderByUser[$item->user_id] ?? null;
-            return !$latestOrder || Carbon::parse($latestOrder)->lt($item->created_at);
-        });
+        // Ước tính tỷ lệ bỏ giỏ
+        $abandonedCount = DB::table('cart_items')
+            ->whereBetween('cart_items.created_at', [$cutoffLower, $cutoff])
+            ->leftJoin('orders', function ($join) {
+                $join->on('orders.user_id', '=', 'cart_items.user_id')
+                     ->on('orders.created_at', '>', 'cart_items.created_at');
+            })
+            ->whereNull('orders.id')
+            ->count();
 
-        // Tỷ lệ bỏ giỏ = số dòng cart_items "bị bỏ" / tổng số dòng cart_items cũ hơn ngưỡng
-        $rate = $items->count() > 0 ? round($abandoned->count() / $items->count() * 100, 1) : 0;
+        $rate = $totalOldItems > 0 ? round($abandonedCount / $totalOldItems * 100, 1) : 0;
 
         return [
             'rate'  => $rate,
-            'items' => $abandoned->take($limit)->map(fn ($item) => [
-                'user_name'   => $item->user->name,
-                'user_email'  => $item->user->email,
-                'product_id'  => $item->product->id,
-                'product_name' => $item->product->name,
-                'quantity'    => $item->quantity,
-                'added_at'    => $item->created_at->toDateTimeString(),
-                'hours_ago'   => (int) $item->created_at->diffInHours(Carbon::now()),
-            ])->values(),
+            'items' => $abandoned->map(function ($item) {
+                return [
+                    'user_name'    => $item->user_name,
+                    'user_email'   => $item->user_email,
+                    'product_id'   => $item->product_id,
+                    'product_name' => $item->product_name,
+                    'quantity'     => $item->quantity,
+                    'added_at'     => $item->created_at,
+                    'hours_ago'    => (int) Carbon::parse($item->created_at)->diffInHours(Carbon::now()),
+                ];
+            })->values(),
         ];
     }
 
