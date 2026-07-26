@@ -216,8 +216,6 @@ Hệ thống tạo sẵn tài khoản quản trị để kiểm thử (sau khi c
 
 ## 📸 Ảnh minh họa (Screenshots)
 
-> **Lưu ý:** Dán URL ảnh chụp màn hình dự án thực tế vào đây.
-
 *Giao diện trang chủ Khách hàng*
 ![Storefront Homepage](screenshots/storefront.png)
 
