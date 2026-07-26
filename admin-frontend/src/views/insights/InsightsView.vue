@@ -103,11 +103,10 @@ const deleteCombo = async (combo) => {
   }
 }
 
-const fetchInsights = async (forceRefresh = false) => {
+const fetchInsights = async () => {
   loading.value = true
   try {
-    const url = forceRefresh === true ? '/api/admin/insights?refresh=1' : '/api/admin/insights'
-    const res = await api.get(url)
+    const res = await api.get('/api/admin/insights')
     data.value = res.data
     await fetchCreatedCombos()
   } catch (e) {
@@ -141,7 +140,7 @@ onMounted(fetchInsights)
 
     <SectionMain>
       <SectionTitleLineWithButton :icon="mdiBullhorn" title="Gợi ý cho Admin" main>
-        <BaseButton :icon="mdiRefresh" color="success" label="Làm mới" rounded-full @click="() => fetchInsights(true)" />
+        <BaseButton :icon="mdiRefresh" color="success" label="Làm mới" rounded-full @click="fetchInsights" />
       </SectionTitleLineWithButton>
 
       <div v-if="loading" class="text-center py-10 text-gray-500">Đang tải dữ liệu...</div>
