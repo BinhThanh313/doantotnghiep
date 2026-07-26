@@ -141,7 +141,7 @@ onMounted(fetchInsights)
 
     <SectionMain>
       <SectionTitleLineWithButton :icon="mdiBullhorn" title="Gợi ý cho Admin" main>
-        <BaseButton :icon="mdiRefresh" color="whiteDark" label="Làm mới" rounded-full @click="() => fetchInsights(true)" />
+        <BaseButton :icon="mdiRefresh" color="success" label="Làm mới" rounded-full @click="() => fetchInsights(true)" />
       </SectionTitleLineWithButton>
 
       <div v-if="loading" class="text-center py-10 text-gray-500">Đang tải dữ liệu...</div>
