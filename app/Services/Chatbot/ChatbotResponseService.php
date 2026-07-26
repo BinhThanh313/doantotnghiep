@@ -277,6 +277,8 @@ class ChatbotResponseService
             'vận chuyển', 'van chuyen', 'tra cứu', 'chính sách', 'chinh sach',
             'bảo hành', 'bao hanh', 'đổi trả', 'doi tra', 'thanh toán', 'thanh toan',
             'hotline', 'combo', 'thông số', 'thong so', 'cấu hình', 'cau hinh',
+            'cái đầu', 'cái thứ', 'cái này', 'cái kia', 'cái đó', 'mấy cái', 'những cái',
+            'pin', 'màn hình', 'camera', 'chụp', 'sạc', 'dung lượng',
         ];
 
         foreach ($genericSignals as $s) {
