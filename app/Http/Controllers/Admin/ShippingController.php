@@ -45,6 +45,21 @@ class ShippingController extends Controller
         return response()->json($carrier->load('zones'));
     }
 
+    public function destroyCarrier($id)
+    {
+        $carrier = ShippingCarrier::findOrFail($id);
+        
+        // Prevent deletion if there are zones or shipments linked
+        if ($carrier->zones()->exists() || $carrier->shipments()->exists()) {
+            return response()->json([
+                'message' => 'Không thể xóa nhà vận chuyển đang chứa khu vực phí ship hoặc vận đơn!'
+            ], 422);
+        }
+
+        $carrier->delete();
+        return response()->json(['message' => 'Đã xóa nhà vận chuyển']);
+    }
+
     // ==================== ZONES (Phí ship theo tỉnh) ====================
 
     public function zones($carrierId)

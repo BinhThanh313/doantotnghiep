@@ -111,6 +111,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/shipping/carriers',              [ShippingController::class, 'carriers']);
     Route::post('/shipping/carriers',             [ShippingController::class, 'storeCarrier']);
     Route::put('/shipping/carriers/{id}',         [ShippingController::class, 'updateCarrier']);
+    Route::delete('/shipping/carriers/{id}',      [ShippingController::class, 'destroyCarrier']);
     Route::get('/shipping/carriers/{id}/zones',   [ShippingController::class, 'zones']);
     Route::post('/shipping/carriers/{id}/zones',  [ShippingController::class, 'storeZone']);
     Route::put('/shipping/zones/{id}',            [ShippingController::class, 'updateZone']);
