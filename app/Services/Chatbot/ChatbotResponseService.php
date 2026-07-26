@@ -354,9 +354,9 @@ class ChatbotResponseService
                     $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
                     
                     if ($driver === 'pgsql') {
-                        // PostgreSQL: Cần cờ 'g' để replace toàn bộ, và dùng AS INTEGER
+                        // PostgreSQL: Cần cờ 'g' để replace toàn bộ, và dùng AS NUMERIC tránh overflow
                         $q->whereRaw(
-                            "CAST(NULLIF(REGEXP_REPLACE(value, '[^0-9]', '', 'g'), '') AS INTEGER) >= ?",
+                            "CAST(NULLIF(REGEXP_REPLACE(value, '[^0-9]', '', 'g'), '') AS NUMERIC) >= ?",
                             [$spec['value']]
                         );
                     } else {

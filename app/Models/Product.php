@@ -71,14 +71,14 @@ class Product extends Model
     public function activeFlashSaleItem()
     {
         return $this->hasOne(FlashSaleItem::class, 'product_id')
-            ->where('flash_sale_items.is_active', true)
+            ->where('is_active', true)
             ->whereRaw('(flash_sale_items.qty_limit IS NULL OR flash_sale_items.qty_sold < flash_sale_items.qty_limit)')
-            ->join('flash_sales', 'flash_sale_items.flash_sale_id', '=', 'flash_sales.id')
-            ->where('flash_sales.is_active', true)
-            ->where('flash_sales.starts_at', '<=', now())
-            ->where('flash_sales.ends_at', '>=', now())
-            ->select('flash_sale_items.*')
-            ->latest('flash_sale_items.id');
+            ->whereHas('flashSale', function ($q) {
+                $q->where('is_active', true)
+                  ->where('starts_at', '<=', now())
+                  ->where('ends_at', '>=', now());
+            })
+            ->latest('id');
     }
 
     // ==================== ACCESSORS ====================
