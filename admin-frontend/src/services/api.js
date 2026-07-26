@@ -25,12 +25,16 @@ api.interceptors.request.use(
     if (csrf) config.headers['X-XSRF-TOKEN'] = decodeURIComponent(csrf[1])
 
     // Workaround for PHP 8.3+ request_parse_body fatal error on Render
-    // Convert PUT, PATCH, DELETE to POST with ?_method=...
+    // Convert PUT, PATCH, DELETE to POST with X-HTTP-Method-Override header
     if (config.method && ['put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
       const overrideMethod = config.method.toUpperCase()
       config.method = 'post'
-      // Use URL parameter for _method, which works universally in Laravel for both JSON and FormData
-      config.url = config.url + (config.url.includes('?') ? '&' : '?') + '_method=' + overrideMethod
+      config.headers['X-HTTP-Method-Override'] = overrideMethod
+      
+      // Also add _method to FormData if the payload is FormData (Laravel fallback)
+      if (config.data instanceof FormData) {
+        config.data.append('_method', overrideMethod)
+      }
     }
 
     return config
