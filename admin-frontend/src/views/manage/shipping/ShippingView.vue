@@ -28,6 +28,14 @@ const isEditZone = ref(false)
 const editingCarrierId = ref(null)
 const editingZoneId = ref(null)
 
+const isDeleteCarrierModalActive = ref(false)
+const carrierToDelete = ref(null)
+
+const confirmDeleteCarrier = (carrier) => {
+  carrierToDelete.value = carrier
+  isDeleteCarrierModalActive.value = true
+}
+
 const carrierForm = ref({ name: '', code: '', base_fee: 0, per_km_fee: 0, is_active: true })
 const zoneForm = ref({ province: '', region: '', fee: 0, estimated_days: 3 })
 
@@ -90,6 +98,19 @@ const openCreateCarrier = () => {
   carrierForm.value = { name: '', code: '', base_fee: 0, per_km_fee: 0, is_active: true }
   isEditCarrier.value = false
   isCarrierModalActive.value = true
+}
+
+const deleteCarrier = async () => {
+  if (!carrierToDelete.value) return
+  try {
+    await api.delete(`/api/admin/shipping/carriers/${carrierToDelete.value.id}`)
+    fetchCarriers()
+    showToast('Đã xóa nhà vận chuyển')
+  } catch (e) {
+    showToast('Lỗi xóa nhà vận chuyển, có thể nó đang chứa khu vực / vận đơn!', 'error')
+  } finally {
+    carrierToDelete.value = null
+  }
 }
 
 // ==================== ZONES ====================
@@ -190,12 +211,12 @@ onMounted(() => {
           <div class="p-4 flex justify-between items-center">
             <h3 class="text-lg font-bold">Nhà vận chuyển</h3>
             <BaseButton
-          :icon="mdiPlus"
-          label="Thêm mới"
-          color="success"
-          rounded-full
-          @click="openModal()"
-        />
+              :icon="mdiPlus"
+              label="Thêm mới"
+              color="success"
+              rounded-full
+              @click="openCreateCarrier"
+            />
           </div>
         </CardBox>
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -220,6 +241,7 @@ onMounted(() => {
             <div class="flex gap-2">
               <BaseButton :icon="mdiMapMarker" label="Khu vực" color="info" small @click="selectCarrier(c)" />
               <BaseButton :icon="mdiPencil" color="whiteDark" small @click="openEditCarrier(c)" />
+              <BaseButton :icon="mdiTrashCan" color="danger" small @click="confirmDeleteCarrier(c)" />
             </div>
           </div>
           <div v-if="carriers.length === 0" class="col-span-full text-center py-8 text-gray-500">
@@ -378,6 +400,18 @@ onMounted(() => {
         @confirm="deleteZone"
       >
         <p>Xóa khu vực này?</p>
+      </CardBoxModal>
+
+      <!-- ══ CONFIRM DELETE CARRIER MODAL ══ -->
+      <CardBoxModal
+        v-model="isDeleteCarrierModalActive"
+        title="Xác nhận xóa"
+        button-label="Xóa"
+        has-cancel
+        @confirm="deleteCarrier"
+      >
+        <p>Bạn có chắc chắn muốn xóa nhà vận chuyển này?</p>
+        <p class="text-sm text-gray-500 mt-2">Lưu ý: Bạn không thể xóa nếu nhà vận chuyển này đang có vận đơn.</p>
       </CardBoxModal>
     </SectionMain>
   </LayoutAuthenticated>
