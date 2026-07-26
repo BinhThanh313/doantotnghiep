@@ -299,6 +299,9 @@ class ChatbotResponseService
     private array $subjectiveQualifiers = [
         'phù hợp cho', 'phù hợp với', 'dành cho', 'tốt cho', 'thích hợp cho',
         'thích hợp với', 'nên chọn', 'nên mua', 'phù hợp nhất',
+        'để chơi', 'để học', 'để làm', 'chụp ảnh', 'chơi game', 'cái nào',
+        'so sánh', 'hay là', 'tốt hơn', 'đẹp hơn', 'trâu hơn', 'mượt hơn',
+        'đáng mua', 'tư vấn', 'ngon hơn', 'khác nhau',
     ];
 
     private function handleProductSearch(array $filters, string $originalMessage): array
@@ -348,11 +351,21 @@ class ChatbotResponseService
                 if ($spec['operator'] === 'contains') {
                     $q->where('value', 'like', '%' . $spec['value'] . '%');
                 } else {
-                    // Chỉ '>=' được sinh ra từ parser -> an toàn để nối chuỗi SQL
-                    $q->whereRaw(
-                        "CAST(REGEXP_REPLACE(value, '[^0-9]', '') AS UNSIGNED) >= ?",
-                        [$spec['value']]
-                    );
+                    $driver = \Illuminate\Support\Facades\DB::connection()->getDriverName();
+                    
+                    if ($driver === 'pgsql') {
+                        // PostgreSQL: Cần cờ 'g' để replace toàn bộ, và dùng AS INTEGER
+                        $q->whereRaw(
+                            "CAST(NULLIF(REGEXP_REPLACE(value, '[^0-9]', '', 'g'), '') AS INTEGER) >= ?",
+                            [$spec['value']]
+                        );
+                    } else {
+                        // MySQL: Mặc định replace toàn bộ, dùng AS UNSIGNED
+                        $q->whereRaw(
+                            "CAST(REGEXP_REPLACE(value, '[^0-9]', '') AS UNSIGNED) >= ?",
+                            [$spec['value']]
+                        );
+                    }
                 }
             });
         }
