@@ -35,7 +35,7 @@
 
 ### ☁️ Dịch vụ bên thứ ba & Tích hợp
 - **Cloudinary API** - Nền tảng lưu trữ, quản lý và tối ưu hóa hình ảnh đám mây.
-- **Gemini AI / AI Chatbot** - Tích hợp xử lý ngôn ngữ tự nhiên hỗ trợ tư vấn.
+- **Groq AI / Chatbot** - Tích hợp AI xử lý ngôn ngữ tự nhiên siêu tốc để hỗ trợ tư vấn khách hàng.
 
 ---
 
@@ -78,9 +78,9 @@ Mở file `.env` và cập nhật các thông tin sau:
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
-DB_DATABASE=doantotnghiep
-DB_USERNAME=root
-DB_PASSWORD=
+DB_DATABASE=your_database_name
+DB_USERNAME=your_username
+DB_PASSWORD=your_password
 
 # Cấu hình Cloudinary (Bắt buộc để ảnh hoạt động)
 CLOUDINARY_URL=cloudinary://API_KEY:API_SECRET@CLOUD_NAME
@@ -160,6 +160,49 @@ doantotnghiep/
 │   └── css/ & js/          # Assets tĩnh cho Storefront
 ├── routes/                 # Định tuyến URL (web.php, api.php)
 └── public/                 # Chứa thư mục build của Admin (/admin) & assets public
+```
+
+---
+
+## 🚀 Deployment (Môi trường Production)
+
+Để đưa dự án lên môi trường thực tế (như VPS, Shared Hosting hoặc nền tảng Cloud như Render/Heroku), bạn cần thực hiện các bước tối ưu hóa sau:
+
+### 1. Cấu hình Môi trường
+Cập nhật file `.env` cho Production:
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://yourdomain.com
+```
+
+### 2. Tối ưu hóa Backend (Laravel)
+Chạy các lệnh cache để tăng tốc độ xử lý:
+```bash
+# Cài đặt thư viện không chứa các gói dev
+composer install --optimize-autoloader --no-dev
+
+# Xóa và tạo lại toàn bộ Cache hệ thống
+php artisan optimize:clear
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+### 3. Tối ưu hóa Frontend (Vue.js Admin)
+Trên server hoặc máy local, build mã nguồn Vue ra HTML/JS/CSS tĩnh:
+```bash
+cd admin-frontend
+npm install
+npm run build
+```
+*(Thư mục `public/admin` sẽ được cập nhật. Bạn chỉ cần đưa thư mục `public` lên Web Server).*
+
+### 4. Phân quyền thư mục (Dành cho Linux/VPS)
+Đảm bảo máy chủ Web (Nginx/Apache) có quyền ghi vào thư mục `storage` và `bootstrap/cache`:
+```bash
+chmod -R 775 storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache
 ```
 
 ---
