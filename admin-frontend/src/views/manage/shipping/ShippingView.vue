@@ -130,10 +130,25 @@ const openCreateZone = () => {
   isZoneModalActive.value = true
 }
 
-const deleteZone = async (id) => {
-  if (!confirm('Xóa khu vực này?')) return
-  await api.delete(`/api/admin/shipping/zones/${id}`)
-  selectCarrier(selectedCarrier.value)
+const isDeleteModalActive = ref(false)
+const itemToDelete = ref(null)
+
+const confirmDeleteZone = (id) => {
+  itemToDelete.value = id
+  isDeleteModalActive.value = true
+}
+
+const deleteZone = async () => {
+  if (!itemToDelete.value) return
+  try {
+    await api.delete(`/api/admin/shipping/zones/${itemToDelete.value}`)
+    selectCarrier(selectedCarrier.value)
+    showToast('Đã xóa khu vực')
+  } catch (e) {
+    showToast('Lỗi xóa khu vực', 'error')
+  } finally {
+    itemToDelete.value = null
+  }
 }
 
 // ==================== SHIPMENTS ====================
@@ -254,7 +269,7 @@ onMounted(() => {
                 <td class="before:hidden lg:w-1 whitespace-nowrap">
                   <BaseButtons no-wrap>
                     <BaseButton color="info" :icon="mdiPencil" small @click="openEditZone(z)" />
-                    <BaseButton color="danger" :icon="mdiTrashCan" small @click="deleteZone(z.id)" />
+                    <BaseButton color="danger" :icon="mdiTrashCan" small @click="confirmDeleteZone(z.id)" />
                   </BaseButtons>
                 </td>
               </tr>
@@ -354,6 +369,16 @@ onMounted(() => {
         </div>
       </CardBoxModal>
 
+      <!-- ══ CONFIRM DELETE ZONE MODAL ══ -->
+      <CardBoxModal
+        v-model="isDeleteModalActive"
+        title="Xác nhận xóa"
+        button-label="Xóa"
+        has-cancel
+        @confirm="deleteZone"
+      >
+        <p>Xóa khu vực này?</p>
+      </CardBoxModal>
     </SectionMain>
   </LayoutAuthenticated>
 </template>

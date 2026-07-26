@@ -36,6 +36,8 @@ const isDeleteModal    = ref(false)
 const selectedSale       = ref(null)
 const selectedItem       = ref(null)
 const deletingId         = ref(null)
+const deletingItemId     = ref(null)
+const isDeleteItemModal  = ref(false)
 const availableProducts  = ref([])
 const saleItems          = ref([])
 const detailLoading      = ref(false)
@@ -293,14 +295,21 @@ const saveItem = async () => {
   }
 }
 
-const removeItem = async (itemId) => {
-  if (!confirm('Xóa sản phẩm này khỏi Flash Sale?')) return
+const confirmRemoveItem = (itemId) => {
+  deletingItemId.value = itemId
+  isDeleteItemModal.value = true
+}
+
+const removeItem = async () => {
+  if (!deletingItemId.value) return
   try {
-    await api.delete(`/api/admin/flash-sales/${selectedSale.value.id}/items/${itemId}`)
+    await api.delete(`/api/admin/flash-sales/${selectedSale.value.id}/items/${deletingItemId.value}`)
     showToast('Đã xóa sản phẩm')
     openDetail(selectedSale.value)
   } catch {
     showToast('Lỗi xóa sản phẩm', 'error')
+  } finally {
+    deletingItemId.value = null
   }
 }
 
@@ -560,7 +569,7 @@ onMounted(() => fetchSales())
                 <!-- Actions -->
                 <div class="flex gap-1 shrink-0">
                   <BaseButton :icon="mdiPencil" color="info" small @click="openEditItem(item)" />
-                  <BaseButton :icon="mdiTrashCan" color="danger" small @click="removeItem(item.id)" />
+                  <BaseButton color="danger" :icon="mdiTrashCan" small @click="confirmRemoveItem(item.id)" />
                 </div>
               </div>
             </div>
@@ -627,6 +636,17 @@ onMounted(() => fetchSales())
           </div>
         </div>
       </CardBoxModal>
+
+    <!-- ══ CONFIRM DELETE ITEM MODAL ══ -->
+    <CardBoxModal
+      v-model="isDeleteItemModal"
+      title="Xác nhận xóa"
+      button-label="Xóa"
+      has-cancel
+      @confirm="removeItem"
+    >
+      <p>Xóa sản phẩm này khỏi Flash Sale?</p>
+    </CardBoxModal>
 
     </SectionMain>
   </LayoutAuthenticated>

@@ -2,14 +2,16 @@
 import { ref, onMounted } from 'vue'
 import {
   mdiPackageVariantClosed, mdiTagOff, mdiTrendingUp, mdiBullhorn,
-  mdiViewGridPlus, mdiCartOff, mdiImageOff, mdiAlertOctagon, mdiRefresh,
+  mdiViewGridPlus, mdiCartOff, mdiImageOff, mdiAlertOctagon, mdiRefresh, mdiTrashCan,
 } from '@mdi/js'
 import SectionMain from '@/components/SectionMain.vue'
 import CardBox from '@/components/CardBox.vue'
 import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
 import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.vue'
-import BaseButton from '@/components/BaseButton.vue'
 import CardBoxModal from '@/components/CardBoxModal.vue'
+import PillTag from '@/components/PillTag.vue'
+import BaseButton from '@/components/BaseButton.vue'
+import BaseButtons from '@/components/BaseButtons.vue'
 import FormField from '@/components/FormField.vue'
 import FormControl from '@/components/FormControl.vue'
 import api from '@/services/api'
@@ -23,8 +25,18 @@ const data = ref({
   incomplete: [], negative_reviews: [],
 })
 
-const createdCombos = ref([])
+const activeTab = ref('sales')
 const creatingComboKey = ref(null)
+const createdCombos = ref([])
+const isComboModalActive = ref(false)
+const comboForm = ref({ discount_percent: 5, c: null })
+const isDeleteModalActive = ref(false)
+const itemToDelete = ref(null)
+
+const confirmDelete = (combo) => {
+  itemToDelete.value = combo
+  isDeleteModalActive.value = true
+}
 
 // Tối ưu hóa ảnh thumbnail để tăng tốc độ load trang
 const imageUrl = (path) => thumbUrl(path, 150, `${api.defaults.baseURL}/img/product-3.png`)
@@ -46,9 +58,6 @@ const isComboCreated = (c) => createdCombos.value.some(
     (existing.product_id === c.product_a.id && existing.combo_product_id === c.product_b.id) ||
     (existing.product_id === c.product_b.id && existing.combo_product_id === c.product_a.id)
 )
-
-const isComboModalActive = ref(false)
-const comboForm = ref({ discount_percent: 5, c: null })
 
 const openComboModal = (c) => {
   comboForm.value = { discount_percent: 5, c }
@@ -92,14 +101,16 @@ const toggleCombo = async (combo) => {
   }
 }
 
-const deleteCombo = async (combo) => {
-  if (!confirm('Xóa combo này?')) return
+const deleteCombo = async () => {
+  if (!itemToDelete.value) return
   try {
-    await api.delete(`/api/admin/combos/${combo.id}`)
+    await api.delete(`/api/admin/combos/${itemToDelete.value.id}`)
     fetchCreatedCombos()
     showToast('Đã xóa combo')
   } catch (e) {
     showToast('Không thể xóa combo!', 'error')
+  } finally {
+    itemToDelete.value = null
   }
 }
 
@@ -283,7 +294,7 @@ onMounted(fetchInsights)
                 {{ combo.is_active ? 'Đang hiển thị' : 'Đã ẩn' }}
               </span>
               <BaseButton size="small" color="whiteDark" :label="combo.is_active ? 'Ẩn' : 'Hiện'" @click="toggleCombo(combo)" />
-              <BaseButton size="small" color="danger" label="Xóa" @click="deleteCombo(combo)" />
+              <BaseButton color="danger" :icon="mdiTrashCan" small @click="confirmDelete(combo)" />
             </div>
           </div>
         </CardBox>
@@ -344,6 +355,17 @@ onMounted(fetchInsights)
         </CardBox>
 
       </div>
+
+      <!-- ══ CONFIRM DELETE MODAL ══ -->
+      <CardBoxModal
+        v-model="isDeleteModalActive"
+        title="Xác nhận xóa"
+        button-label="Xóa"
+        has-cancel
+        @confirm="deleteCombo"
+      >
+        <p>Xóa combo này?</p>
+      </CardBoxModal>
     </SectionMain>
   </LayoutAuthenticated>
 </template>

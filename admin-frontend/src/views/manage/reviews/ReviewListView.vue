@@ -10,6 +10,7 @@ import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
 import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
+import CardBoxModal from '@/components/CardBoxModal.vue'
 import FormControl from '@/components/FormControl.vue'
 import FormField from '@/components/FormField.vue'
 import api from '@/services/api'
@@ -22,6 +23,14 @@ const lastPage = ref(1)
 const totalItems = ref(0)
 const filterRating = ref('')
 const filterVisible = ref('')
+
+const isDeleteModalActive = ref(false)
+const itemToDelete = ref(null)
+
+const confirmDelete = (id) => {
+  itemToDelete.value = id
+  isDeleteModalActive.value = true
+}
 
 const ratingOptions = [
   { id: '', label: 'Tất cả sao' },
@@ -75,14 +84,16 @@ const toggleVisibility = async (id) => {
   }
 }
 
-const deleteReview = async (id) => {
-  if (!confirm('Xóa đánh giá này?')) return
+const deleteReview = async () => {
+  if (!itemToDelete.value) return
   try {
-    await api.delete(`/api/admin/reviews/${id}`)
+    await api.delete(`/api/admin/reviews/${itemToDelete.value}`)
     fetchReviews(currentPage.value)
     showToast('Đã xóa đánh giá')
   } catch (e) {
     showToast('Lỗi xóa đánh giá!', 'error')
+  } finally {
+    itemToDelete.value = null
   }
 }
 
@@ -192,7 +203,7 @@ onMounted(() => fetchReviews())
                     :icon="r.is_visible ? mdiEyeOff : mdiEye"
                     small
                     :title="r.is_visible ? 'Ẩn review' : 'Hiện review'"
-                    @click="toggleVisibility(r.id)"
+                    @click="confirmDelete(r.id)"
                   />
                   <BaseButton 
                     color="info" 
@@ -225,6 +236,17 @@ onMounted(() => fetchReviews())
           </BaseButtons>
         </div>
       </CardBox>
+
+      <!-- ══ CONFIRM DELETE MODAL ══ -->
+      <CardBoxModal
+        v-model="isDeleteModalActive"
+        title="Xác nhận xóa"
+        button-label="Xóa"
+        has-cancel
+        @confirm="deleteReview"
+      >
+        <p>Xóa đánh giá này?</p>
+      </CardBoxModal>
     </SectionMain>
   </LayoutAuthenticated>
 </template>

@@ -18,6 +18,18 @@ import FormField from '@/components/FormField.vue'
 import api from '@/services/api'
 import { showToast } from '@/composables/useToast'
 const orders      = ref([])
+const importing = ref(false)
+const importInput = ref(null)
+
+const isDeleteModalActive = ref(false)
+const itemToDelete = ref(null)
+const isBulkModalActive = ref(false)
+
+const confirmDelete = (id) => {
+  itemToDelete.value = id
+  isDeleteModalActive.value = true
+}
+
 const currentPage = ref(1)
 const lastPage    = ref(1)
 const totalItems  = ref(0)
@@ -216,14 +228,10 @@ const executeBulkAction = async () => {
   if (!bulkAction.value) return showToast('Vui lòng chọn hành động!', 'error')
   if (!selectedIds.value.length) return showToast('Vui lòng chọn ít nhất 1 đơn hàng!', 'error')
 
-  const confirmMsg = {
-    delete:                `Xóa ${selectedIds.value.length} đơn hàng đã chọn?`,
-    update_status:         `Cập nhật trạng thái ${selectedIds.value.length} đơn hàng?`,
-    update_payment_status: `Cập nhật thanh toán ${selectedIds.value.length} đơn hàng?`,
-  }[bulkAction.value]
+  isBulkModalActive.value = true
+}
 
-  if (!confirm(confirmMsg)) return
-
+const performBulkAction = async () => {
   bulkLoading.value = true
   try {
     const payload = {
@@ -295,14 +303,16 @@ const updatePaymentStatus = async (orderId, newPaymentStatus) => {
   }
 }
 
-const deleteOrder = async (id) => {
-  if (!confirm('Xóa đơn hàng này?')) return
+const deleteOrder = async () => {
+  if (!itemToDelete.value) return
   try {
-    await api.delete(`/api/admin/orders/${id}`)
+    await api.delete(`/api/admin/orders/${itemToDelete.value}`)
     showToast('Đã xóa đơn hàng')
     fetchOrders(currentPage.value)
   } catch (e) {
     showToast('Lỗi xóa đơn hàng!', 'error')
+  } finally {
+    itemToDelete.value = null
   }
 }
 
@@ -575,7 +585,7 @@ onMounted(() => fetchOrders())
                   <BaseButton color="info" :icon="mdiEye" small @click="viewOrder(order.id)" title="Xem chi tiết" />
                   <BaseButton v-if="['delivered','completed'].includes(order.status) && order.payment_status === 'paid'"
                     color="warning" :icon="mdiCashRefund" small @click="openRefundModal(order)" title="Hoàn tiền" />
-                  <BaseButton color="danger" :icon="mdiTrashCan" small @click="deleteOrder(order.id)" title="Xóa" />
+                  <BaseButton color="danger" :icon="mdiTrashCan" small @click="confirmDelete(order.id)" title="Xóa" />
                 </BaseButtons>
               </td>
             </tr>
@@ -882,6 +892,28 @@ onMounted(() => fetchOrders())
           </div>
           <p class="text-xs text-gray-500">CSV và Excel (.xlsx) đều mở được bằng Excel, Google Sheets.</p>
         </div>
+      </CardBoxModal>
+
+      <!-- ══ CONFIRM DELETE MODAL ══ -->
+      <CardBoxModal
+        v-model="isDeleteModalActive"
+        title="Xác nhận xóa"
+        button-label="Xóa"
+        has-cancel
+        @confirm="deleteOrder"
+      >
+        <p>Xóa đơn hàng này?</p>
+      </CardBoxModal>
+
+      <!-- ══ CONFIRM BULK MODAL ══ -->
+      <CardBoxModal
+        v-model="isBulkModalActive"
+        title="Xác nhận thao tác hàng loạt"
+        button-label="Thực hiện"
+        has-cancel
+        @confirm="performBulkAction"
+      >
+        <p>Bạn có chắc chắn muốn thực hiện thao tác này cho các đơn hàng đã chọn?</p>
       </CardBoxModal>
 
     </SectionMain>

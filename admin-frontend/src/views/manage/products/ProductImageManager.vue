@@ -5,6 +5,7 @@ import {
   mdiArrowUp, mdiArrowDown, mdiPencil, mdiPlus, mdiClose, mdiLink,
 } from '@mdi/js'
 import CardBox from '@/components/CardBox.vue'
+import CardBoxModal from '@/components/CardBoxModal.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import FormControl from '@/components/FormControl.vue'
 import api from '@/services/api'
@@ -33,6 +34,14 @@ const showAddByUrl = ref(false)
 
 const replacingByUrlId = ref(null) // id ảnh đang mở ô dán URL để THAY ảnh
 const replaceUrlValue  = ref('')
+
+const isDeleteModalActive = ref(false)
+const itemToDelete = ref(null)
+
+const confirmDelete = (img) => {
+  itemToDelete.value = img
+  isDeleteModalActive.value = true
+}
 
 const canAddMore  = computed(() => images.value.length < MAX_IMAGES)
 
@@ -188,15 +197,16 @@ const setPrimary = async (img) => {
   }
 }
 
-// ── Xoá ảnh ──────────────────────────────────────────────────
-const removeImage = async (img) => {
-  if (!confirm('Xoá ảnh này khỏi sản phẩm?')) return
+const removeImage = async () => {
+  if (!itemToDelete.value) return
   try {
-    await api.delete(`/api/admin/products/${props.productId}/images/${img.id}`)
+    await api.delete(`/api/admin/products/${props.productId}/images/${itemToDelete.value.id}`)
     showToast('Đã xoá ảnh')
     await fetchImages()
   } catch {
     showToast('Lỗi xoá ảnh', 'error')
+  } finally {
+    itemToDelete.value = null
   }
 }
 
@@ -278,7 +288,7 @@ const move = async (index, direction) => {
                       class="bg-white/90 hover:bg-white rounded p-1.5">
                 <component :is="'svg'" class="w-4 h-4 text-purple-600" viewBox="0 0 24 24" fill="currentColor"><path :d="mdiLink" /></component>
               </button>
-              <button type="button" title="Xoá ảnh" @click="removeImage(img)"
+              <button type="button" title="Xoá ảnh" @click="confirmDelete(img)"
                       class="bg-white/90 hover:bg-white rounded p-1.5">
                 <component :is="'svg'" class="w-4 h-4 text-red-600" viewBox="0 0 24 24" fill="currentColor"><path :d="mdiTrashCan" /></component>
               </button>
@@ -361,5 +371,16 @@ const move = async (index, direction) => {
         </div>
       </div>
     </div>
+
+    <!-- ══ CONFIRM DELETE MODAL ══ -->
+    <CardBoxModal
+      v-model="isDeleteModalActive"
+      title="Xác nhận xóa"
+      button-label="Xóa"
+      has-cancel
+      @confirm="removeImage"
+    >
+      <p>Xoá ảnh này khỏi sản phẩm?</p>
+    </CardBoxModal>
   </CardBox>
 </template>

@@ -52,9 +52,6 @@ const fetchVouchers = async (page = 1) => {
   }
 }
 
-// ── Nhập Excel ──
-const importing = ref(false)
-const importInput = ref(null)
 const triggerImport = () => importInput.value?.click()
 
 const handleImportFile = async (e) => {
@@ -153,14 +150,17 @@ const toggleActive = async (id) => {
   }
 }
 
-const deleteVoucher = async (id) => {
-  if (!confirm('Xóa voucher này?')) return
+const deleteVoucher = async () => {
+  if (!itemToDelete.value) return
   try {
-    await api.delete(`/api/admin/vouchers/${id}`)
+    await api.delete(`/api/admin/vouchers/${itemToDelete.value}`)
     fetchVouchers(currentPage.value)
     showToast('Đã xóa voucher')
   } catch (e) {
     showToast(e.response?.data?.message || 'Không thể xóa voucher đã được sử dụng!', 'error')
+  } finally {
+    itemToDelete.value = null
+    isDeleteModalActive.value = false
   }
 }
 
@@ -242,7 +242,7 @@ onMounted(() => fetchVouchers())
               <td class="before:hidden lg:w-1 whitespace-nowrap">
                 <BaseButtons type="justify-start lg:justify-end" no-wrap>
                   <BaseButton color="info" :icon="mdiPencil" small @click="openEdit(v.id)" />
-                  <BaseButton color="danger" :icon="mdiTrashCan" small @click="deleteVoucher(v.id)" />
+                  <BaseButton color="danger" :icon="mdiTrashCan" small @click="confirmDelete(v.id)" />
                 </BaseButtons>
               </td>
             </tr>
@@ -313,6 +313,17 @@ onMounted(() => fetchVouchers())
           <input type="checkbox" v-model="form.is_active" id="v_active" class="mr-2">
           <label for="v_active">Kích hoạt voucher</label>
         </div>
+      </CardBoxModal>
+
+      <!-- ══ CONFIRM DELETE MODAL ══ -->
+      <CardBoxModal
+        v-model="isDeleteModalActive"
+        title="Xác nhận xóa"
+        button-label="Xóa"
+        has-cancel
+        @confirm="deleteVoucher"
+      >
+        <p>Bạn có chắc chắn muốn xóa voucher này không?</p>
       </CardBoxModal>
 
     </SectionMain>

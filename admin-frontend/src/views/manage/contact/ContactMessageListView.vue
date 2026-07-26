@@ -20,6 +20,14 @@ const onlyUnread = ref(false)
 const isModalActive = ref(false)
 const selected = ref(null)
 
+const isDeleteModalActive = ref(false)
+const itemToDelete = ref(null)
+
+const confirmDelete = (id) => {
+  itemToDelete.value = id
+  isDeleteModalActive.value = true
+}
+
 const fetchMessages = async (page = 1) => {
   try {
     const res = await api.get('/api/admin/contact-messages', {
@@ -58,15 +66,17 @@ const toggleRead = async (msg) => {
   }
 }
 
-const deleteMessage = async (id) => {
-  if (!confirm('Xóa tin nhắn liên hệ này?')) return
+const deleteMessage = async () => {
+  if (!itemToDelete.value) return
   try {
-    await api.delete(`/api/admin/contact-messages/${id}`)
+    await api.delete(`/api/admin/contact-messages/${itemToDelete.value}`)
     isModalActive.value = false
     fetchMessages(currentPage.value)
     showToast('Đã xóa tin nhắn')
   } catch (e) {
     showToast(e.response?.data?.message || 'Không thể xóa tin nhắn!', 'error')
+  } finally {
+    itemToDelete.value = null
   }
 }
 
@@ -151,7 +161,7 @@ onMounted(() => fetchMessages())
                     :title="m.is_read ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'"
                     @click="toggleRead(m)"
                   />
-                  <BaseButton color="danger" :icon="mdiTrashCan" small @click="deleteMessage(m.id)" />
+                  <BaseButton color="danger" :icon="mdiTrashCan" small @click="confirmDelete(m.id)" />
                 </BaseButtons>
               </td>
             </tr>
@@ -181,7 +191,6 @@ onMounted(() => fetchMessages())
         v-model="isModalActive"
         title="Chi tiết tin nhắn liên hệ"
         button-label="Đóng"
-        has-cancel
       >
         <div v-if="selected" class="space-y-3">
           <div v-if="selected.user" class="p-3 rounded bg-blue-50 border border-blue-100">
@@ -218,10 +227,21 @@ onMounted(() => fetchMessages())
             <p class="text-xs text-gray-500 mb-1">Nội dung</p>
             <p class="whitespace-pre-line bg-gray-50 rounded p-3">{{ selected.message }}</p>
           </div>
-          <div class="flex justify-end pt-2">
-            <BaseButton color="danger" :icon="mdiTrashCan" label="Xóa tin nhắn" small @click="deleteMessage(selected.id)" />
+          <div class="mt-4 flex justify-end">
+            <BaseButton color="danger" label="Xóa tin nhắn" :icon="mdiTrashCan" @click="confirmDelete(selected.id)" />
           </div>
         </div>
+      </CardBoxModal>
+
+      <!-- ══ CONFIRM DELETE MODAL ══ -->
+      <CardBoxModal
+        v-model="isDeleteModalActive"
+        title="Xác nhận xóa"
+        button-label="Xóa"
+        has-cancel
+        @confirm="deleteMessage"
+      >
+        <p>Xóa tin nhắn liên hệ này?</p>
       </CardBoxModal>
     </SectionMain>
   </LayoutAuthenticated>

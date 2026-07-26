@@ -18,6 +18,14 @@ const isModalActive = ref(false)
 const isEditing = ref(false)
 const form = ref({ id: null, name: '', description: '' })
 
+const isDeleteModalActive = ref(false)
+const itemToDelete = ref(null)
+
+const confirmDelete = (id) => {
+  itemToDelete.value = id
+  isDeleteModalActive.value = true
+}
+
 // Lấy danh sách danh mục (Backend trả về mảng trực tiếp, không phân trang như Product)
 const fetchCategories = async () => {
   try {
@@ -57,16 +65,17 @@ const saveCategory = async () => {
 }
 
 // Xóa danh mục
-const deleteCategory = async (id) => {
-  if (confirm('Bạn có chắc chắn muốn xóa danh mục này?')) {
-    try {
-      await api.delete(`/api/admin/categories/${id}`)
-      fetchCategories()
-      showToast('Đã xóa danh mục')
-    } catch (error) {
-      // Nhận thông báo lỗi từ Laravel nếu danh mục đang chứa sản phẩm
-      showToast(error.response?.data?.message || 'Lỗi khi xóa danh mục', 'error')
-    }
+const deleteCategory = async () => {
+  if (!itemToDelete.value) return
+  try {
+    await api.delete(`/api/admin/categories/${itemToDelete.value}`)
+    fetchCategories()
+    showToast('Đã xóa danh mục')
+  } catch (error) {
+    // Nhận thông báo lỗi từ Laravel nếu danh mục đang chứa sản phẩm
+    showToast(error.response?.data?.message || 'Lỗi khi xóa danh mục', 'error')
+  } finally {
+    itemToDelete.value = null
   }
 }
 
@@ -119,7 +128,7 @@ onMounted(() => {
                     color="danger"
                     :icon="mdiTrashCan"
                     small
-                    @click="deleteCategory(category.id)"
+                    @click="confirmDelete(category.id)"
                   />
                 </BaseButtons>
               </td>
@@ -142,8 +151,18 @@ onMounted(() => {
           <FormControl v-model="form.name" placeholder="Nhập tên danh mục (ví dụ: Áo thun)..." />
         </FormField>
         <FormField label="Mô tả">
-          <FormControl v-model="form.description" type="textarea" placeholder="Nhập mô tả danh mục..." />
+          <FormControl v-model="form.description" type="textarea" placeholder="Mô tả danh mục (tùy chọn)" />
         </FormField>
+      </CardBoxModal>
+
+      <CardBoxModal
+        v-model="isDeleteModalActive"
+        title="Xác nhận xóa"
+        button-label="Xóa"
+        has-cancel
+        @confirm="deleteCategory"
+      >
+        <p>Bạn có chắc chắn muốn xóa danh mục này không?</p>
       </CardBoxModal>
     </SectionMain>
   </LayoutAuthenticated>

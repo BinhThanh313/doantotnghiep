@@ -4,6 +4,7 @@ import {
   mdiPlus, mdiTrashCan, mdiChevronDown, mdiChevronUp, mdiRefresh,
 } from '@mdi/js'
 import CardBox from '@/components/CardBox.vue'
+import CardBoxModal from '@/components/CardBoxModal.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
 import FormControl from '@/components/FormControl.vue'
@@ -20,6 +21,7 @@ const specs      = ref([]) // [{ group_name, label, value, unit }]
 const loading    = ref(false)
 const saving     = ref(false)
 const isExpanded = ref(false)
+const isRegenerateModalActive = ref(false)
 
 const fetchSpecs = async () => {
   loading.value = true
@@ -64,8 +66,12 @@ const save = async () => {
   }
 }
 
+const confirmRegenerate = () => {
+  isRegenerateModalActive.value = true
+}
+
 const regenerate = async () => {
-  if (!confirm('Xoá toàn bộ thông số hiện tại và sinh lại tự động theo danh mục + giá?')) return
+  isRegenerateModalActive.value = false
   loading.value = true
   try {
     const res = await api.post(`/api/admin/products/${props.productId}/specifications/regenerate`)
@@ -95,7 +101,7 @@ const regenerate = async () => {
       </div>
       <div class="flex items-center gap-2">
         <template v-if="isExpanded">
-          <BaseButton :icon="mdiRefresh" color="warning" small label="Sinh lại tự động" @click.stop="regenerate" />
+          <BaseButton :icon="mdiRefresh" color="warning" small label="Sinh lại tự động" @click.stop="confirmRegenerate" />
           <BaseButton :icon="mdiPlus" color="success" small label="Thêm dòng" @click.stop="addRow" />
           <BaseButton color="info" small label="Lưu" :disabled="saving" @click.stop="save" />
         </template>
@@ -151,5 +157,16 @@ const regenerate = async () => {
         </tbody>
       </table>
     </div>
+
+    <!-- ══ CONFIRM REGENERATE MODAL ══ -->
+    <CardBoxModal
+      v-model="isRegenerateModalActive"
+      title="Xác nhận sinh lại"
+      button-label="Xác nhận"
+      has-cancel
+      @confirm="regenerate"
+    >
+      <p>Xoá toàn bộ thông số hiện tại và sinh lại tự động theo danh mục + giá?</p>
+    </CardBoxModal>
   </CardBox>
 </template>

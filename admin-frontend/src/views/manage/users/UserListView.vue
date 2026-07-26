@@ -10,6 +10,7 @@ import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
 import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
+import CardBoxModal from '@/components/CardBoxModal.vue'
 import { showToast } from '@/composables/useToast'
 import api from '@/services/api'
 
@@ -18,6 +19,14 @@ const currentPage = ref(1)
 const lastPage    = ref(1)
 const totalItems  = ref(0)
 const loading     = ref(false)
+
+const isDeleteModalActive = ref(false)
+const itemToDelete = ref(null)
+
+const confirmDelete = (id) => {
+  itemToDelete.value = id
+  isDeleteModalActive.value = true
+}
 
 // 1. Lấy danh sách người dùng (có phân trang, khớp với response paginate() của Laravel)
 const fetchUsers = async (page = 1) => {
@@ -37,20 +46,21 @@ const fetchUsers = async (page = 1) => {
 }
 
 // 2. Xóa người dùng
-const deleteUser = async (id) => {
-  if (confirm('Bạn có chắc chắn muốn xóa người dùng này?')) {
-    try {
-      await api.delete(`/api/admin/users/${id}`)
-      showToast('Đã xóa thành công!')
-      // Nếu xóa hết user cuối cùng của trang hiện tại (trang > 1) thì lùi về trang trước
-      const targetPage = users.value.length === 1 && currentPage.value > 1
-        ? currentPage.value - 1
-        : currentPage.value
-      fetchUsers(targetPage)
-    } catch (error) {
-      console.error('Lỗi khi xóa:', error)
-      showToast('Có lỗi xảy ra khi xóa.', 'error')
-    }
+const deleteUser = async () => {
+  if (!itemToDelete.value) return
+  try {
+    await api.delete(`/api/admin/users/${itemToDelete.value}`)
+    showToast('Đã xóa thành công!')
+    // Nếu xóa hết user cuối cùng của trang hiện tại (trang > 1) thì lùi về trang trước
+    const targetPage = users.value.length === 1 && currentPage.value > 1
+      ? currentPage.value - 1
+      : currentPage.value
+    fetchUsers(targetPage)
+  } catch (error) {
+    console.error('Lỗi khi xóa:', error)
+    showToast('Có lỗi xảy ra khi xóa.', 'error')
+  } finally {
+    itemToDelete.value = null
   }
 }
 
@@ -114,7 +124,7 @@ onMounted(() => {
                     :icon="mdiTrashCan" 
                     small 
                     title="Xóa" 
-                    @click="deleteUser(user.id)" 
+                    @click="confirmDelete(user.id)" 
                   />
                 </BaseButtons>
               </td>
@@ -140,6 +150,17 @@ onMounted(() => {
           </BaseButtons>
         </div>
       </CardBox>
+
+      <!-- ══ CONFIRM DELETE MODAL ══ -->
+      <CardBoxModal
+        v-model="isDeleteModalActive"
+        title="Xác nhận xóa"
+        button-label="Xóa"
+        has-cancel
+        @confirm="deleteUser"
+      >
+        <p>Bạn có chắc chắn muốn xóa người dùng này không?</p>
+      </CardBoxModal>
     </SectionMain>
   </LayoutAuthenticated>
 </template>

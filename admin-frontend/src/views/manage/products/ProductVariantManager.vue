@@ -27,8 +27,10 @@ const isExpanded     = ref(false)
 const isFormModal    = ref(false)
 const isAdjustModal  = ref(false)
 const isLogsModal    = ref(false)
+const isDeleteModalActive = ref(false)
 const isEditMode     = ref(false)
 const editingId      = ref(null)
+const itemToDelete   = ref(null)
 
 const form = ref({
   sku: '', name: '', attributes: '', price: '', original_price: '',
@@ -98,6 +100,11 @@ const openEdit = (v) => {
   isFormModal.value = true
 }
 
+const confirmDelete = (id) => {
+  itemToDelete.value = id
+  isDeleteModalActive.value = true
+}
+
 const saveVariant = async () => {
   const formData = new FormData()
   formData.append('name', form.value.name)
@@ -131,14 +138,17 @@ const saveVariant = async () => {
   }
 }
 
-const deleteVariant = async (id) => {
-  if (!confirm('Xóa biến thể này?')) return
+const deleteVariant = async () => {
+  if (!itemToDelete.value) return
   try {
-    await api.delete(`/api/admin/products/${props.productId}/variants/${id}`)
+    await api.delete(`/api/admin/products/${props.productId}/variants/${itemToDelete.value}`)
     showToast('Đã xóa biến thể')
     fetchVariants()
+    isDeleteModalActive.value = false
   } catch (e) {
     showToast(e.response?.data?.message || 'Lỗi xóa', 'error')
+  } finally {
+    itemToDelete.value = null
   }
 }
 
@@ -253,7 +263,7 @@ const formatDate  = (d) => new Date(d).toLocaleString('vi-VN')
                 <BaseButton :icon="mdiPencil" color="info" small @click="openEdit(v)" title="Sửa" />
                 <BaseButton :icon="mdiTuneVertical" color="warning" small @click="openAdjust(v)" title="Điều chỉnh kho" />
                 <BaseButton :icon="mdiHistory" color="whiteDark" small @click="openLogs(v)" title="Lịch sử kho" />
-                <BaseButton :icon="mdiTrashCan" color="danger" small @click="deleteVariant(v.id)" title="Xóa" />
+                <BaseButton :icon="mdiTrashCan" color="danger" small @click="confirmDelete(v.id)" title="Xóa" />
               </BaseButtons>
             </td>
           </tr>
@@ -389,5 +399,16 @@ const formatDate  = (d) => new Date(d).toLocaleString('vi-VN')
         </tbody>
       </table>
     </div>
+  </CardBoxModal>
+
+  <!-- ══ CONFIRM DELETE MODAL ══ -->
+  <CardBoxModal
+    v-model="isDeleteModalActive"
+    title="Xác nhận xóa"
+    button-label="Xóa"
+    has-cancel
+    @confirm="deleteVariant"
+  >
+    <p>Bạn có chắc chắn muốn xóa biến thể này?</p>
   </CardBoxModal>
 </template>
