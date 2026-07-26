@@ -219,10 +219,10 @@ Hệ thống tạo sẵn tài khoản quản trị để kiểm thử (sau khi c
 > **Lưu ý:** Dán URL ảnh chụp màn hình dự án thực tế vào đây.
 
 *Giao diện trang chủ Khách hàng*
-<!-- ![Storefront Homepage](link-anh-1) -->
+![Storefront Homepage](screenshots/storefront.png)
 
 *Giao diện Bảng điều khiển Quản trị (Vue.js Dashboard)*
-<!-- ![Admin Dashboard](link-anh-2) -->
+![Admin Dashboard](screenshots/admin.png)
 
 ---
 **Tác giả:** BinhThanh313
