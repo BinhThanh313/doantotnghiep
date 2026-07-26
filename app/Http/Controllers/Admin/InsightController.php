@@ -27,7 +27,9 @@ class InsightController extends Controller
         // Điều này khắc phục triệt để độ trễ mạng (Network Latency) khi Web Server 
         // và Database (Supabase) nằm cách xa nhau về mặt địa lý.
         $data = \Illuminate\Support\Facades\Cache::remember($cacheKey, 900, function () {
-            return $this->insightService->all();
+            // Chuyển đổi thành Array chuẩn để tránh lỗi __PHP_Incomplete_Class_Name khi Cache unserialize Collection
+            $raw = $this->insightService->all();
+            return json_decode(json_encode($raw), true);
         });
 
         return response()->json($data);
