@@ -463,7 +463,6 @@ class ChatbotResponseService
         // các câu hỏi kiểu "cái đầu tiên/thứ hai/cuối cùng có đáng mua không".
         return collect($products)->values()->map(function (Product $p, int $i) {
             $specs = $p->specifications
-                ->take(6)
                 ->map(fn ($s) => "{$s->label}: {$s->value}" . ($s->unit ? " {$s->unit}" : ''))
                 ->implode(', ');
 
@@ -598,17 +597,23 @@ class ChatbotResponseService
     private function buildFallbackContext(): string
     {
         $bestsellers = Product::where('is_active', true)
-            ->where('is_bestseller', true)
-            ->limit(8)
-            ->get(['id', 'name', 'price', 'category_id'])
-            ->load(['category', 'activeFlashSaleItem']);
+            ->whereHas('inventoryLogs')
+            ->with(['category', 'specifications', 'activeFlashSaleItem'])
+            ->orderByDesc('view_count')
+            ->take(3)
+            ->get();
 
         if ($bestsellers->isEmpty()) {
-            return 'Không có dữ liệu sản phẩm nổi bật nào.';
+            return '';
         }
 
-        return $bestsellers->map(function (Product $p) {
-            return "- {$p->name} ({$p->category->name}) — " . $this->formatProductPrice($p);
+        $list = collect($bestsellers)->map(function (Product $p) {
+            $specs = $p->specifications
+                ->map(fn ($s) => "{$s->label}: {$s->value}" . ($s->unit ? " {$s->unit}" : ''))
+                ->implode(', ');
+            return "- {$p->name} ({$p->category->name}) — " . $this->formatProductPrice($p) . ($specs ? "\n  Thông số: {$specs}" : '');
         })->implode("\n");
+
+        return $list;
     }
 }
