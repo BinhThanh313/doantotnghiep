@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function fetchReviews(productId, page = 1) {
-    fetch(`/api/products/${productId}/reviews?page=${page}`)
+    fetch(`${appBaseUrl}/api/products/${productId}/reviews?page=${page}`)
         .then(res => res.json())
         .then(data => {
             renderReviews(data.reviews.data);
@@ -36,11 +36,13 @@ function renderReviews(reviews) {
             mediaHtml = '<div class="d-flex flex-wrap gap-2 mt-3">';
             if (r.images && r.images.length > 0) {
                 r.images.forEach(img => {
-                    mediaHtml += `<img src="${appBaseUrl}/storage/${img.image_url}" class="rounded border" style="width: 80px; height: 80px; object-fit: cover;">`;
+                    let src = img.image_url.startsWith('http') ? img.image_url : `${appBaseUrl}/storage/${img.image_url}`;
+                    mediaHtml += `<img src="${src}" class="rounded border" style="width: 80px; height: 80px; object-fit: cover;">`;
                 });
             }
             if (r.video_url) {
-                mediaHtml += `<video src="${appBaseUrl}/storage/${r.video_url}" controls class="rounded border" style="width: 160px; height: 90px; object-fit: cover;"></video>`;
+                let vSrc = r.video_url.startsWith('http') ? r.video_url : `${appBaseUrl}/storage/${r.video_url}`;
+                mediaHtml += `<video src="${vSrc}" controls class="rounded border" style="width: 160px; height: 90px; object-fit: cover;"></video>`;
             }
             mediaHtml += '</div>';
         }
@@ -96,7 +98,7 @@ async function submitReview(e) {
     msg.innerHTML = '';
 
     try {
-        const response = await fetch(`/api/products/${currentProductId}/reviews`, {
+        const response = await fetch(`${appBaseUrl}/api/products/${currentProductId}/reviews`, {
             method: 'POST',
             headers: {
                 'Accept': 'application/json',

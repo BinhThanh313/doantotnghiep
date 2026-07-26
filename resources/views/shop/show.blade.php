@@ -41,7 +41,7 @@
                         </ul>
                     </div>
                     
-                    <a href="#">
+                    <a href="{{ route('flash-sale') }}">
                         <div class="position-relative">
                             <img src="{{ asset('img/product-banner-2.jpg') }}" class="img-fluid w-100 rounded" alt="Khuyến mãi">
                             <div class="text-center position-absolute d-flex flex-column align-items-center justify-content-center rounded p-4"
