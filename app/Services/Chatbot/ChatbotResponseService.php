@@ -86,33 +86,20 @@ class ChatbotResponseService
             return ['intent' => 'policy_faq', 'reply' => $faqReply];
         }
 
-        // Tới đây nghĩa là KHÔNG có category/brand/giá/spec (đã bị
-        // parser->isProductSearch() loại), không phải tra đơn hàng, không
-        // khớp FAQ. Đây chính là điểm hay rò rỉ: nếu cứ mặc định coi là
-        // "câu hỏi mua sắm mơ hồ" và đưa nguyên context bestseller cho LLM,
-        // model (đặc biệt Groq free tier) có thể liệt kê sản phẩm ra dù câu
-        // hỏi chẳng liên quan gì tới mua sắm (VD "trời hôm nay có đẹp
-        // không"). Dùng WHITELIST — chỉ cho đi tiếp (kèm context sản phẩm)
-        // khi có tín hiệu THỰC SỰ liên quan mua sắm; mặc định còn lại coi là
-        // ngoài lề và chặn ngay tại đây, không gọi LLM. An toàn hơn hẳn so
-        // với việc liệt kê trước từng câu ngoài lề có thể gặp (blacklist),
-        // vì không thể lường hết mọi câu hỏi phiếm mà khách/giám khảo có
-        // thể hỏi.
-        if (!$this->hasShoppingSignal($message)) {
-            return [
-                'intent' => 'small_talk',
-                'reply'  => 'Haha mình là trợ lý mua sắm nên không rành khoản này lắm 😅. '
-                          . 'Bạn cần mình tư vấn sản phẩm gì không, ví dụ laptop, điện thoại, tai nghe...?',
-            ];
+        // Tới đây nghĩa là KHÔNG có category/brand/giá/spec, không phải tra
+        // đơn hàng, không khớp FAQ. Giao phó hoàn toàn cho LLM tự quyết định.
+        // Cấp ngữ cảnh ưu tiên: Nếu đang bàn về sản phẩm nào đó, truyền sản 
+        // phẩm đó vào. Nếu không, truyền bestsellers.
+        $recentProducts = $this->findRecentlyMentionedProducts($history, $message);
+        
+        if ($recentProducts->isNotEmpty()) {
+            $context = $this->buildProductContextWithSpecs($recentProducts);
+        } else {
+            $context = $this->buildFallbackContext();
         }
+        
+        $context .= "\n\n" . $this->formatHistory($history);
 
-        // Không khớp intent rõ ràng nhưng CÓ tín hiệu liên quan mua sắm (VD
-        // "có gì hot không", "tư vấn giúp mình") -> fallback LLM, kèm ngữ
-        // cảnh vài sản phẩm bán chạy + lịch sử hội thoại gần nhất, để LLM
-        // hiểu được câu hỏi nối tiếp (VD: "cái nào tốt hơn" nhắc tới kết quả
-        // tìm kiếm ngay phía trên) thay vì trả lời khống hoặc không hiểu
-        // ngữ cảnh.
-        $context = $this->buildFallbackContext() . "\n\n" . $this->formatHistory($history);
         return [
             'intent' => 'llm_fallback',
             'reply'  => $this->llm->reply($message, $context),
@@ -247,44 +234,7 @@ class ChatbotResponseService
 
     // ==================== NGOÀI LỀ / PHIẾM ====================
 
-    /**
-     * Câu hỏi có TÍN HIỆU liên quan mua sắm/sản phẩm/đơn hàng/chính sách shop
-     * hay không — cổng WHITELIST trước khi 1 câu hỏi "mơ hồ" (không khớp
-     * parser/order/FAQ) được đưa xuống LLM fallback kèm context bestseller.
-     * Chỉ cần khớp 1 tín hiệu là đủ cho qua; parser/order/FAQ ở các bước
-     * trước đã lo phần chính xác rồi, hàm này chỉ cần lỏng tay hơn 1 chút để
-     * không chặn nhầm câu hỏi mua sắm nói vòng vo (VD "có gì hot không").
-     */
-    private function hasShoppingSignal(string $message): bool
-    {
-        $text = mb_strtolower($message);
 
-        $genericSignals = [
-            'mua', 'bán', 'giá', 'tư vấn', 'gợi ý', 'đề xuất', 'recommend',
-            'sản phẩm', 'hàng gì', 'shop', 'cửa hàng', 'khuyến mãi', 'giảm giá',
-            'sale', 'flash sale', 'nổi bật', 'hot', 'bán chạy', 'xu hướng',
-            'trending', 'đơn hàng', 'don hang', 'giao hàng', 'giao hang',
-            'vận chuyển', 'van chuyen', 'tra cứu', 'chính sách', 'chinh sach',
-            'bảo hành', 'bao hanh', 'đổi trả', 'doi tra', 'thanh toán', 'thanh toan',
-            'hotline', 'combo', 'thông số', 'thong so', 'cấu hình', 'cau hinh',
-            'cái đầu', 'cái thứ', 'cái này', 'cái kia', 'cái đó', 'mấy cái', 'những cái',
-            'pin', 'màn hình', 'camera', 'chụp', 'sạc', 'dung lượng',
-        ];
-
-        foreach ($genericSignals as $s) {
-            if (str_contains($text, $s)) {
-                return true;
-            }
-        }
-
-        foreach ($this->parser->knownProductKeywords() as $keyword) {
-            if (str_contains($text, $keyword)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 
     // ==================== TÌM SẢN PHẨM ====================
 
