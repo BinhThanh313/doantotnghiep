@@ -28,9 +28,10 @@ class ShopController extends Controller
             $query->where('category_id', $request->category);
         }
 
-        // Tìm kiếm theo tên
+        // Tìm kiếm theo tên (Fix cho PostgreSQL phân biệt hoa thường)
         if ($request->filled('search')) {
-            $query->where('name', 'like', '%' . $request->search . '%');
+            $searchTerm = '%' . mb_strtolower($request->search, 'UTF-8') . '%';
+            $query->whereRaw('LOWER(name) LIKE ?', [$searchTerm]);
         }
 
         // Lọc theo giá
