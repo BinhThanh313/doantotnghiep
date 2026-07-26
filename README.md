@@ -1,39 +1,81 @@
 # Electro - Đồ Án Tốt Nghiệp
 
-Dự án Hệ thống thương mại điện tử mua bán thiết bị điện tử "Electro" phục vụ cho Đồ Án Tốt Nghiệp. Dự án bao gồm các phân hệ chính:
-- **Trang khách hàng (Storefront):** Xây dựng bằng Laravel Blade kết hợp Javascript, cung cấp giao diện mua sắm mượt mà, tính năng flash sale, đánh giá, tìm kiếm thông minh, và gợi ý cá nhân hóa thông qua chatbot.
-- **Trang quản trị (Admin Panel):** Xây dựng bằng Vue.js 3 và Tailwind CSS (dưới dạng SPA), kết nối API với Backend, quản lý toàn bộ hệ thống từ sản phẩm, đơn hàng, người dùng đến các chiến dịch khuyến mãi.
-- **Backend API:** Laravel Framework đóng vai trò xử lý logic nghiệp vụ, cơ sở dữ liệu và cung cấp API RESTful cho Admin Panel cũng như các tính năng của trang Storefront.
+Dự án Hệ thống thương mại điện tử mua bán thiết bị điện tử "Electro" phục vụ cho Đồ Án Tốt Nghiệp. Dự án được phân chia rõ ràng thành hai phân hệ độc lập về mặt giao diện nhưng sử dụng chung một hệ thống API mạnh mẽ.
 
 ## 🚀 Các tính năng nổi bật
-- **Khách hàng:** Đăng nhập, thêm vào giỏ hàng, đặt hàng (hỗ trợ thanh toán online / COD), chatbot thông minh hỗ trợ giải đáp tự động, đánh giá & bình luận sản phẩm, hiển thị gợi ý sản phẩm, Flash Sale.
-- **Quản trị (Admin):** Thống kê và biểu đồ Insight doanh thu, quản lý hệ thống phân quyền, CRUD cho Sản phẩm/Danh mục/Người dùng/Voucher/Phương thức vận chuyển/Góp ý, xem và duyệt bình luận, quản lý các chiến dịch Flash Sale.
-- **Đồng bộ cơ sở dữ liệu:** Tích hợp lệnh Artisan (`php artisan db:sync-prod`) để đồng bộ nhanh dữ liệu mẫu/sản phẩm từ Database Production (PostgreSQL) về môi trường Localhost (MySQL) chỉ trong một nốt nhạc phục vụ quá trình test.
+- **Khách hàng (Storefront):** 
+  - Giao diện mua sắm mượt mà, tương thích nhiều kích thước màn hình.
+  - Đăng nhập, quản lý giỏ hàng, đặt hàng (hỗ trợ thanh toán online / thanh toán khi nhận hàng).
+  - Tích hợp Chatbot AI hỗ trợ giải đáp thắc mắc tự động và tư vấn sản phẩm.
+  - Hệ thống Đánh giá & bình luận sản phẩm chân thực.
+  - Hiển thị gợi ý sản phẩm cá nhân hóa.
+  - Tham gia các chiến dịch Flash Sale với đồng hồ đếm ngược.
+- **Quản trị (Admin Panel):** 
+  - Hoạt động dưới dạng Ứng dụng trang đơn (SPA) giúp thao tác chuyển trang tức thì, không cần tải lại.
+  - Thống kê, báo cáo và biểu đồ Insight doanh thu, gợi ý chiến lược kinh doanh.
+  - Quản lý hệ thống phân quyền bảo mật cao (Bearer Token).
+  - CRUD (Thêm, Đọc, Sửa, Xóa) đầy đủ cho: Sản phẩm, Danh mục, Người dùng, Voucher, Phương thức vận chuyển, Liên hệ.
+  - Theo dõi và cập nhật trạng thái Đơn hàng, kiểm duyệt bình luận.
 
 ## 🛠️ Công nghệ sử dụng
-- **Backend:** PHP 8.3+, Laravel 11, Sanctum (Xác thực API), Eloquent ORM.
-- **Cơ sở dữ liệu:** MySQL (Local), PostgreSQL (Render/Production).
-- **Frontend (Khách):** HTML5, Bootstrap 5, Javascript thuần, jQuery.
-- **Frontend (Admin):** Vue.js 3, Vite, Tailwind CSS, Axios, Vue Router, Pinia.
-- **Lưu trữ ảnh:** Cloudinary API.
+- **Backend (Server & API):** PHP 8.3+, Laravel 11, Sanctum (Xác thực Token), Eloquent ORM.
+- **Cơ sở dữ liệu:** Hệ quản trị cơ sở dữ liệu quan hệ (RDBMS).
+- **Frontend (Giao diện Khách hàng):** HTML5, Bootstrap 5, Javascript thuần, jQuery, Blade Template.
+- **Frontend (Giao diện Admin):** Vue.js 3 (Composition API), Vite, Tailwind CSS, Axios, Vue Router, Pinia.
+- **Dịch vụ bên thứ ba:** Cloudinary API (Lưu trữ và tối ưu hóa hình ảnh).
+
+## 📋 Yêu cầu hệ thống (Prerequisites)
+Để chạy dự án, máy tính của bạn cần cài đặt sẵn:
+- PHP >= 8.3
+- Composer
+- Node.js >= 18 và npm
+- Cơ sở dữ liệu MySQL (có thể dùng WampServer, XAMPP, Laragon...)
 
 ## ⚙️ Hướng dẫn cài đặt (Localhost)
 
 ### 1. Cài đặt Backend (Laravel)
-- Clone kho lưu trữ về máy (vào thư mục `www` của WampServer hoặc XAMPP).
-- Sao chép file cấu hình: `cp .env.example .env`
-- Sửa lại thông tin kết nối Database trong `.env` cho phù hợp.
-- Cài đặt thư viện: `composer install`
-- Chạy migrate: `php artisan migrate` (Hoặc nếu muốn đồng bộ Data từ Production, chạy lệnh `php artisan db:sync-prod`)
-- Tạo Key: `php artisan key:generate`
-- Nếu không dùng WampServer mà dùng CLI mặc định: `php artisan serve`
+- Mở Terminal, clone kho lưu trữ về máy (vào thư mục `www` của WampServer hoặc `htdocs` của XAMPP).
+- Sao chép file cấu hình môi trường: 
+  ```bash
+  cp .env.example .env
+  ```
+- Mở file `.env` và sửa lại thông tin kết nối Cơ sở dữ liệu của máy bạn (chủ yếu là `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`).
+- Cài đặt các thư viện PHP: 
+  ```bash
+  composer install
+  ```
+- Chạy lệnh khởi tạo các bảng cơ sở dữ liệu và nạp dữ liệu mẫu ban đầu:
+  ```bash
+  php artisan migrate --seed
+  ```
+- Tạo Application Key cho Laravel: 
+  ```bash
+  php artisan key:generate
+  ```
+- *(Tùy chọn)* Nếu bạn không chạy qua phần mềm ảo hóa WampServer, bạn có thể khởi động server ảo của Laravel bằng lệnh: 
+  ```bash
+  php artisan serve
+  ```
 
 ### 2. Cài đặt Admin Panel (Vue.js)
-- Mở Terminal và truy cập vào thư mục con: `cd admin-frontend`
-- Cài đặt thư viện Node.js: `npm install`
-- Chạy môi trường phát triển: `npm run dev`
-- Truy cập vào trang admin trên Localhost thông qua cổng Vite cấp (ví dụ `http://localhost:5173`) hoặc thư mục WampServer (`http://localhost/doantotnghiep/admin-frontend`).
+- Mở Terminal mới và di chuyển vào thư mục chứa mã nguồn Admin: 
+  ```bash
+  cd admin-frontend
+  ```
+- Cài đặt các thư viện Node.js: 
+  ```bash
+  npm install
+  ```
+- Chạy môi trường phát triển (Hot-reload): 
+  ```bash
+  npm run dev
+  ```
+- Bây giờ bạn có thể truy cập vào trang Admin trên Localhost thông qua cổng Vite cấp (ví dụ `http://localhost:5173`) để vừa code vừa xem kết quả ngay lập tức. Để triển khai thật, bạn có thể chạy `npm run build` để xuất file.
 
-## 👨‍💻 Tác giả
-- Phát triển bởi: BinhThanh313 và đội ngũ hỗ trợ.
-- Phiên bản: 1.0.0
+## 🔒 Tài khoản quản trị mẫu
+Sau khi chạy lệnh migrate và seed cơ sở dữ liệu, hệ thống thường sẽ tạo sẵn một tài khoản Admin để truy cập thử nghiệm.
+- **Email:** `admin@gmail.com` *(hoặc xem trong file Database Seeder)*
+- **Mật khẩu:** `password` *(hoặc mật khẩu mặc định bạn đã cấu hình)*
+
+## 📸 Ảnh minh họa (Screenshots)
+*(Gợi ý: Dán một vài hình ảnh chụp màn hình trang chủ và giao diện biểu đồ của Admin vào đây để file README trở nên sinh động và gây ấn tượng mạnh với người chấm đồ án nhé!)*
