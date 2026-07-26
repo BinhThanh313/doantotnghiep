@@ -24,15 +24,13 @@ api.interceptors.request.use(
     const csrf = document.cookie.match(/XSRF-TOKEN=([^;]+)/)
     if (csrf) config.headers['X-XSRF-TOKEN'] = decodeURIComponent(csrf[1])
 
-    // Workaround for PHP 8.3 + Symfony 7.1 request_parse_body fatal error on Render
-    if (config.method && ['put', 'patch'].includes(config.method.toLowerCase())) {
-      if (config.data && !(config.data instanceof FormData)) {
-        config.data = {
-          ...config.data,
-          _method: config.method.toUpperCase()
-        }
-        config.method = 'post'
-      }
+    // Workaround for PHP 8.3+ request_parse_body fatal error on Render
+    // Convert PUT, PATCH, DELETE to POST with ?_method=...
+    if (config.method && ['put', 'patch', 'delete'].includes(config.method.toLowerCase())) {
+      const overrideMethod = config.method.toUpperCase()
+      config.method = 'post'
+      // Use URL parameter for _method, which works universally in Laravel for both JSON and FormData
+      config.url = config.url + (config.url.includes('?') ? '&' : '?') + '_method=' + overrideMethod
     }
 
     return config

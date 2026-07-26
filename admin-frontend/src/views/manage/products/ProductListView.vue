@@ -7,6 +7,7 @@ import LayoutAuthenticated from '@/layouts/LayoutAuthenticated.vue'
 import SectionTitleLineWithButton from '@/components/SectionTitleLineWithButton.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import BaseButtons from '@/components/BaseButtons.vue'
+import CardBoxModal from '@/components/CardBoxModal.vue'
 import api from '@/services/api'
 import { showToast } from '@/composables/useToast'
 import { imgUrl } from '@/utils/image'
@@ -19,6 +20,14 @@ const importing = ref(false)
 const importInput = ref(null)
 const replaceImages = ref(false)
 
+const isDeleteModalActive = ref(false)
+const productToDelete = ref(null)
+
+const confirmDelete = (id) => {
+  productToDelete.value = id
+  isDeleteModalActive.value = true
+}
+
 const fetchProducts = async (page = 1) => {
   try {
     const response = await api.get(`/api/admin/products?page=${page}`)
@@ -30,14 +39,17 @@ const fetchProducts = async (page = 1) => {
   }
 }
 
-const deleteProduct = async (id) => {
-  if (confirm('Bạn có chắc chắn muốn xóa sản phẩm này?')) {
-    try {
-      await api.delete(`/api/admin/products/${id}`)
-      fetchProducts(currentPage.value)
-    } catch (error) {
-      console.error('Lỗi xóa sản phẩm', error)
-    }
+const deleteProduct = async () => {
+  if (!productToDelete.value) return
+  try {
+    await api.delete(`/api/admin/products/${productToDelete.value}`)
+    showToast('Xóa sản phẩm thành công')
+    fetchProducts(currentPage.value)
+  } catch (error) {
+    console.error('Lỗi xóa sản phẩm', error)
+    showToast(error.response?.data?.message || 'Lỗi xóa sản phẩm', 'error')
+  } finally {
+    productToDelete.value = null
   }
 }
 
@@ -168,7 +180,7 @@ onMounted(() => {
                     color="danger"
                     :icon="mdiTrashCan"
                     small
-                    @click="deleteProduct(product.id)"
+                    @click="confirmDelete(product.id)"
                   />
                 </BaseButtons>
               </td>
@@ -176,12 +188,21 @@ onMounted(() => {
           </tbody>
         </table>
 
-        <div class="p-3 lg:px-6 border-t border-gray-100 dark:border-slate-800 flex justify-end items-center flex-wrap gap-2">
-            <BaseButtons>
-              <BaseButton v-for="page in lastPage" :key="page" :active="page === currentPage" :label="page" @click="fetchProducts(page)" small />
-            </BaseButtons>
+        <div v-if="lastPage > 1" class="p-3 lg:px-6 border-t border-gray-100 dark:border-slate-800 flex justify-end items-center flex-wrap gap-2">
+          <BaseButton v-for="p in lastPage" :key="p" :label="p" :color="p === currentPage ? 'info' : 'whiteDark'" small @click="fetchProducts(p)" />
         </div>
       </CardBox>
     </SectionMain>
+
+    <!-- ══ CONFIRM DELETE MODAL ══ -->
+    <CardBoxModal
+      v-model="isDeleteModalActive"
+      title="Xác nhận xóa"
+      button-label="Xóa"
+      has-cancel
+      @confirm="deleteProduct"
+    >
+      <p>Bạn có chắc chắn muốn xóa sản phẩm này không?</p>
+    </CardBoxModal>
   </LayoutAuthenticated>
 </template>
