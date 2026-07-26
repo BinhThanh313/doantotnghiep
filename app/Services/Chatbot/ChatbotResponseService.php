@@ -207,26 +207,16 @@ class ChatbotResponseService
     {
         $text = mb_strtolower($message);
         $patterns = [
-            // So sánh / xếp hạng giữa nhiều sản phẩm. LƯU Ý: KHÔNG để "cái
-            // nào"/"con nào"/"sản phẩm nào" đứng một mình trong danh sách —
-            // các case cần bắt như "cái nào tốt hơn", "laptop nào tốt nhất"
-            // đã được phủ sẵn bởi 'tốt hơn'/'tốt nhất' bên dưới; để đứng một
-            // mình sẽ khiến câu hỏi MỚI hoàn toàn (VD "sản phẩm nào đang
-            // hot") bị hiểu nhầm thành đang so sánh tiếp sản phẩm cũ.
             'tốt hơn', 'tốt nhất', 'ngon hơn',
             'so sánh', 'đáng mua hơn', 'nên chọn cái',
             'so với nhau', 'so với cái', 'giữa hai', 'giữa 2', 'hai cái này',
             'cái này với cái kia', 'nên mua cái nào', 'khác nhau thế nào',
             'khác nhau chỗ nào', 'khác gì nhau', 'ưu nhược điểm', 'nên lấy cái',
-            // Tham chiếu đại từ tới sản phẩm vừa nhắc ("cái đó", "sản phẩm
-            // này"...) — KHÔNG cần yếu tố so sánh, chỉ cần đang hỏi tiếp về
-            // 1 sản phẩm đã nêu trước đó thay vì mở 1 chủ đề mới.
             'cái đó', 'cái này', 'con đó', 'con này', 'sản phẩm đó', 'sản phẩm này',
             'hàng đó', 'hàng này', 'món đó', 'món này', 'em đó', 'em này',
-            // Câu hỏi đánh giá 1 sản phẩm (không kèm từ so sánh "hơn") —
-            // thường đi ngay sau khi bot vừa liệt kê/nhắc tới 1 sản phẩm
             'đáng mua không', 'có đáng mua', 'có nên mua', 'có tốt không',
             'có ổn không', 'có đáng không', 'mua được không',
+            'cái đầu', 'cái thứ', 'cái cuối', 'mấy cái', 'những cái',
         ];
         foreach ($patterns as $p) {
             if (str_contains($text, $p)) {
