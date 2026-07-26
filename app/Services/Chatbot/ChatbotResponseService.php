@@ -454,22 +454,22 @@ class ChatbotResponseService
         return number_format($p->price, 0, ',', '.') . 'đ';
     }
 
-    /** Ngữ cảnh đầy đủ (kèm vài thông số nổi bật) để LLM xếp hạng/diễn giải, không tự bịa sản phẩm ngoài danh sách này */
     private function buildProductContextWithSpecs($products): string
     {
-        // Đánh số thứ tự (1., 2., 3...) thay vì gạch đầu dòng: $products đã
-        // được sắp đúng theo thứ tự xuất hiện trong hội thoại (xem
-        // findRecentlyMentionedProducts), nên đánh số giúp LLM trả lời được
-        // các câu hỏi kiểu "cái đầu tiên/thứ hai/cuối cùng có đáng mua không".
         return collect($products)->values()->map(function (Product $p, int $i) {
             $specs = $p->specifications
-                ->map(fn ($s) => "{$s->label}: {$s->value}" . ($s->unit ? " {$s->unit}" : ''))
-                ->implode(', ');
+                ->map(fn ($s) => "      - {$s->label}: {$s->value}" . ($s->unit ? " {$s->unit}" : ''))
+                ->implode("\n");
 
-            return ($i + 1) . ". {$p->name} — " . $this->formatProductPrice($p)
-                 . ($p->category ? " ({$p->category->name})" : '')
-                 . ($specs ? "\n  Thông số: {$specs}" : '');
-        })->implode("\n");
+            $category = $p->category ? $p->category->name : 'Không rõ';
+            
+            return "SẢN PHẨM THỨ " . ($i + 1) . ":\n"
+                 . "  - Tên sản phẩm: {$p->name}\n"
+                 . "  - Phân loại: {$category}\n"
+                 . "  - Giá bán: " . $this->formatProductPrice($p) . "\n"
+                 . "  - Thông số kỹ thuật:\n"
+                 . ($specs ?: "      (Không có thông số)");
+        })->implode("\n\n");
     }
 
     // ==================== TRA CỨU ĐƠN HÀNG ====================
