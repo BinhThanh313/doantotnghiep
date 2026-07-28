@@ -35,7 +35,7 @@ Route::get('/bestseller', [ShopController::class, 'bestsellers'])->name('bestsel
 Route::get('/flash-sale', [FlashSalePageController::class, 'index'])->name('flash-sale');
 
 Route::get('/debug-logs', function() {
-    $path = storage_path('logs/laravel.log');
+    $path = storage_path('logs/debug.txt');
     if (file_exists($path)) {
         return response(file_get_contents($path), 200, ['Content-Type' => 'text/plain']);
     }

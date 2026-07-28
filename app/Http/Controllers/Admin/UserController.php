@@ -64,6 +64,14 @@ class UserController extends Controller
     {
         $user = User::findOrFail($id);
 
+        // Ghi log ra file debug.txt
+        file_put_contents(storage_path('logs/debug.txt'), 
+            "Method: " . $request->method() . "\n" .
+            "Payload: " . json_encode($request->all()) . "\n" .
+            "Time: " . now() . "\n\n", 
+            FILE_APPEND
+        );
+
         $data = $request->validate([
             'name'     => 'sometimes|string|max:255',
             'email'    => 'sometimes|string|email|max:255|unique:users,email,' . $id,
