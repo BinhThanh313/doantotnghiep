@@ -65,5 +65,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('public-api', function ($request) {
             return Limit::perMinute(60)->by($request->ip());
         });
+
+        // Chia sẻ danh mục cho menu trên tất cả các trang
+        \Illuminate\Support\Facades\View::composer('layouts.app', function ($view) {
+            $view->with('categories', \App\Models\Category::withCount('products')->get());
+        });
     }
 }
