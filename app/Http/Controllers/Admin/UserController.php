@@ -71,18 +71,22 @@ class UserController extends Controller
             // 'role'  => 'nullable|string',
         ]);
 
+        \Illuminate\Support\Facades\Log::info('User Update Triggered for ID: ' . $id, $request->all());
+
         // Bỏ qua fillable, gán trực tiếp để đảm bảo luôn lưu được
         if ($request->has('name')) {
-            $user->name = $request->name;
+            $user->name = $request->input('name');
         }
         if ($request->has('email')) {
-            $user->email = $request->email;
+            $user->email = $request->input('email');
         }
         if ($request->filled('password')) {
-            $user->password = Hash::make($request->password);
+            $user->password = Hash::make($request->input('password'));
         }
 
+        \Illuminate\Support\Facades\Log::info('Saving user with new name: ' . $user->name);
         $user->save();
+        \Illuminate\Support\Facades\Log::info('Saved user. DB name is now: ' . $user->fresh()->name);
 
         return response()->json($user);
     }
