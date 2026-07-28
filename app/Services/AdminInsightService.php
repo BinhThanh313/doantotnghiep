@@ -311,7 +311,7 @@ class AdminInsightService
      * #9 — Sản phẩm có nhiều đánh giá xấu gần đây cần kiểm tra chất lượng.
      * Điều kiện: >= $minCount review dưới 3 sao trong $windowDays ngày gần nhất.
      */
-    public function negativeReviewAlerts(int $windowDays = 7, int $minCount = 5, int $limit = 10)
+    public function negativeReviewAlerts(int $windowDays = 7, int $minCount = 1, int $limit = 10)
     {
         $since = Carbon::now()->subDays($windowDays);
 
