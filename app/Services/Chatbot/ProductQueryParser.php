@@ -166,6 +166,14 @@ class ProductQueryParser
         if (preg_match('/trên\s*(\d+(?:[.,]\d+)?)\s*(' . self::PRICE_UNIT_PATTERN . ')/u', $text, $m)) {
             return $this->toVnd($m[1], $m[2]);
         }
+        if (preg_match('/(?:khoảng|tầm|cỡ)\s*(\d+(?:[.,]\d+)?)\s*(' . self::PRICE_UNIT_PATTERN . ')/u', $text, $m)) {
+            $mid = $this->toVnd($m[1], $m[2]);
+            return (int) round($mid * 0.8);
+        }
+        if (preg_match('/(?:khoảng|tầm|cỡ)\s*(\d[\d.,]*)\s*(?:đ\b|vnd\b|đồng)/u', $text, $m)) {
+            $mid = (int) preg_replace('/[.,]/', '', $m[1]);
+            return (int) round($mid * 0.8);
+        }
         return null;
     }
 
@@ -177,15 +185,19 @@ class ProductQueryParser
         if (preg_match('/(?:dưới|duoi|tối đa|toi da)\s*(\d+(?:[.,]\d+)?)\s*(' . self::PRICE_UNIT_PATTERN . ')/u', $text, $m)) {
             return $this->toVnd($m[1], $m[2]);
         }
-        if (preg_match('/khoảng\s*(\d+(?:[.,]\d+)?)\s*(' . self::PRICE_UNIT_PATTERN . ')/u', $text, $m)) {
-            // "khoảng X ..." -> hiểu là +-15%
+        if (preg_match('/(?:khoảng|tầm|cỡ)\s*(\d+(?:[.,]\d+)?)\s*(' . self::PRICE_UNIT_PATTERN . ')/u', $text, $m)) {
+            // "khoảng/tầm X ..." -> hiểu là +-20%
             $mid = $this->toVnd($m[1], $m[2]);
-            return (int) round($mid * 1.15);
+            return (int) round($mid * 1.2);
         }
         // Số tiền tuyệt đối kèm "đ"/"vnd"/"đồng", VD "dưới 500000đ", "tối đa
         // 15.000.000 vnd" — không quy về triệu, giữ nguyên giá trị thật.
         if (preg_match('/(?:dưới|duoi|tối đa|toi da)\s*(\d[\d.,]*)\s*(?:đ\b|vnd\b|đồng)/u', $text, $m)) {
             return (int) preg_replace('/[.,]/', '', $m[1]);
+        }
+        if (preg_match('/(?:khoảng|tầm|cỡ)\s*(\d[\d.,]*)\s*(?:đ\b|vnd\b|đồng)/u', $text, $m)) {
+            $mid = (int) preg_replace('/[.,]/', '', $m[1]);
+            return (int) round($mid * 1.2);
         }
         return null;
     }
