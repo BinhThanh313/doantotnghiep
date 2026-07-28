@@ -158,10 +158,35 @@
                             <i class="fas fa-shopping-bag text-white me-2"></i>Electro
                         </h1>
                     </a>
-                    <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="collapse"
-                        data-bs-target="#navbarCollapse">
-                        <span class="fa fa-bars fa-1x"></span>
-                    </button>
+                    
+                    <div class="d-flex align-items-center ms-auto d-lg-none">
+                        <div class="dropdown me-2">
+                            <a href="#" class="text-white d-flex align-items-center justify-content-center text-decoration-none" data-bs-toggle="dropdown">
+                                <span class="rounded-circle border border-white" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;"><i class="fa fa-user"></i></span>
+                            </a>
+                            <div class="dropdown-menu rounded dropdown-menu-end mt-2">
+                                @auth
+                                    <a href="{{ route('profile') }}" class="dropdown-item">Tài khoản của tôi</a>
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button class="dropdown-item" type="submit">Đăng xuất</button>
+                                    </form>
+                                @else
+                                    <a href="{{ route('login') }}" class="dropdown-item">Đăng nhập</a>
+                                    <a href="{{ route('register') }}" class="dropdown-item">Đăng ký</a>
+                                @endauth
+                            </div>
+                        </div>
+                        
+                        <a href="{{ route('cart.index') }}" class="text-white d-flex align-items-center justify-content-center text-decoration-none me-2">
+                            <span class="rounded-circle border border-white" style="width: 38px; height: 38px; display: flex; align-items: center; justify-content: center;"><i class="fas fa-shopping-cart"></i></span>
+                        </a>
+
+                        <button class="navbar-toggler" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#navbarCollapse">
+                            <span class="fa fa-bars fa-1x"></span>
+                        </button>
+                    </div>
                     <div class="collapse navbar-collapse" id="navbarCollapse">
                         <div class="navbar-nav ms-auto py-0">
                             <a href="{{ route('home') }}" class="nav-item nav-link {{ request()->routeIs('home') ? 'active' : '' }}">Trang chủ</a>
