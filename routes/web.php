@@ -137,6 +137,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
 |--------------------------------------------------------------------------
 */
 Route::get('/admin/{any?}', function () {
+    $localPath = public_path('admin-local/index.html');
+    if (file_exists($localPath) && env('APP_ENV', 'local') === 'local') {
+        return file_get_contents($localPath);
+    }
+
     $path = public_path('admin/index.html');
     if (file_exists($path)) {
         return file_get_contents($path);

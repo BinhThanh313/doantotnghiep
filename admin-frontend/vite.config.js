@@ -10,10 +10,10 @@ export default defineConfig({
   ],
 
   // Sửa base cho Render hoặc WampServer
-  base: process.env.IS_DOCKER_BUILD ? '/admin/' : '/doantotnghiep/public/admin/',
+  base: process.env.IS_DOCKER_BUILD ? '/admin/' : '/doantotnghiep/public/admin-local/',
 
   build: {
-    outDir: '../public/admin',
+    outDir: process.env.IS_DOCKER_BUILD ? '../public/admin' : '../public/admin-local',
     emptyOutDir: true,
   },
 
