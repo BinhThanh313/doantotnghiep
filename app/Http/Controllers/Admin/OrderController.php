@@ -124,7 +124,7 @@ class OrderController extends Controller
             if ($data['payment_status'] === 'paid' && $oldPaymentStatus !== 'paid') {
                 try {
                     \Illuminate\Support\Facades\Mail::to($order->customer_email)
-                        ->queue(new \App\Mail\PaymentConfirmed($order));
+                        ->send(new \App\Mail\PaymentConfirmed($order));
                 } catch (\Exception $e) {
                     Log::error('Lỗi gửi email xác nhận thanh toán: ' . $e->getMessage());
                 }
@@ -218,7 +218,7 @@ class OrderController extends Controller
                     if ($request->payment_status === 'paid' && $oldPaymentStatus !== 'paid') {
                         try {
                             \Illuminate\Support\Facades\Mail::to($order->customer_email)
-                                ->queue(new \App\Mail\PaymentConfirmed($order));
+                                ->send(new \App\Mail\PaymentConfirmed($order));
                         } catch (\Exception $e) {
                             Log::error('Lỗi gửi email xác nhận thanh toán bulk: ' . $e->getMessage());
                         }

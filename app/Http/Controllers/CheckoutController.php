@@ -491,7 +491,7 @@ class CheckoutController extends Controller
                 
                 try {
                     \Illuminate\Support\Facades\Mail::to($order->customer_email)
-                        ->queue(new \App\Mail\OrderConfirmation($order));
+                        ->send(new \App\Mail\OrderConfirmation($order));
                 } catch (\Exception $e) {
                     Log::error('Lỗi gửi email xác nhận đặt hàng: ' . $e->getMessage());
                 }
