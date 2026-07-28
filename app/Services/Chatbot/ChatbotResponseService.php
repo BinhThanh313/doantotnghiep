@@ -35,22 +35,18 @@ class ChatbotResponseService
         }
 
         // Câu hỏi kiểu so sánh/nối tiếp ("cái nào tốt hơn", "laptop nào tốt
-        // nhất"...) PHẢI dựa vào lịch sử hội thoại, không được để parser bắt
-        // nhầm thành 1 lượt tìm kiếm sản phẩm mới chỉ vì có chứa tên danh
-        // mục (VD: "laptop nào tốt hơn" chứa chữ "laptop"). Ưu tiên kiểm tra
-        // trước khi chạy parser.
         if ($this->isFollowUpComparison($message)) {
-            $products = $this->findRecentlyMentionedProducts($history, $message);
-
-            if ($products->isEmpty()) {
-                return [
-                    'intent' => 'clarify_product',
-                    'reply'  => 'Bạn đang hỏi về sản phẩm nào vậy? Bạn nhắc lại tên sản phẩm giúp mình để tư vấn chính xác hơn nhé.',
-                ];
+            $recentProducts = $this->findRecentlyMentionedProducts($history, $message);
+            $productContext = "SẢN PHẨM LIÊN QUAN TRONG CUỘC TRÒ CHUYỆN:\n";
+            if ($recentProducts->isNotEmpty()) {
+                $productContext .= $this->buildProductContextWithSpecs($recentProducts);
+            } else {
+                $productContext .= "(Không có)\n";
             }
+            $productContext .= "\nSẢN PHẨM BÁN CHẠY (GỢI Ý):\n";
+            $productContext .= $this->buildFallbackContext();
 
-            $productContext = $this->buildProductContextWithSpecs($products);
-            $globalContext = $this->buildGlobalContext($user) . "\n\nSẢN PHẨM ĐANG BÀN TỚI:\n" . $productContext;
+            $globalContext = $this->buildGlobalContext($user) . "\n\n" . $productContext;
             
             return [
                 'intent' => 'llm_fallback',
@@ -75,14 +71,18 @@ class ChatbotResponseService
         // Tới đây nghĩa là KHÔNG có category/brand/giá/spec, không phải tra
         // đơn hàng, không khớp FAQ. Giao phó hoàn toàn cho LLM tự quyết định.
         $recentProducts = $this->findRecentlyMentionedProducts($history, $message);
-        $productContext = '';
-        if ($recentProducts->isNotEmpty()) {
-            $productContext = $this->buildProductContextWithSpecs($recentProducts);
-        } else {
-            $productContext = $this->buildFallbackContext();
-        }
         
-        $globalContext = $this->buildGlobalContext($user) . "\n\nSẢN PHẨM LIÊN QUAN:\n" . $productContext;
+        $productContext = "SẢN PHẨM LIÊN QUAN TRONG CUỘC TRÒ CHUYỆN:\n";
+        if ($recentProducts->isNotEmpty()) {
+            $productContext .= $this->buildProductContextWithSpecs($recentProducts);
+        } else {
+            $productContext .= "(Không có)\n";
+        }
+
+        $productContext .= "\nSẢN PHẨM BÁN CHẠY (GỢI Ý):\n";
+        $productContext .= $this->buildFallbackContext();
+        
+        $globalContext = $this->buildGlobalContext($user) . "\n\n" . $productContext;
 
         return [
             'intent' => 'llm_fallback',
@@ -371,18 +371,17 @@ class ChatbotResponseService
 
     private function buildProductContextWithSpecs($products): string
     {
-        return collect($products)->values()->map(function (Product $p, int $i) {
+        return collect($products)->values()->map(function (Product $p) {
             $specs = $p->specifications
                 ->map(fn ($s) => "      - {$s->label}: {$s->value}" . ($s->unit ? " {$s->unit}" : ''))
                 ->implode("\n");
 
             $category = $p->category ? $p->category->name : 'Không rõ';
             
-            return "SẢN PHẨM THỨ " . ($i + 1) . ":\n"
-                 . "  - Tên sản phẩm: {$p->name}\n"
-                 . "  - Phân loại: {$category}\n"
-                 . "  - Giá bán: " . $this->formatProductPrice($p) . "\n"
-                 . "  - Thông số kỹ thuật:\n"
+            return "- Tên sản phẩm: {$p->name}\n"
+                 . "  Phân loại: {$category}\n"
+                 . "  Giá bán: " . $this->formatProductPrice($p) . "\n"
+                 . "  Thông số kỹ thuật:\n"
                  . ($specs ?: "      (Không có thông số)");
         })->implode("\n\n");
     }
