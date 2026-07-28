@@ -58,6 +58,50 @@ Route::middleware(['auth', 'verified'])->group(function () {
         return view('profile', compact('orders'));
     })->name('profile');
 
+    // Cập nhật thông tin cá nhân (tên, email)
+    Route::post('/profile/update', function(\Illuminate\Http\Request $request) {
+        $user = Auth::user();
+
+        $data = $request->validate([
+            'name'  => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+        ], [
+            'name.required'  => 'Vui lòng nhập họ và tên.',
+            'email.required' => 'Vui lòng nhập email.',
+            'email.email'    => 'Email không hợp lệ.',
+            'email.unique'   => 'Email này đã được sử dụng.',
+        ]);
+
+        $user->update($data);
+
+        return back()->with('success', 'Cập nhật thông tin thành công!');
+    })->name('profile.update');
+
+    // Đổi mật khẩu
+    Route::post('/profile/password', function(\Illuminate\Http\Request $request) {
+        $user = Auth::user();
+
+        $request->validate([
+            'current_password' => 'required|string',
+            'password'         => 'required|string|min:8|confirmed',
+        ], [
+            'current_password.required' => 'Vui lòng nhập mật khẩu hiện tại.',
+            'password.required'         => 'Vui lòng nhập mật khẩu mới.',
+            'password.min'              => 'Mật khẩu mới phải có ít nhất 8 ký tự.',
+            'password.confirmed'        => 'Xác nhận mật khẩu không khớp.',
+        ]);
+
+        if (!\Illuminate\Support\Facades\Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'Mật khẩu hiện tại không đúng.']);
+        }
+
+        $user->update([
+            'password' => \Illuminate\Support\Facades\Hash::make($request->password),
+        ]);
+
+        return back()->with('success_password', 'Đổi mật khẩu thành công!');
+    })->name('profile.password');
+
     // Cart
     Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
     Route::post('/cart/add', [CartController::class, 'add'])->name('cart.add');
