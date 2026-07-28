@@ -58,17 +58,30 @@
     const messages  = document.getElementById('chatbot-messages');
 
     const STORAGE_KEY = 'chatbot_session_token';
+    const MESSAGES_KEY = 'chatbot_messages';
+    
     // Dùng url() của Laravel thay vì gõ chết "/doantotnghiep/public/..." —
     // để widget vẫn chạy đúng nếu deploy ở domain/subfolder khác APP_URL.
     const CHATBOT_ENDPOINT = @json(url('/api/chatbot/message'));
     let sessionToken = localStorage.getItem(STORAGE_KEY) || null;
+    let chatHistory = JSON.parse(localStorage.getItem(MESSAGES_KEY) || '[]');
 
-    function appendMessage(sender, text) {
+    function appendMessage(sender, text, save = true) {
         const el = document.createElement('div');
         el.className = 'chatbot-msg ' + sender;
         el.textContent = text;
         messages.appendChild(el);
         messages.scrollTop = messages.scrollHeight;
+        
+        if (save) {
+            chatHistory.push({ sender, text });
+            localStorage.setItem(MESSAGES_KEY, JSON.stringify(chatHistory));
+        }
+    }
+
+    // Phục hồi lịch sử chat
+    if (chatHistory.length > 0) {
+        chatHistory.forEach(msg => appendMessage(msg.sender, msg.text, false));
     }
 
     toggleBtn.addEventListener('click', () => {
@@ -81,7 +94,9 @@
 
     resetBtn.addEventListener('click', () => {
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(MESSAGES_KEY);
         sessionToken = null;
+        chatHistory = [];
         messages.innerHTML = '';
         appendMessage('bot', 'Đã bắt đầu hội thoại mới. Bạn cần tìm sản phẩm gì?');
     });
