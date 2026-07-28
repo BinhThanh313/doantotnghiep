@@ -32,7 +32,7 @@ const getHeaders = () => {
 // Lấy dữ liệu cũ đổ vào form nếu ở chế độ Sửa
 const fetchUser = async (id) => {
   try {
-    const response = await axios.get(`${apiUrl}/${id}`, { headers: getHeaders() })
+    const response = await api.get(`/api/admin/users/${id}`)
     const user = response.data.data || response.data
     form.name = user.name
     form.email = user.email
@@ -52,11 +52,11 @@ const submit = async () => {
       if (!updateData.password) {
         delete updateData.password
       }
-      await axios.put(`${apiUrl}/${route.params.id}`, updateData, { headers: getHeaders() })
+      await api.put(`/api/admin/users/${route.params.id}`, updateData)
       showToast('Cập nhật người dùng thành công!')
     } else {
       // Chế độ Thêm mới -> POST thông thường
-      await axios.post(apiUrl, form, { headers: getHeaders() })
+      await api.post(`/api/admin/users`, form)
       showToast('Thêm người dùng mới thành công!')
     }
     // Thành công -> Quay lại trang danh sách người dùng
