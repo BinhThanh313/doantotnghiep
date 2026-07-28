@@ -178,7 +178,7 @@
                         </div>
                     </div>
                     <div class="alert alert-warning py-2 px-3 small mb-2">
-                        <strong>Nội dung:</strong> {{ $bankInfo['transfer_note'] }}
+                        <strong>Nội dung:</strong> {{ $bankInfo['transfer_content'] }}
                     </div>
                     @if(!empty($bankInfo['qr_url']))
                     <div class="text-center">
