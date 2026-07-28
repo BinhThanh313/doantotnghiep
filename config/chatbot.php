@@ -21,7 +21,7 @@ return [
 
     'groq' => [
         'api_key' => env('GROQ_API_KEY'),
-        'model'   => env('CHATBOT_GROQ_MODEL', 'llama-3.3-70b-versatile'),
+        'model'   => env('CHATBOT_GROQ_MODEL', 'llama3-8b-8192'),
     ],
 
     // Số sản phẩm tối đa trả về trong 1 lần tìm kiếm

@@ -557,9 +557,9 @@ class ChatbotResponseService
             $context .= "THÔNG TIN KHÁCH HÀNG ĐANG CHAT:\n";
             $context .= "- Tên: {$user->name} (Email: {$user->email})\n";
             
-            $orders = Order::where('user_id', $user->id)->orderByDesc('created_at')->take(3)->get();
+            $orders = Order::where('user_id', $user->id)->orderByDesc('created_at')->take(5)->get();
             if ($orders->isNotEmpty()) {
-                $context .= "- Lịch sử mua hàng (3 đơn gần nhất):\n";
+                $context .= "- Lịch sử mua hàng (5 đơn gần nhất):\n";
                 foreach ($orders as $o) {
                     $context .= "  + Mã đơn: {$o->tracking_number} | Tổng tiền: " . number_format($o->total_amount, 0, ',', '.') . "đ | Trạng thái: {$o->status} | Ngày: {$o->created_at->format('d/m/Y')}\n";
                 }
