@@ -39,7 +39,7 @@
     </div>
 
     {{-- Header Kết Hợp (Topbar + Logo & Search) --}}
-    <div class="container-fluid px-5 py-3 d-none border-bottom d-lg-block">
+    <div class="container-fluid px-5 py-3 d-none border-bottom d-lg-block" style="position: relative; z-index: 1050;">
         <div class="row gx-0 align-items-center">
             
             <div class="col-lg-3 text-start">
