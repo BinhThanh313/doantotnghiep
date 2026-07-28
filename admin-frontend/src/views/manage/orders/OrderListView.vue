@@ -225,7 +225,8 @@ const toggleSelect = (id) => {
 }
 
 const executeBulkAction = async () => {
-  if (!bulkAction.value) return showToast('Vui lòng chọn hành động!', 'error')
+  const actionStr = typeof bulkAction.value === 'object' && bulkAction.value !== null ? bulkAction.value.id : bulkAction.value
+  if (!actionStr) return showToast('Vui lòng chọn hành động!', 'error')
   if (!selectedIds.value.length) return showToast('Vui lòng chọn ít nhất 1 đơn hàng!', 'error')
 
   isBulkModalActive.value = true
@@ -234,17 +235,20 @@ const executeBulkAction = async () => {
 const performBulkAction = async () => {
   bulkLoading.value = true
   try {
+    const actionStr = typeof bulkAction.value === 'object' && bulkAction.value !== null ? bulkAction.value.id : bulkAction.value
+    let statusStr = typeof bulkStatus.value === 'object' && bulkStatus.value !== null ? bulkStatus.value.id : bulkStatus.value
+    
     const payload = {
       ids:    selectedIds.value,
-      action: bulkAction.value,
+      action: actionStr,
     }
-    if (bulkAction.value === 'update_status') {
-      if (!bulkStatus.value) bulkStatus.value = statusOptions[1].id
-      payload.status = bulkStatus.value
+    if (actionStr === 'update_status') {
+      if (!statusStr) statusStr = statusOptions[1].id
+      payload.status = statusStr
     }
-    if (bulkAction.value === 'update_payment_status') {
-      if (!bulkStatus.value) bulkStatus.value = paymentStatusOptions[1].id
-      payload.payment_status = bulkStatus.value
+    if (actionStr === 'update_payment_status') {
+      if (!statusStr) statusStr = paymentStatusOptions[1].id
+      payload.payment_status = statusStr
     }
 
     const res = await api.post('/api/admin/orders/bulk', payload)
@@ -490,9 +494,9 @@ onMounted(() => fetchOrders())
             { id: 'update_payment_status', label: 'Cập nhật thanh toán' },
             { id: 'delete', label: '🗑 Xóa đã chọn' },
           ]" />
-        <FormControl v-if="bulkAction === 'update_status'" v-model="bulkStatus" class="w-44"
+        <FormControl v-if="(bulkAction?.id || bulkAction) === 'update_status'" v-model="bulkStatus" class="w-44"
           :options="statusOptions.slice(1)" />
-        <FormControl v-if="bulkAction === 'update_payment_status'" v-model="bulkStatus" class="w-44"
+        <FormControl v-if="(bulkAction?.id || bulkAction) === 'update_payment_status'" v-model="bulkStatus" class="w-44"
           :options="paymentStatusOptions.slice(1)" />
         <BaseButton color="info" small label="Thực hiện" :disabled="bulkLoading" @click="executeBulkAction" />
         <BaseButton color="whiteDark" outline small :icon="mdiClose" @click="selectedIds = []" title="Bỏ chọn" />
