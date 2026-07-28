@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Schema; // THÊM DÒNG NÀY
 use Illuminate\Pagination\Paginator;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Mail;
+use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoApiTransport;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +25,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Mail::extend('brevo', function (array $config = []) {
+            return new BrevoApiTransport($config['key'] ?? env('BREVO_API_KEY'));
+        });
+
         if (config('app.env') === 'production') {
             \Illuminate\Support\Facades\URL::forceScheme('https'); // FIX MIXED CONTENT ON RENDER
             
