@@ -536,12 +536,20 @@ class ChatbotResponseService
         $context .= "- Thanh toán: Nhận hàng (COD) hoặc Chuyển khoản ngân hàng.\n";
         $context .= "- Vận chuyển: 2-5 ngày tùy khu vực. Phí ship tính ở bước thanh toán.\n\n";
 
-        $vouchers = Voucher::where('is_active', true)->where('usage_limit', '>', 0)->get();
+        $vouchers = Voucher::where('is_active', true)
+            ->where(function ($q) {
+                $q->whereNull('max_uses')->orWhereColumn('used_count', '<', 'max_uses');
+            })
+            ->where(function ($q) {
+                $q->whereNull('end_date')->orWhere('end_date', '>=', now());
+            })
+            ->get();
+
         if ($vouchers->isNotEmpty()) {
             $context .= "MÃ GIẢM GIÁ ĐANG CÓ:\n";
             foreach ($vouchers as $v) {
                 $discountStr = $v->discount_type === 'percent' ? "{$v->discount_value}%" : number_format($v->discount_value, 0, ',', '.') . "đ";
-                $context .= "- Mã {$v->code}: Giảm {$discountStr} (Đơn tối thiểu " . number_format($v->min_order_value, 0, ',', '.') . "đ).\n";
+                $context .= "- Mã {$v->code}: Giảm {$discountStr} (Đơn tối thiểu " . number_format($v->min_amount ?? 0, 0, ',', '.') . "đ).\n";
             }
             $context .= "\n";
         }
