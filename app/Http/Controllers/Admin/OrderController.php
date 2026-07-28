@@ -114,10 +114,21 @@ class OrderController extends Controller
         ]);
 
         $oldStatus = $order->status;
+        $oldPaymentStatus = $order->payment_status;
         $order->update($data);
 
         if (isset($data['payment_status'])) {
             $this->syncPaymentRecord($order, $data['payment_status']);
+            
+            // Gửi email xác nhận thanh toán khi admin (hoặc hệ thống) chuyển sang paid
+            if ($data['payment_status'] === 'paid' && $oldPaymentStatus !== 'paid') {
+                try {
+                    \Illuminate\Support\Facades\Mail::to($order->customer_email)
+                        ->queue(new \App\Mail\PaymentConfirmed($order));
+                } catch (\Exception $e) {
+                    Log::error('Lỗi gửi email xác nhận thanh toán: ' . $e->getMessage());
+                }
+            }
         }
         
         if ($order->shipment) {
@@ -200,8 +211,18 @@ class OrderController extends Controller
                 $request->validate(['payment_status' => 'required']);
                 $orders = Order::with('payment')->whereIn('id', $ids)->get();
                 foreach ($orders as $order) {
+                    $oldPaymentStatus = $order->payment_status;
                     $order->update(['payment_status' => $request->payment_status]);
                     $this->syncPaymentRecord($order, $request->payment_status);
+
+                    if ($request->payment_status === 'paid' && $oldPaymentStatus !== 'paid') {
+                        try {
+                            \Illuminate\Support\Facades\Mail::to($order->customer_email)
+                                ->queue(new \App\Mail\PaymentConfirmed($order));
+                        } catch (\Exception $e) {
+                            Log::error('Lỗi gửi email xác nhận thanh toán bulk: ' . $e->getMessage());
+                        }
+                    }
                 }
                 return response()->json(['message' => 'Đã cập nhật thanh toán ' . count($ids) . ' đơn hàng']);
         }

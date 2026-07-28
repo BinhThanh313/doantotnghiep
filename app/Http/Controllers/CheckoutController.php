@@ -477,7 +477,7 @@ class CheckoutController extends Controller
                     'status'         => 'pending',
                 ]);
 
-                // 10. Thông báo in-app
+                // 10. Thông báo in-app & Email xác nhận đơn hàng
                 if (Auth::check()) {
                     AppNotification::send(
                         Auth::id(),
@@ -487,6 +487,13 @@ class CheckoutController extends Controller
                         $order->id,
                         'order'
                     );
+                }
+                
+                try {
+                    \Illuminate\Support\Facades\Mail::to($order->customer_email)
+                        ->queue(new \App\Mail\OrderConfirmation($order));
+                } catch (\Exception $e) {
+                    Log::error('Lỗi gửi email xác nhận đặt hàng: ' . $e->getMessage());
                 }
 
                 return $order;
