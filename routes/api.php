@@ -95,6 +95,8 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 
     Route::apiResource('categories', CategoryController::class);
     Route::apiResource('users', UserController::class);
+    // Workaround for POST method override on Render
+    Route::post('users/{user}', [UserController::class, 'update']);
     Route::post('/vouchers/import', [VoucherController::class, 'import']);
     Route::apiResource('vouchers', VoucherController::class);
     Route::patch('/vouchers/{id}/toggle', [VoucherController::class, 'toggle']);

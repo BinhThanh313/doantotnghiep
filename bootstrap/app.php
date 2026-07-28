@@ -12,6 +12,9 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        // Fix method override cho toàn bộ ứng dụng
+        $middleware->prepend(\App\Http\Middleware\OverrideHttpMethod::class);
+
         // Fix Render forwarding port 10000 issue
         $middleware->trustProxies(at: '*');
 
