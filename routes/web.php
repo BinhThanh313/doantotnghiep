@@ -33,6 +33,14 @@ Route::get('/faq', fn() => view('faq'))->name('faq');
 Route::get('/return-policy', fn() => view('return-policy'))->name('return-policy');
 Route::get('/bestseller', [ShopController::class, 'bestsellers'])->name('bestseller');
 Route::get('/flash-sale', [FlashSalePageController::class, 'index'])->name('flash-sale');
+
+Route::get('/debug-logs', function() {
+    $path = storage_path('logs/laravel.log');
+    if (file_exists($path)) {
+        return response(file_get_contents($path), 200, ['Content-Type' => 'text/plain']);
+    }
+    return "No logs found.";
+});
 Auth::routes(['verify' => true]);
 
 /*
