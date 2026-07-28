@@ -71,14 +71,18 @@ class UserController extends Controller
             // 'role'  => 'nullable|string',
         ]);
 
-        // Nếu admin có nhập password mới thì tiến hành cập nhật, nếu không thì bỏ qua
+        // Bỏ qua fillable, gán trực tiếp để đảm bảo luôn lưu được
+        if ($request->has('name')) {
+            $user->name = $request->name;
+        }
+        if ($request->has('email')) {
+            $user->email = $request->email;
+        }
         if ($request->filled('password')) {
-            $data['password'] = Hash::make($data['password']);
-        } else {
-            unset($data['password']);
+            $user->password = Hash::make($request->password);
         }
 
-        $user->update($data);
+        $user->save();
 
         return response()->json($user);
     }
