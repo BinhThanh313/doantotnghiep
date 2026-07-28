@@ -15,6 +15,7 @@ use App\Models\VoucherUsage;
 use App\Services\BankTransferService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -263,22 +264,58 @@ class CheckoutController extends Controller
             'carrier_id'      => 'nullable|exists:shipping_carriers,id',
             'voucher_codes'   => 'nullable|array',
             'voucher_codes.*' => 'string',
+            'idempotency_key' => 'required|string',
         ]);
 
-        $cart = $this->getCart();
+        $idempotencyKey = $request->input('idempotency_key');
+        $cacheKey = 'checkout_idempotency_' . $idempotencyKey;
 
-        // Chỉ lấy các sản phẩm đã chọn từ trang giỏ hàng
-        $selectedIds = session('checkout_item_ids', []);
-        if (!empty($selectedIds)) {
-            $selectedIds = array_map('intval', $selectedIds);
-            $cart = array_filter($cart, fn($item, $key) => in_array((int) $key, $selectedIds), ARRAY_FILTER_USE_BOTH);
-        }
-
-        if (empty($cart)) {
-            return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống!');
+        // Lock xử lý trong 10 giây để tránh 2 request xử lý song song
+        $lock = Cache::lock('lock_' . $cacheKey, 10);
+        if (!$lock->get()) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Đơn hàng đang được xử lý, vui lòng đợi...'], 429);
+            }
+            return redirect()->back()->with('error', 'Đơn hàng đang được xử lý, vui lòng đợi...');
         }
 
         try {
+            if (Cache::has($cacheKey)) {
+                $existingOrderId = Cache::get($cacheKey);
+                $existingOrder = Order::find($existingOrderId);
+                if ($existingOrder) {
+                    $checkoutItemIds = session('checkout_item_ids', []);
+                    if (!empty($checkoutItemIds)) {
+                        CartItem::where('user_id', Auth::id())->whereIn('id', $checkoutItemIds)->delete();
+                    } else {
+                        CartItem::where('user_id', Auth::id())->delete();
+                    }
+                    session()->forget(['applied_vouchers', 'checkout_item_ids']);
+
+                    if ($request->ajax() || $request->wantsJson()) {
+                        return response()->json([
+                            'success'      => true,
+                            'message'      => 'Đặt hàng thành công!',
+                            'order_id'     => $existingOrder->id,
+                            'redirect_url' => route('checkout.success', ['id' => $existingOrder->id]),
+                        ]);
+                    }
+                    return redirect()->route('checkout.success', $existingOrder->id);
+                }
+            }
+
+            $cart = $this->getCart();
+
+            // Chỉ lấy các sản phẩm đã chọn từ trang giỏ hàng
+            $selectedIds = session('checkout_item_ids', []);
+            if (!empty($selectedIds)) {
+                $selectedIds = array_map('intval', $selectedIds);
+                $cart = array_filter($cart, fn($item, $key) => in_array((int) $key, $selectedIds), ARRAY_FILTER_USE_BOTH);
+            }
+
+            if (empty($cart)) {
+                return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống!');
+            }
             $order = DB::transaction(function () use ($request, $cart) {
 
                 // 1. Kiểm tra tồn kho — theo biến thể nếu khách chọn màu/size,
@@ -466,6 +503,8 @@ class CheckoutController extends Controller
             }
             session()->forget(['applied_vouchers', 'checkout_item_ids']);
 
+            Cache::put($cacheKey, $order->id, now()->addHours(24));
+
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success'      => true,
@@ -485,6 +524,8 @@ class CheckoutController extends Controller
                 ], 422);
             }
             return back()->withErrors(['error' => $e->getMessage()])->withInput();
+        } finally {
+            $lock?->release();
         }
     }
 

@@ -90,6 +90,7 @@
             <form action="{{ route('checkout.store') }}" method="POST" id="checkout-form"
                 data-action-url="{{ route('checkout.store') }}">
                 @csrf
+                <input type="hidden" name="idempotency_key" value="{{ Str::uuid() }}">
                 <div class="row g-5">
                     <!-- Bên trái: Thông tin khách hàng -->
                     <div class="col-md-12 col-lg-6 col-xl-6 wow fadeInUp" data-wow-delay="0.1s">
