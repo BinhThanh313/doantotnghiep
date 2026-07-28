@@ -39,11 +39,10 @@ class ChatbotResponseService
             $recentProducts = $this->findRecentlyMentionedProducts($history, $message);
             $productContext = "SẢN PHẨM LIÊN QUAN TRONG CUỘC TRÒ CHUYỆN:\n";
             if ($recentProducts->isNotEmpty()) {
-                $productContext .= $this->buildProductContextWithSpecs($recentProducts);
+                $productContext .= $this->buildProductContextWithSpecs($recentProducts) . "\n\n";
             } else {
-                $productContext .= "(Không có)\n";
+                $productContext .= "(Không có)\n\n";
             }
-            $productContext .= "\nSẢN PHẨM BÁN CHẠY (GỢI Ý):\n";
             $productContext .= $this->buildFallbackContext();
 
             $globalContext = $this->buildGlobalContext($user) . "\n\n" . $productContext;
@@ -74,12 +73,11 @@ class ChatbotResponseService
         
         $productContext = "SẢN PHẨM LIÊN QUAN TRONG CUỘC TRÒ CHUYỆN:\n";
         if ($recentProducts->isNotEmpty()) {
-            $productContext .= $this->buildProductContextWithSpecs($recentProducts);
+            $productContext .= $this->buildProductContextWithSpecs($recentProducts) . "\n\n";
         } else {
-            $productContext .= "(Không có)\n";
+            $productContext .= "(Không có)\n\n";
         }
 
-        $productContext .= "\nSẢN PHẨM BÁN CHẠY (GỢI Ý):\n";
         $productContext .= $this->buildFallbackContext();
         
         $globalContext = $this->buildGlobalContext($user) . "\n\n" . $productContext;
@@ -507,24 +505,40 @@ class ChatbotResponseService
     private function buildFallbackContext(): string
     {
         $bestsellers = Product::where('is_active', true)
-            ->whereHas('inventoryLogs')
+            ->where('is_bestseller', true)
             ->with(['category', 'specifications', 'activeFlashSaleItem'])
-            ->orderByDesc('view_count')
-            ->take(3)
+            ->take(5)
             ->get();
 
-        if ($bestsellers->isEmpty()) {
-            return '';
+        $flashSales = Product::where('is_active', true)
+            ->whereHas('activeFlashSaleItem')
+            ->with(['category', 'specifications', 'activeFlashSaleItem'])
+            ->take(5)
+            ->get();
+
+        $context = "";
+        
+        if ($bestsellers->isNotEmpty()) {
+            $context .= "SẢN PHẨM BÁN CHẠY (GỢI Ý):\n";
+            $context .= collect($bestsellers)->map(function (Product $p) {
+                $specs = $p->specifications
+                    ->map(fn ($s) => "{$s->label}: {$s->value}" . ($s->unit ? " {$s->unit}" : ''))
+                    ->implode(', ');
+                return "- {$p->name} ({$p->category->name}) — " . $this->formatProductPrice($p) . ($specs ? "\n  Thông số: {$specs}" : '');
+            })->implode("\n") . "\n\n";
         }
 
-        $list = collect($bestsellers)->map(function (Product $p) {
-            $specs = $p->specifications
-                ->map(fn ($s) => "{$s->label}: {$s->value}" . ($s->unit ? " {$s->unit}" : ''))
-                ->implode(', ');
-            return "- {$p->name} ({$p->category->name}) — " . $this->formatProductPrice($p) . ($specs ? "\n  Thông số: {$specs}" : '');
-        })->implode("\n");
+        if ($flashSales->isNotEmpty()) {
+            $context .= "SẢN PHẨM ĐANG FLASH SALE CỰC HOT:\n";
+            $context .= collect($flashSales)->map(function (Product $p) {
+                $specs = $p->specifications
+                    ->map(fn ($s) => "{$s->label}: {$s->value}" . ($s->unit ? " {$s->unit}" : ''))
+                    ->implode(', ');
+                return "- {$p->name} ({$p->category->name}) — " . $this->formatProductPrice($p) . ($specs ? "\n  Thông số: {$specs}" : '');
+            })->implode("\n") . "\n\n";
+        }
 
-        return $list;
+        return $context;
     }
 
     private function buildGlobalContext(?User $user): string
