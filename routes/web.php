@@ -35,11 +35,12 @@ Route::get('/bestseller', [ShopController::class, 'bestsellers'])->name('bestsel
 Route::get('/flash-sale', [FlashSalePageController::class, 'index'])->name('flash-sale');
 
 Route::get('/debug-logs', function() {
+    $version = "V3 (Override Middleware Active)";
     $path = storage_path('logs/debug.txt');
     if (file_exists($path)) {
-        return response(file_get_contents($path), 200, ['Content-Type' => 'text/plain']);
+        return response("Version: $version\n\n" . file_get_contents($path), 200, ['Content-Type' => 'text/plain']);
     }
-    return "No logs found.";
+    return "No logs found. Version: $version";
 });
 Auth::routes(['verify' => true]);
 
