@@ -7,10 +7,10 @@ class FlashSalePageController extends Controller
 {
     public function index()
     {
-        $flashSale = FlashSale::running()
+        $flashSales = FlashSale::running()
             ->with(['activeItems.product:id,name,image,price,original_price,stock,category_id'])
-            ->latest('starts_at')
-            ->first();
+            ->orderBy('starts_at', 'desc')
+            ->get();
 
         $upcomingSales = FlashSale::where('is_active', true)
             ->where('starts_at', '>', now())
@@ -18,6 +18,6 @@ class FlashSalePageController extends Controller
             ->limit(3)
             ->get();
 
-        return view('shop.flash-sale', compact('flashSale', 'upcomingSales'));
+        return view('shop.flash-sale', compact('flashSales', 'upcomingSales'));
     }
 }
