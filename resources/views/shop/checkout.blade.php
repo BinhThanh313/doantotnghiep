@@ -283,6 +283,12 @@
 
 @push('scripts')
 <script>
+window.addEventListener("pageshow", function(event) {
+    if (event.persisted) {
+        window.location.reload();
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function () {
     const checkoutForm = document.getElementById('checkout-form');
     const applyBtn       = document.getElementById('apply-voucher-checkout');
