@@ -13,7 +13,7 @@ use Laravel\Sanctum\HasApiTokens; // <--- 1. BẠN CẦN THÊM DÒNG NÀY Ở Đ
 
 #[Fillable(['name', 'email', 'password', 'role'])]
 #[Hidden(['password', 'remember_token'])]
-class User extends Authenticatable implements MustVerifyEmail
+class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable; // <--- 2. VÀ THÊM Chữ HasApiTokens VÀO DÒNG NÀY
