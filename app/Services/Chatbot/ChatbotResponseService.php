@@ -5,6 +5,7 @@ namespace App\Services\Chatbot;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\Voucher;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -41,34 +42,19 @@ class ChatbotResponseService
         if ($this->isFollowUpComparison($message)) {
             $products = $this->findRecentlyMentionedProducts($history, $message);
 
-            Log::info('[chatbot-debug] follow_up_comparison', [
-                'message'        => $message,
-                'history_count'  => count($history),
-                'history'        => $history,
-                'products_found' => $products->pluck('name')->all(),
-            ]);
-
             if ($products->isEmpty()) {
-                // KHÔNG xác định được sản phẩm cụ thể nào đang được bàn tới
-                // (có thể vì tin nhắn bot trước đó do LLM viết lại tên sản
-                // phẩm không khớp 100% ký tự với DB, hoặc đây thực ra là câu
-                // hỏi MỚI bị nhận nhầm là câu hỏi tiếp nối). TRẢ LỜI CỐ ĐỊNH
-                // hỏi lại khách ở đây, KHÔNG đẩy quyết định "liệt kê bestseller
-                // hay hỏi lại" cho LLM — vì thực tế đã cho thấy LLM (Groq free
-                // tier) không đáng tin cậy ở việc này, dễ lặp lại đúng bug cũ:
-                // cứ có sẵn context sản phẩm là liệt kê ra, dù câu hỏi ("cái
-                // này có đáng mua không") không hề yêu cầu liệt kê danh sách.
                 return [
                     'intent' => 'clarify_product',
                     'reply'  => 'Bạn đang hỏi về sản phẩm nào vậy? Bạn nhắc lại tên sản phẩm giúp mình để tư vấn chính xác hơn nhé.',
                 ];
             }
 
-            $context = $this->buildProductContextWithSpecs($products)
-                     . "\n\n" . $this->formatHistory($history);
+            $productContext = $this->buildProductContextWithSpecs($products);
+            $globalContext = $this->buildGlobalContext($user) . "\n\nSẢN PHẨM ĐANG BÀN TỚI:\n" . $productContext;
+            
             return [
                 'intent' => 'llm_fallback',
-                'reply'  => $this->llm->reply($message, $context),
+                'reply'  => $this->llm->reply($message, $globalContext, $history),
             ];
         }
 
@@ -88,21 +74,19 @@ class ChatbotResponseService
 
         // Tới đây nghĩa là KHÔNG có category/brand/giá/spec, không phải tra
         // đơn hàng, không khớp FAQ. Giao phó hoàn toàn cho LLM tự quyết định.
-        // Cấp ngữ cảnh ưu tiên: Nếu đang bàn về sản phẩm nào đó, truyền sản 
-        // phẩm đó vào. Nếu không, truyền bestsellers.
         $recentProducts = $this->findRecentlyMentionedProducts($history, $message);
-        
+        $productContext = '';
         if ($recentProducts->isNotEmpty()) {
-            $context = $this->buildProductContextWithSpecs($recentProducts);
+            $productContext = $this->buildProductContextWithSpecs($recentProducts);
         } else {
-            $context = $this->buildFallbackContext();
+            $productContext = $this->buildFallbackContext();
         }
         
-        $context .= "\n\n" . $this->formatHistory($history);
+        $globalContext = $this->buildGlobalContext($user) . "\n\nSẢN PHẨM LIÊN QUAN:\n" . $productContext;
 
         return [
             'intent' => 'llm_fallback',
-            'reply'  => $this->llm->reply($message, $context),
+            'reply'  => $this->llm->reply($message, $globalContext, $history),
         ];
     }
 
@@ -176,16 +160,7 @@ class ChatbotResponseService
 
     private function formatHistory(array $history): string
     {
-        if (empty($history)) {
-            return 'Không có lịch sử hội thoại trước đó.';
-        }
-
-        $lines = collect($history)->map(function ($m) {
-            $who = $m['sender'] === 'user' ? 'Khách' : 'Bot';
-            return "{$who}: {$m['message']}";
-        })->implode("\n");
-
-        return "Lịch sử hội thoại gần nhất (từ cũ đến mới, câu cuối là câu khách vừa hỏi):\n{$lines}";
+        return ''; // Đã được xử lý thành mảng messages trong LLM Service
     }
 
     // ==================== CHÀO HỎI ====================
@@ -418,9 +393,13 @@ class ChatbotResponseService
     {
         $text = mb_strtolower($message);
 
-        // Mở rộng thêm vài cách hỏi phổ biến khác ngoài "đơn hàng"/"don
-        // hang" (mã đơn, tra cứu đơn, mã vận đơn, "order" tiếng Anh). Dùng
-        // \b cho "order" để tránh khớp nhầm vào giữa từ khác (VD "border").
+        // 1. Luôn ưu tiên bắt trực tiếp mã đơn thật dạng "ORD-824C3233" ở bất kỳ đâu trong câu
+        // không cần khách phải gõ chữ "đơn hàng" hay "mã đơn"
+        if (preg_match('/ORD-[A-Z0-9]+/iu', $message, $m)) {
+            return strtoupper($m[0]);
+        }
+
+        // 2. Nếu không thấy mã ORD, kiểm tra xem khách có dùng các từ khóa hỏi đơn hàng không
         $hasOrderKeyword = str_contains($text, 'đơn hàng')
             || str_contains($text, 'don hang')
             || str_contains($text, 'mã đơn')
@@ -433,19 +412,11 @@ class ChatbotResponseService
             return null;
         }
 
-        // Ưu tiên mã đơn thật của hệ thống, dạng "ORD-824C3233"
-        if (preg_match('/ORD-[A-Z0-9]+/iu', $message, $m)) {
-            return strtoupper($m[0]);
-        }
-
-        // Fallback: khách gõ số ID NGAY SAU từ khóa đơn hàng (VD "đơn hàng #5",
-        // "đơn hàng số 12", "mã đơn 7") — CHỈ bắt số nằm SÁT từ khóa (cho phép
-        // xen "số"/"so"/"#"/khoảng trắng ở giữa), để tránh tra nhầm một con số
-        // bất kỳ xuất hiện ở đâu đó xa trong câu (VD "đơn hàng của tôi có 3
-        // sản phẩm" không được hiểu là tra đơn ID 3).
+        // 3. Nếu có từ khóa mà khách gõ số ID tĩnh dạng "đơn hàng #5", "mã đơn 7"
         if (preg_match('/(?:đơn hàng|don hang|mã đơn|ma don|tra cứu đơn|mã vận đơn|order)\s*(?:số|so)?\s*#?\s*(\d+)/u', $text, $m)) {
             return 'ID:' . $m[1];
         }
+        
         return null;
     }
 
@@ -555,5 +526,41 @@ class ChatbotResponseService
         })->implode("\n");
 
         return $list;
+    }
+
+    private function buildGlobalContext(?User $user): string
+    {
+        $context = "THÔNG TIN CHÍNH SÁCH CỬA HÀNG:\n";
+        $context .= "- Đổi trả: 7 ngày kể từ khi nhận hàng (sản phẩm còn nguyên tem, chưa qua sử dụng).\n";
+        $context .= "- Bảo hành: Chính hãng 12 tháng.\n";
+        $context .= "- Thanh toán: Nhận hàng (COD) hoặc Chuyển khoản ngân hàng.\n";
+        $context .= "- Vận chuyển: 2-5 ngày tùy khu vực. Phí ship tính ở bước thanh toán.\n\n";
+
+        $vouchers = Voucher::where('is_active', true)->where('usage_limit', '>', 0)->get();
+        if ($vouchers->isNotEmpty()) {
+            $context .= "MÃ GIẢM GIÁ ĐANG CÓ:\n";
+            foreach ($vouchers as $v) {
+                $discountStr = $v->discount_type === 'percent' ? "{$v->discount_value}%" : number_format($v->discount_value, 0, ',', '.') . "đ";
+                $context .= "- Mã {$v->code}: Giảm {$discountStr} (Đơn tối thiểu " . number_format($v->min_order_value, 0, ',', '.') . "đ).\n";
+            }
+            $context .= "\n";
+        }
+
+        if ($user) {
+            $context .= "THÔNG TIN KHÁCH HÀNG ĐANG CHAT:\n";
+            $context .= "- Tên: {$user->name} (Email: {$user->email})\n";
+            
+            $orders = Order::where('user_id', $user->id)->orderByDesc('created_at')->take(3)->get();
+            if ($orders->isNotEmpty()) {
+                $context .= "- Lịch sử mua hàng (3 đơn gần nhất):\n";
+                foreach ($orders as $o) {
+                    $context .= "  + Mã đơn: {$o->tracking_number} | Tổng tiền: " . number_format($o->total_amount, 0, ',', '.') . "đ | Trạng thái: {$o->status} | Ngày: {$o->created_at->format('d/m/Y')}\n";
+                }
+            } else {
+                $context .= "- Lịch sử mua hàng: Chưa có đơn hàng nào.\n";
+            }
+        }
+
+        return $context;
     }
 }
