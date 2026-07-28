@@ -119,6 +119,21 @@ class OrderController extends Controller
         if (isset($data['payment_status'])) {
             $this->syncPaymentRecord($order, $data['payment_status']);
         }
+        
+        if ($order->shipment) {
+            $shipmentUpdate = [];
+            if (isset($data['tracking_number'])) {
+                $shipmentUpdate['tracking_number'] = $data['tracking_number'];
+            }
+            if (isset($data['status'])) {
+                if ($data['status'] === 'shipped') $shipmentUpdate['status'] = 'in_transit';
+                elseif (in_array($data['status'], ['delivered', 'completed'])) $shipmentUpdate['status'] = 'delivered';
+                elseif ($data['status'] === 'cancelled') $shipmentUpdate['status'] = 'returned';
+            }
+            if (!empty($shipmentUpdate)) {
+                $order->shipment->update($shipmentUpdate);
+            }
+        }
 
         // Gửi thông báo in-app + email khi đổi status
         if (isset($data['status']) && $data['status'] !== $oldStatus) {
@@ -168,6 +183,17 @@ class OrderController extends Controller
             case 'update_status':
                 $request->validate(['status' => 'required']);
                 Order::whereIn('id', $ids)->update(['status' => $request->status]);
+                
+                // Sync shipment statuses
+                $shipmentStatus = null;
+                if ($request->status === 'shipped') $shipmentStatus = 'in_transit';
+                elseif (in_array($request->status, ['delivered', 'completed'])) $shipmentStatus = 'delivered';
+                elseif ($request->status === 'cancelled') $shipmentStatus = 'returned';
+                
+                if ($shipmentStatus) {
+                    \App\Models\Shipment::whereIn('order_id', $ids)->update(['status' => $shipmentStatus]);
+                }
+                
                 return response()->json(['message' => 'Đã cập nhật trạng thái ' . count($ids) . ' đơn hàng']);
 
             case 'update_payment_status':

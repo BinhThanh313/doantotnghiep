@@ -136,7 +136,7 @@ class Order extends Model
             'delivered'     => 'Đã giao hàng',
             'completed'     => 'Hoàn thành',
             'cancelled'     => 'Đã hủy',
-            default         => $this->status,
+            default         => (string) $this->status,
         };
     }
 
@@ -146,7 +146,7 @@ class Order extends Model
             'unpaid'   => 'Chưa thanh toán',
             'paid'     => 'Đã thanh toán',
             'refunded' => 'Đã hoàn tiền',
-            default    => $this->payment_status,
+            default    => (string) $this->payment_status,
         };
     }
 

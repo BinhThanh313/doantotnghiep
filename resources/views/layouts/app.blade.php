@@ -125,7 +125,7 @@
     </div>
 
     {{-- Navbar (Giữ nguyên) --}}
-    <div class="container-fluid nav-bar p-0">
+    <div class="container-fluid nav-bar p-0" style="position: relative; z-index: 1000;">
         <div class="row gx-0 bg-primary px-5 align-items-center">
             <div class="col-lg-3 d-none d-lg-block">
                 <nav class="navbar navbar-light position-relative" style="width: 250px;">

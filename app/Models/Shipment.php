@@ -27,7 +27,7 @@ class Shipment extends Model
             'delivered'  => 'Đã giao hàng',
             'failed'     => 'Giao thất bại',
             'returned'   => 'Hoàn hàng',
-            default      => $this->status,
+            default      => (string) $this->status,
         };
     }
 }
