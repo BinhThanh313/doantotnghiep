@@ -411,11 +411,13 @@ class CheckoutController extends Controller
                     $order->vouchers()->attach($entry['voucher']->id, ['discount_amount' => $entry['discount']]);
 
                     if (Auth::check()) {
-                        VoucherUsage::create([
+                        $usage = VoucherUsage::firstOrNew([
                             'voucher_id' => $entry['voucher']->id,
                             'user_id'    => Auth::id(),
-                            'order_id'   => $order->id,
                         ]);
+                        $usage->order_id = $order->id;
+                        $usage->used_count = $usage->exists ? $usage->used_count + 1 : 1;
+                        $usage->save();
                     }
                 }
 
