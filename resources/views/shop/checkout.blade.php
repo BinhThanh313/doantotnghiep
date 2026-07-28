@@ -588,6 +588,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 carrier_id:     parseInt(carrierId),
                 shipping_fee:   parseFloat(shippingFeeInput.value || 0),
                 voucher_codes:  appliedVouchers.map(v => v.code),
+                idempotency_key: (checkoutForm.querySelector('input[name="idempotency_key"]') || {}).value || '',
                 _token:         document.querySelector('meta[name="csrf-token"]').content,
             };
 
