@@ -53,6 +53,24 @@ class CheckoutController extends Controller
     }
 
     /**
+     * Lấy giỏ hàng đã filter theo danh sách item đang checkout (partial checkout).
+     * Dùng chung cho index, applyVoucher, removeVoucher để đảm bảo
+     * combo chỉ tính trên sản phẩm đang thanh toán.
+     */
+    private function getCheckoutCart(): array
+    {
+        $cart = $this->getCart();
+        $selectedIds = session('checkout_item_ids', []);
+
+        if (!empty($selectedIds)) {
+            $selectedIds = array_map('intval', $selectedIds);
+            $cart = array_filter($cart, fn($item, $key) => in_array((int) $key, $selectedIds), ARRAY_FILTER_USE_BOTH);
+        }
+
+        return $cart;
+    }
+
+    /**
      * Nhận danh sách cart_item IDs đã chọn từ trang giỏ hàng,
      * lưu vào session rồi chuyển hướng sang trang thanh toán.
      */
@@ -72,13 +90,7 @@ class CheckoutController extends Controller
     {
         $selectedIds = session('checkout_item_ids', []);
 
-        $cart = $this->getCart();
-
-        // Nếu có danh sách item đã chọn, chỉ giữ lại các item đó
-        if (!empty($selectedIds)) {
-            $selectedIds = array_map('intval', $selectedIds);
-            $cart = array_filter($cart, fn($item, $key) => in_array((int) $key, $selectedIds), ARRAY_FILTER_USE_BOTH);
-        }
+        $cart = $this->getCheckoutCart();
 
         if (empty($cart)) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng đang trống!');
@@ -146,7 +158,7 @@ class CheckoutController extends Controller
         }
 
         // Lấy discount từ combo
-        $cart = $this->getCart();
+        $cart = $this->getCheckoutCart();
         $comboDiscountResult = \App\Models\ProductCombo::calculateCartDiscount($cart);
         $comboDiscount = $comboDiscountResult['amount'];
 
@@ -201,7 +213,7 @@ class CheckoutController extends Controller
 
         session(['applied_vouchers' => $appliedCodes]);
 
-        $cart = $this->getCart();
+        $cart = $this->getCheckoutCart();
         $comboDiscountResult = \App\Models\ProductCombo::calculateCartDiscount($cart);
         $comboDiscount = $comboDiscountResult['amount'];
 
