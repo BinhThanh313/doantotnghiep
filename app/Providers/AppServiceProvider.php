@@ -8,6 +8,7 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Database\Eloquent\Model; // THÊM DÒNG NÀY
 use Symfony\Component\Mailer\Bridge\Brevo\Transport\BrevoApiTransport;
 
 class AppServiceProvider extends ServiceProvider
@@ -25,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Model::preventLazyLoading(! $this->app->isProduction());
+
         Mail::extend('brevo', function (array $config = []) {
             return new BrevoApiTransport($config['key'] ?? env('BREVO_API_KEY'));
         });

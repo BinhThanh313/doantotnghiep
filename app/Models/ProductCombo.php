@@ -31,7 +31,7 @@ class ProductCombo extends Model
      */
     public static function activeForProduct(int $productId)
     {
-        return static::with(['product', 'comboProduct'])
+        return static::with(['product.activeFlashSaleItem', 'comboProduct.activeFlashSaleItem'])
             ->where('is_active', true)
             ->where(function ($q) use ($productId) {
                 $q->where('product_id', $productId)
