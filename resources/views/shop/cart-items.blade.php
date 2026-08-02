@@ -9,13 +9,17 @@
         </td>
         <th scope="row">
             <div class="d-flex align-items-center">
-                <img src="{{ img_url($item['image'] ?? null, asset('img/product-3.png')) }}" 
-                     class="img-fluid me-5 rounded-circle" 
-                     style="width: 80px; height: 80px;" alt="{{ $item['name'] }}">
+                <a href="{{ route('shop.show', $item['id']) }}">
+                    <img src="{{ img_url($item['image'] ?? null, asset('img/product-3.png')) }}" 
+                         class="img-fluid me-5 rounded-circle" 
+                         style="width: 80px; height: 80px;" alt="{{ $item['name'] }}">
+                </a>
             </div>
         </th>
         <td>
-            <p class="mb-0 mt-4">{{ $item['name'] }}</p>
+            <a href="{{ route('shop.show', $item['id']) }}" class="text-dark text-decoration-none fw-bold">
+                <p class="mb-0 mt-4">{{ $item['name'] }}</p>
+            </a>
             @if(!empty($item['variant_name']))
                 <small class="text-muted">{{ $item['variant_name'] }}</small>
             @endif
