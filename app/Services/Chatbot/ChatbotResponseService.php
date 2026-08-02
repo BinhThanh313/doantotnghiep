@@ -4,6 +4,7 @@ namespace App\Services\Chatbot;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ProductVariant;
 use App\Models\User;
 use App\Models\Voucher;
 use Illuminate\Support\Facades\Log;
@@ -221,7 +222,18 @@ class ChatbotResponseService
 
     private function handleProductSearch(array $filters, string $originalMessage): array
     {
-        $query = Product::with(['category', 'specifications', 'activeFlashSaleItem'])->where('is_active', true);
+        $query = Product::with(['category', 'specifications', 'activeFlashSaleItem', 'variants'])->where('is_active', true);
+
+        // ── Ưu tiên khớp tên sản phẩm chính xác từ câu hỏi gốc ──
+        // Nếu khách nêu đủ tên ("iPhone 15 Pro Max"), tìm sản phẩm có tên
+        // chứa nguyên cụm đó trước, thay vì chỉ lọc theo brand ("iPhone")
+        // rồi trả về tất cả các đời iPhone.
+        $exactNameMatch = $this->tryExactNameMatch($originalMessage);
+
+        if ($exactNameMatch->isNotEmpty()) {
+            // Tìm đúng sản phẩm cụ thể → trả ngay, bỏ qua các filter khác
+            return $this->buildProductSearchResponse($exactNameMatch, $originalMessage);
+        }
 
         if ($filters['category']) {
             $query->whereHas('category', fn ($q) => $q->where('name', $filters['category']));
@@ -296,6 +308,44 @@ class ChatbotResponseService
             ];
         }
 
+        return $this->buildProductSearchResponse($products, $originalMessage);
+    }
+
+    /**
+     * Thử khớp tên sản phẩm chính xác từ câu hỏi gốc.
+     * Ví dụ khách hỏi "Shop có bán iPhone 15 Pro Max 256GB màu đỏ không"
+     * → tìm sản phẩm có tên chứa "iPhone 15 Pro Max" (cụm dài nhất khớp).
+     */
+    private function tryExactNameMatch(string $message): \Illuminate\Support\Collection
+    {
+        $msgLower = mb_strtolower($message);
+
+        // Lấy tất cả tên sản phẩm active, sắp xếp theo tên DÀI NHẤT trước
+        // để ưu tiên khớp "iPhone 15 Pro Max" thay vì "iPhone 15"
+        $allProducts = Product::with(['category', 'specifications', 'activeFlashSaleItem', 'variants'])
+            ->where('is_active', true)
+            ->get()
+            ->sortByDesc(fn ($p) => mb_strlen($p->name));
+
+        $matched = $allProducts->filter(
+            fn ($p) => str_contains($msgLower, mb_strtolower($p->name))
+        );
+
+        // Chỉ trả về kết quả nếu tìm được ≤ 3 sản phẩm (tức là khách hỏi đủ
+        // cụ thể). Nếu câu hỏi quá chung ("iPhone" khớp 5+ sản phẩm), bỏ qua
+        // để dùng logic filter bình thường.
+        if ($matched->count() > 0 && $matched->count() <= 3) {
+            return $matched->values();
+        }
+
+        return collect();
+    }
+
+    /**
+     * Xây dựng câu trả lời chung cho kết quả tìm sản phẩm
+     */
+    private function buildProductSearchResponse($products, string $originalMessage): array
+    {
         $isSubjective = $this->hasSubjectiveQualifier($originalMessage);
 
         if ($isSubjective && $this->llm->isEnabled()) {
@@ -304,8 +354,8 @@ class ChatbotResponseService
             return ['intent' => 'product_search', 'reply' => $llmReply];
         }
 
-        $lines = $products->map(function (Product $p) {
-            return "- {$p->name} — " . $this->formatProductPrice($p)
+        $lines = $products->map(function (Product $p) use ($originalMessage) {
+            return "- {$p->name} — " . $this->formatProductPrice($p, $originalMessage)
                  . ($p->category ? " ({$p->category->name})" : '');
         })->implode("\n");
 
@@ -356,7 +406,7 @@ class ChatbotResponseService
      * dùng giá bán thông thường. Luôn nhớ eager-load 'activeFlashSaleItem'
      * ở query lấy $p để tránh N+1.
      */
-    private function formatProductPrice(Product $p): string
+    private function formatProductPrice(Product $p, string $originalMessage = ''): string
     {
         if ($p->is_flash_sale) {
             return number_format($p->flash_sale_price, 0, ',', '.') . 'đ'
@@ -364,7 +414,84 @@ class ChatbotResponseService
                  . number_format($p->price, 0, ',', '.') . 'đ)';
         }
 
+        // Nếu sản phẩm có biến thể (variants), hiển thị giá phù hợp hơn
+        if ($p->relationLoaded('variants') && $p->variants->isNotEmpty()) {
+            // Thử tìm variant khớp với câu hỏi (VD: "256GB", "màu đỏ")
+            $matchedVariant = $this->findMatchingVariant($p, $originalMessage);
+
+            if ($matchedVariant) {
+                $price = $matchedVariant->price ?? $p->price;
+                return number_format($price, 0, ',', '.') . 'đ'
+                     . " (Phiên bản: {$matchedVariant->name})";
+            }
+
+            // Không khớp variant cụ thể → hiện khoảng giá
+            $prices = $p->variants->pluck('price')->filter()->sort();
+            if ($prices->isNotEmpty()) {
+                $min = $prices->first();
+                $max = $prices->last();
+                if ($min == $max) {
+                    return number_format($min, 0, ',', '.') . 'đ';
+                }
+                return number_format($min, 0, ',', '.') . 'đ ~ '
+                     . number_format($max, 0, ',', '.') . 'đ';
+            }
+        }
+
         return number_format($p->price, 0, ',', '.') . 'đ';
+    }
+
+    /**
+     * Tìm biến thể (variant) phù hợp nhất với câu hỏi của khách.
+     * VD: Khách hỏi "256GB màu đỏ" → tìm variant có tên chứa "256" và "đỏ/red".
+     */
+    private function findMatchingVariant(Product $p, string $message): ?ProductVariant
+    {
+        if (empty($message)) return null;
+
+        $msgLower = mb_strtolower($message);
+        $bestMatch = null;
+        $bestScore = 0;
+
+        // Từ điển màu sắc tiếng Việt → tiếng Anh để khớp linh hoạt
+        $colorMap = [
+            'đỏ' => ['red', 'đỏ'], 'đen' => ['black', 'đen'], 'trắng' => ['white', 'trắng'],
+            'xanh' => ['blue', 'green', 'xanh'], 'vàng' => ['gold', 'yellow', 'vàng'],
+            'tím' => ['purple', 'tím'], 'hồng' => ['pink', 'hồng'], 'bạc' => ['silver', 'bạc'],
+            'xám' => ['gray', 'grey', 'xám'], 'nâu' => ['brown', 'nâu'],
+        ];
+
+        foreach ($p->variants as $variant) {
+            $varName = mb_strtolower($variant->name ?? '');
+            $score = 0;
+
+            // Khớp dung lượng (256, 512, 1TB...)
+            if (preg_match('/(\d+)\s*(?:gb|tb)/i', $message, $m)) {
+                if (str_contains($varName, mb_strtolower($m[0])) ||
+                    str_contains($varName, $m[1])) {
+                    $score += 2;
+                }
+            }
+
+            // Khớp màu sắc
+            foreach ($colorMap as $viColor => $aliases) {
+                if (str_contains($msgLower, $viColor)) {
+                    foreach ($aliases as $alias) {
+                        if (str_contains($varName, mb_strtolower($alias))) {
+                            $score += 2;
+                            break 2;
+                        }
+                    }
+                }
+            }
+
+            if ($score > $bestScore) {
+                $bestScore = $score;
+                $bestMatch = $variant;
+            }
+        }
+
+        return $bestScore > 0 ? $bestMatch : null;
     }
 
     private function buildProductContextWithSpecs($products): string
