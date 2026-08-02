@@ -169,7 +169,7 @@ class ChatbotResponseService
         $text = mb_strtolower($message);
         $patterns = [
             'tốt hơn', 'tốt nhất', 'ngon hơn',
-            'so sánh', 'đáng mua hơn', 'nên chọn cái',
+            'so sánh', 'đáng mua hơn', 'nên chọn cái', 'nên chọn con',
             'so với nhau', 'so với cái', 'giữa hai', 'giữa 2', 'hai cái này',
             'cái này với cái kia', 'nên mua cái nào', 'khác nhau thế nào',
             'khác nhau chỗ nào', 'khác gì nhau', 'ưu nhược điểm', 'nên lấy cái',
@@ -178,6 +178,13 @@ class ChatbotResponseService
             'đáng mua không', 'có đáng mua', 'có nên mua', 'có tốt không',
             'có ổn không', 'có đáng không', 'mua được không',
             'cái đầu', 'cái thứ', 'cái cuối', 'mấy cái', 'những cái',
+            // Mở rộng: bắt các câu so sánh / tham chiếu sản phẩm đã nhắc trước đó
+            'hay lấy', 'hay mua', 'hay chọn', 'hay là lấy', 'hay là mua',
+            'nên mua', 'nên lấy', 'nên chọn',
+            'ở trên', 'bên trên', 'vừa nãy', 'vừa rồi', 'lúc nãy',
+            'theo bạn', 'theo mình', 'bạn nghĩ', 'bạn thấy',
+            'tư vấn giúp', 'tư vấn cho', 'gợi ý giúp',
+            'con nào', 'cái nào', 'cái gì',
         ];
         foreach ($patterns as $p) {
             if (str_contains($text, $p)) {
