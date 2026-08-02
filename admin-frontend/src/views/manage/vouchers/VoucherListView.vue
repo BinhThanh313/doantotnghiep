@@ -175,15 +175,6 @@ onMounted(() => fetchVouchers())
     <SectionMain>
       <SectionTitleLineWithButton :icon="mdiTicketPercent" title="Quản lý Voucher / Mã giảm giá" main>
         <div class="flex items-center gap-2">
-          <input ref="importInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="handleImportFile" />
-          <BaseButton
-            :icon="mdiFileExcel"
-            :label="importing ? 'Đang nhập...' : 'Nhập Excel'"
-            color="info"
-            :disabled="importing"
-            rounded-full
-            @click="triggerImport"
-          />
           <BaseButton :icon="mdiPlus" label="Tạo mới" color="success" rounded-full @click="openCreate" />
         </div>
       </SectionTitleLineWithButton>

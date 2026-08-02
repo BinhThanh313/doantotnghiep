@@ -515,10 +515,6 @@ onMounted(() => fetchSales())
             <div class="flex justify-between items-center mb-4">
               <h4 class="font-bold">Sản phẩm trong Flash Sale ({{ saleItems.length }})</h4>
               <div class="flex items-center gap-2">
-                <input ref="itemImportInput" type="file" accept=".xlsx,.xls,.csv" class="hidden" @change="handleImportItemsFile" />
-                <BaseButton :icon="mdiFileExcel" color="info" small
-                  :label="itemImporting ? 'Đang nhập...' : 'Nhập Excel'"
-                  :disabled="itemImporting" @click="triggerItemImport" />
                 <BaseButton :icon="mdiPlus" color="success" small label="Thêm SP" @click="openAddItem" />
               </div>
             </div>
