@@ -17,6 +17,8 @@ import { showToast } from '@/composables/useToast'
 const vouchers = ref([])
 const isModalActive = ref(false)
 const isEditMode = ref(false)
+const isDeleteModalActive = ref(false)
+const itemToDelete = ref(null)
 const currentPage = ref(1)
 const lastPage = ref(1)
 
@@ -148,6 +150,11 @@ const toggleActive = async (id) => {
   } catch (e) {
     console.error(e)
   }
+}
+
+const confirmDelete = (id) => {
+  itemToDelete.value = id
+  isDeleteModalActive.value = true
 }
 
 const deleteVoucher = async () => {
