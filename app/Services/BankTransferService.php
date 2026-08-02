@@ -175,6 +175,22 @@ class BankTransferService
     }
 
     /**
+     * Lấy thông tin chuyển khoản dành cho Email xác nhận đơn hàng
+     */
+    public function getTransferInfo(Order $order): array
+    {
+        $amount = (int) ($order->total_amount + ($order->shipping_fee ?? 0) - ($order->discount_amount ?? 0));
+        
+        return [
+            'bank_name'    => $this->bankName,
+            'account_no'   => $this->accountNumber,
+            'account_name' => $this->accountName,
+            'content'      => $this->buildTransferContent($order),
+            'amount'       => $amount,
+        ];
+    }
+
+    /**
      * Sinh chuỗi EMV QR (QRCPS-MPM) — chuẩn quốc tế dùng cho VietQR.
      * FE có thể dùng thư viện qrcode.js để render thành ảnh.
      */
