@@ -251,7 +251,7 @@ onMounted(() => {
           <BaseButton :icon="mdiFileExcel" color="success" small rounded-full
                       :label="exportLoading ? 'Đang xuất...' : 'Xuất Excel'"
                       :disabled="exportLoading" @click="exportDashboard" />
-          <BaseButton :icon="mdiFilePdfBox" color="danger" small rounded-full
+          <BaseButton v-if="false" :icon="mdiFilePdfBox" color="danger" small rounded-full
                       :label="exportPdfLoading ? 'Đang xuất...' : 'Xuất báo cáo PDF'"
                       :disabled="exportPdfLoading" @click="exportDashboardPdf" />
           <BaseButton :icon="mdiRefresh" color="info" small rounded-full
