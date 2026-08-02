@@ -164,6 +164,21 @@ class CartController extends Controller
             ->when(!$variant, fn($q) => $q->whereNull('variant_id'))
             ->first();
 
+        // Kiểm tra tồn kho trước khi thêm
+        $stock = $variant ? $variant->stock : $product->stock;
+        $currentQuantity = $item ? $item->quantity : 0;
+
+        if ($currentQuantity + $quantity > $stock) {
+            $message = $stock > 0 
+                ? 'Sản phẩm này chỉ còn ' . $stock . ' sản phẩm trong kho.' 
+                : 'Sản phẩm này đã hết hàng.';
+                
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json(['success' => false, 'message' => $message]);
+            }
+            return redirect()->back()->with('error', $message);
+        }
+
         if ($item) {
             $item->quantity += $quantity;
             $item->save();
@@ -206,9 +221,23 @@ class CartController extends Controller
             ->first();
 
         if ($item) {
+            $product = $item->product;
+            $variant = $item->variant;
+            $stock = $variant ? $variant->stock : $product->stock;
+
             if ($action === 'plus') {
-                // Giới hạn tối đa để tránh abuse
-                $item->quantity = min(99, $item->quantity + 1);
+                // Giới hạn tối đa không vượt quá tồn kho (và max 99)
+                if ($item->quantity < $stock) {
+                    $item->quantity = min(99, $item->quantity + 1);
+                } else {
+                    if ($request->ajax() || $request->wantsJson()) {
+                        return response()->json([
+                            'success'  => false,
+                            'message'  => 'Bạn đã đạt giới hạn số lượng tồn kho.',
+                            'quantity' => $item->quantity,
+                        ]);
+                    }
+                }
             } elseif ($action === 'minus') {
                 $item->quantity = max(1, $item->quantity - 1);
             }
