@@ -182,7 +182,7 @@ class PaymentStateMachine
             if ($p->order->customer_email) {
                 try {
                     \Illuminate\Support\Facades\Mail::to($p->order->customer_email)
-                        ->queue(new \App\Mail\OrderRefundNotification($p->order, $reason, (float) $refundAmount));
+                        ->send(new \App\Mail\OrderRefundNotification($p->order, $reason, (float) $refundAmount));
                 } catch (\Exception $e) {
                     Log::error('Refund email failed in PaymentStateMachine: ' . $e->getMessage());
                 }

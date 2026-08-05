@@ -133,7 +133,7 @@ class OrderController extends Controller
             if ($data['payment_status'] === 'refunded' && $oldPaymentStatus !== 'refunded') {
                 try {
                     \Illuminate\Support\Facades\Mail::to($order->customer_email)
-                        ->queue(new \App\Mail\OrderRefundNotification($order, 'Hoàn tiền theo cập nhật hệ thống', (float) ($order->refund_amount ?? $order->total_amount)));
+                        ->send(new \App\Mail\OrderRefundNotification($order, 'Hoàn tiền theo cập nhật hệ thống', (float) ($order->refund_amount ?? $order->total_amount)));
                 } catch (\Exception $e) {
                     Log::error('Lỗi gửi email hoàn tiền: ' . $e->getMessage());
                 }
@@ -247,7 +247,7 @@ class OrderController extends Controller
                     if ($request->payment_status === 'refunded' && $oldPaymentStatus !== 'refunded') {
                         try {
                             \Illuminate\Support\Facades\Mail::to($order->customer_email)
-                                ->queue(new \App\Mail\OrderRefundNotification($order, 'Hoàn tiền theo cập nhật hệ thống', (float) ($order->refund_amount ?? $order->total_amount)));
+                                ->send(new \App\Mail\OrderRefundNotification($order, 'Hoàn tiền theo cập nhật hệ thống', (float) ($order->refund_amount ?? $order->total_amount)));
                         } catch (\Exception $e) {
                             Log::error('Lỗi gửi email hoàn tiền bulk: ' . $e->getMessage());
                         }
@@ -355,7 +355,7 @@ class OrderController extends Controller
             if ($order->customer_email) {
                 try {
                     Mail::to($order->customer_email)
-                        ->queue(new OrderRefundNotification($order, $request->reason, $request->refund_amount));
+                        ->send(new OrderRefundNotification($order, $request->reason, $request->refund_amount));
                 } catch (\Exception $e) {
                     Log::error('Refund email failed: ' . $e->getMessage());
                 }

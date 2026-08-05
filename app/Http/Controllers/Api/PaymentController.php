@@ -122,7 +122,7 @@ class PaymentController extends Controller
             if ($payment->order->customer_email) {
                 try {
                     \Illuminate\Support\Facades\Mail::to($payment->order->customer_email)
-                        ->queue(new \App\Mail\OrderRefundNotification($payment->order, $request->reason, (float) $refundAmount));
+                        ->send(new \App\Mail\OrderRefundNotification($payment->order, $request->reason, (float) $refundAmount));
                 } catch (\Exception $e) {
                     Log::error('Refund email failed', ['payment_id' => $id, 'error' => $e->getMessage()]);
                 }
