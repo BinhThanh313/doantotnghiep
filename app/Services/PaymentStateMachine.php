@@ -175,6 +175,29 @@ class PaymentStateMachine
             ));
             $p->save();
             $p->order->update(['payment_status' => 'refunded']);
+
+            $reason = $p->gateway_response['refund_reason'] ?? 'Hoàn tiền qua cổng thanh toán';
+            $refundAmount = $p->gateway_response['refund_amount'] ?? $p->amount;
+
+            if ($p->order->customer_email) {
+                try {
+                    \Illuminate\Support\Facades\Mail::to($p->order->customer_email)
+                        ->queue(new \App\Mail\OrderRefundNotification($p->order, $reason, (float) $refundAmount));
+                } catch (\Exception $e) {
+                    Log::error('Refund email failed in PaymentStateMachine: ' . $e->getMessage());
+                }
+            }
+
+            if ($p->order->user_id) {
+                \App\Models\AppNotification::send(
+                    $p->order->user_id,
+                    'order_refunded',
+                    'Hoàn tiền đơn hàng #' . ($p->order->tracking_number ?? $p->order->id),
+                    'Đơn hàng của bạn đã được hoàn tiền ' . number_format($refundAmount) . 'đ',
+                    $p->order->id,
+                    'order'
+                );
+            }
         });
     }
 

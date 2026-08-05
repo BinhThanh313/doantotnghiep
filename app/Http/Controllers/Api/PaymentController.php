@@ -119,6 +119,26 @@ class PaymentController extends Controller
                 ]);
             });
 
+            if ($payment->order->customer_email) {
+                try {
+                    \Illuminate\Support\Facades\Mail::to($payment->order->customer_email)
+                        ->queue(new \App\Mail\OrderRefundNotification($payment->order, $request->reason, (float) $refundAmount));
+                } catch (\Exception $e) {
+                    Log::error('Refund email failed', ['payment_id' => $id, 'error' => $e->getMessage()]);
+                }
+            }
+
+            if ($payment->order->user_id) {
+                \App\Models\AppNotification::send(
+                    $payment->order->user_id,
+                    'order_refunded',
+                    'Hoàn tiền đơn hàng #' . ($payment->order->tracking_number ?? $payment->order->id),
+                    'Đơn hàng của bạn đã được hoàn tiền ' . number_format($refundAmount) . 'đ',
+                    $payment->order->id,
+                    'order'
+                );
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Hoàn tiền thủ công (COD/Bank) đã được ghi nhận',

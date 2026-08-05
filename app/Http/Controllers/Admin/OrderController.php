@@ -129,6 +129,26 @@ class OrderController extends Controller
                     Log::error('Lỗi gửi email xác nhận thanh toán: ' . $e->getMessage());
                 }
             }
+            
+            if ($data['payment_status'] === 'refunded' && $oldPaymentStatus !== 'refunded') {
+                try {
+                    \Illuminate\Support\Facades\Mail::to($order->customer_email)
+                        ->queue(new \App\Mail\OrderRefundNotification($order, 'Hoàn tiền theo cập nhật hệ thống', (float) ($order->refund_amount ?? $order->total_amount)));
+                } catch (\Exception $e) {
+                    Log::error('Lỗi gửi email hoàn tiền: ' . $e->getMessage());
+                }
+                
+                if ($order->user_id) {
+                    \App\Models\AppNotification::send(
+                        $order->user_id,
+                        'order_refunded',
+                        'Hoàn tiền đơn hàng #' . ($order->tracking_number ?? $order->id),
+                        'Đơn hàng của bạn đã được cập nhật trạng thái hoàn tiền.',
+                        $order->id,
+                        'order'
+                    );
+                }
+            }
         }
         
         if ($order->shipment) {
@@ -221,6 +241,26 @@ class OrderController extends Controller
                                 ->send(new \App\Mail\PaymentConfirmed($order));
                         } catch (\Exception $e) {
                             Log::error('Lỗi gửi email xác nhận thanh toán bulk: ' . $e->getMessage());
+                        }
+                    }
+
+                    if ($request->payment_status === 'refunded' && $oldPaymentStatus !== 'refunded') {
+                        try {
+                            \Illuminate\Support\Facades\Mail::to($order->customer_email)
+                                ->queue(new \App\Mail\OrderRefundNotification($order, 'Hoàn tiền theo cập nhật hệ thống', (float) ($order->refund_amount ?? $order->total_amount)));
+                        } catch (\Exception $e) {
+                            Log::error('Lỗi gửi email hoàn tiền bulk: ' . $e->getMessage());
+                        }
+                        
+                        if ($order->user_id) {
+                            \App\Models\AppNotification::send(
+                                $order->user_id,
+                                'order_refunded',
+                                'Hoàn tiền đơn hàng #' . ($order->tracking_number ?? $order->id),
+                                'Đơn hàng của bạn đã được cập nhật trạng thái hoàn tiền.',
+                                $order->id,
+                                'order'
+                            );
                         }
                     }
                 }

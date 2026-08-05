@@ -1,0 +1,46 @@
+{
+	"info": {
+		"_postman_id": "b3e34b5c-4d74-4b53-b092-12f5a6f3b9c7",
+		"name": "Electro - Do An Tot Nghiep",
+		"description": "Bộ API dùng để chụp ảnh demo báo cáo đồ án tốt nghiệp",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Test Chatbot API",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"message\": \"Shop có bán iPhone 15 Pro Max bản 256GB không, giá bao nhiêu?\",\n    \"history\": [],\n    \"session_token\": \"demo_test_123\"\n}"
+				},
+				"url": {
+					"raw": "http://localhost:8000/api/chatbot/message",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"chatbot",
+						"message"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
