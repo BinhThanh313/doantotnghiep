@@ -1,7 +1,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
-  mdiStar, mdiEyeOff, mdiEye, mdiTrashCan, mdiMagnify,
+  mdiStar, mdiEyeOff, mdiEye, mdiTrashCan, mdiMagnify, mdiClose,
   mdiChevronLeft, mdiChevronRight, mdiChevronDoubleLeft, mdiChevronDoubleRight,
 } from '@mdi/js'
 import SectionMain from '@/components/SectionMain.vue'
@@ -17,12 +18,16 @@ import api from '@/services/api'
 import { showToast } from '@/composables/useToast'
 import { imgUrl } from '@/utils/image'
 
+const route = useRoute()
+const router = useRouter()
+
 const reviews = ref([])
 const currentPage = ref(1)
 const lastPage = ref(1)
 const totalItems = ref(0)
 const filterRating = ref('')
 const filterVisible = ref('')
+const filterProductId = ref('')
 
 const isDeleteModalActive = ref(false)
 const itemToDelete = ref(null)
@@ -52,6 +57,7 @@ const fetchReviews = async (page = 1) => {
     const params = { page }
     if (filterRating.value) params.rating = filterRating.value
     if (filterVisible.value !== '') params.is_visible = filterVisible.value
+    if (filterProductId.value) params.product_id = filterProductId.value
     const res = await api.get('/api/admin/reviews', { params })
     reviews.value = res.data.data
     currentPage.value = res.data.current_page
@@ -60,6 +66,12 @@ const fetchReviews = async (page = 1) => {
   } catch (e) {
     console.error(e)
   }
+}
+
+const clearProductFilter = () => {
+  filterProductId.value = ''
+  router.replace({ query: {} })
+  fetchReviews(1)
 }
 
 // Phân trang kiểu cửa sổ trượt (giống UserListView) — tránh hiện tất cả
@@ -101,44 +113,60 @@ const renderStars = (rating) => '⭐'.repeat(rating)
 
 const formatDate = (d) => new Date(d).toLocaleDateString('vi-VN')
 
-onMounted(() => fetchReviews())
+onMounted(() => {
+  if (route.query.product_id) {
+    filterProductId.value = route.query.product_id
+  }
+  if (route.query.rating) {
+    filterRating.value = route.query.rating
+  }
+  fetchReviews()
+})
 </script>
 
 <template>
   <LayoutAuthenticated>
     <SectionMain>
       <SectionTitleLineWithButton :icon="mdiStar" title="Quản lý Đánh giá sản phẩm" main>
-        <span></span>
+        <BaseButton
+          v-if="filterProductId"
+          color="warning"
+          :icon="mdiClose"
+          label="Bỏ lọc theo Sản phẩm"
+          small
+          rounded-full
+          @click="clearProductFilter"
+        />
       </SectionTitleLineWithButton>
 
       <!-- Filters -->
       <CardBox class="mb-4">
-  <div class="flex items-end gap-4 w-full p-2">
-    <FormField label="Lọc theo sao" class="flex-1 mb-0">
-      <FormControl
-        v-model="filterRating"
-        :options="ratingOptions"
-        class="w-full"
-      />
-    </FormField>
+        <div class="flex items-end gap-4 w-full p-2 flex-wrap">
+          <FormField label="Lọc theo sao" class="flex-1 min-w-[160px] mb-0">
+            <FormControl
+              v-model="filterRating"
+              :options="ratingOptions"
+              class="w-full"
+            />
+          </FormField>
 
-    <FormField label="Hiển thị" class="flex-1 mb-0">
-      <FormControl
-        v-model="filterVisible"
-        :options="visibleOptions"
-        class="w-full"
-      />
-    </FormField>
+          <FormField label="Hiển thị" class="flex-1 min-w-[160px] mb-0">
+            <FormControl
+              v-model="filterVisible"
+              :options="visibleOptions"
+              class="w-full"
+            />
+          </FormField>
 
-    <BaseButton
-      color="info"
-      label="Lọc"
-      rounded-full
-      class="flex-none"
-      @click="fetchReviews(1)"
-    />
-  </div>
-</CardBox>
+          <BaseButton
+            color="info"
+            label="Lọc"
+            rounded-full
+            class="flex-none"
+            @click="fetchReviews(1)"
+          />
+        </div>
+      </CardBox>
 
       <!-- Reviews Table -->
       <CardBox has-table>

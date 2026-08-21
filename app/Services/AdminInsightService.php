@@ -22,7 +22,7 @@ class AdminInsightService
     /**
      * #1 — Sản phẩm nên nhập thêm hàng.
      * days_to_out_of_stock = stock hiện tại / doanh số trung bình mỗi ngày (30 ngày gần nhất)
-     * Cảnh báo nếu số ngày còn lại < $thresholdDays.
+     * Cảnh báo nếu số ngày còn lại < $thresholdDays hoặc tồn kho <= 5.
      */
     public function restockRecommendations(int $windowDays = 30, int $thresholdDays = 7, int $limit = 10)
     {
@@ -37,9 +37,7 @@ class AdminInsightService
         return Product::where('is_active', true)
             ->where(function ($query) use ($sold) {
                 $query->whereIn('id', $sold->keys())
-                      ->orWhere(function ($q) {
-                          $q->where('stock', '<=', 5)->where('stock', '>', 0);
-                      });
+                      ->orWhere('stock', '<=', 5);
             })
             ->get()
             ->map(function ($product) use ($sold, $windowDays) {
@@ -57,9 +55,9 @@ class AdminInsightService
                     'days_left'       => $daysLeft !== null ? round($daysLeft, 1) : null,
                 ];
             })
-            ->filter(fn ($row) => ($row['days_left'] !== null && $row['days_left'] < 7) || ($row['stock'] <= 5 && $row['stock'] > 0))
+            ->filter(fn ($row) => ($row['days_left'] !== null && $row['days_left'] < $thresholdDays) || $row['stock'] <= 5)
             ->sortBy(function ($row) {
-                return $row['days_left'] ?? 9999;
+                return $row['days_left'] ?? ($row['stock'] <= 0 ? 0 : 9999);
             })
             ->take($limit)
             ->values();
@@ -73,10 +71,11 @@ class AdminInsightService
     {
         $since = Carbon::now()->subDays($windowDays);
 
-        // Lấy ID các sản phẩm CÓ bán trong thời gian qua (dùng JOIN nhanh hơn whereDoesntHave rất nhiều)
+        // Lấy ID các sản phẩm CÓ bán trong thời gian qua (loại trừ đơn bị huỷ)
         $soldProductIds = DB::table('order_items')
             ->join('orders', 'order_items.order_id', '=', 'orders.id')
             ->where('orders.created_at', '>=', $since)
+            ->where('orders.status', '!=', 'cancelled')
             ->pluck('product_id')
             ->unique()
             ->toArray();
@@ -108,12 +107,14 @@ class AdminInsightService
 
         $thisWeek = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
             ->where('orders.created_at', '>=', $weekStart)
+            ->where('orders.status', '!=', 'cancelled')
             ->selectRaw('product_id, SUM(quantity) as qty')
             ->groupBy('product_id')
             ->pluck('qty', 'product_id');
 
         $prevWeek = OrderItem::join('orders', 'order_items.order_id', '=', 'orders.id')
             ->whereBetween('orders.created_at', [$prevStart, $weekStart])
+            ->where('orders.status', '!=', 'cancelled')
             ->selectRaw('product_id, SUM(quantity) as qty')
             ->groupBy('product_id')
             ->pluck('qty', 'product_id');
@@ -122,13 +123,16 @@ class AdminInsightService
             return collect();
         }
 
-        $products = Product::whereIn('id', $thisWeek->keys())->get()->keyBy('id');
+        $products = Product::where('is_active', true)->whereIn('id', $thisWeek->keys())->get()->keyBy('id');
 
         return $thisWeek->map(function ($qty, $productId) use ($prevWeek, $products) {
+                if (!isset($products[$productId])) {
+                    return null;
+                }
                 $prevQty = (int) ($prevWeek[$productId] ?? 0);
                 $growth  = $prevQty > 0
                     ? round((($qty - $prevQty) / $prevQty) * 100, 1)
-                    : ($qty > 0 ? 100 : 0); // sản phẩm mới bán tuần này coi như +100%
+                    : ($qty > 0 ? 100 : 0);
 
                 return [
                     'product_id'     => $productId,
@@ -139,15 +143,14 @@ class AdminInsightService
                     'growth_percent' => $growth,
                 ];
             })
-            ->filter(fn ($row) => $row['growth_percent'] >= $minGrowthPercent)
+            ->filter(fn ($row) => $row !== null && $row['growth_percent'] >= $minGrowthPercent)
             ->sortByDesc('growth_percent')
             ->take($limit)
             ->values();
     }
 
     /**
-     * #4 — Sản phẩm nên đẩy mạnh quảng cáo: doanh thu cao + đang bán chạy
-     * (không dùng lợi nhuận vì chưa có cột giá vốn trong schema).
+     * #4 — Sản phẩm nên đẩy mạnh quảng cáo: doanh thu cao + đang bán chạy.
      */
     public function advertisingCandidates(int $windowDays = 30, int $limit = 10)
     {
@@ -159,34 +162,40 @@ class AdminInsightService
             ->selectRaw('product_id, SUM(quantity) as qty, SUM(order_items.quantity * order_items.price) as revenue')
             ->groupBy('product_id')
             ->orderByDesc('revenue')
-            ->take($limit)
+            ->take($limit * 2)
             ->get();
 
         if ($stats->isEmpty()) {
             return collect();
         }
 
-        $products = Product::whereIn('id', $stats->pluck('product_id'))->get()->keyBy('id');
+        $products = Product::where('is_active', true)->whereIn('id', $stats->pluck('product_id'))->get()->keyBy('id');
 
-        return $stats->map(fn ($row) => [
-            'product_id' => $row->product_id,
-            'name'       => $products[$row->product_id]->name ?? '—',
-            'image'      => $products[$row->product_id]->image ?? null,
-            'qty_sold'   => (int) $row->qty,
-            'revenue'    => (float) $row->revenue,
-        ]);
+        return $stats
+            ->filter(fn ($row) => isset($products[$row->product_id]))
+            ->take($limit)
+            ->map(fn ($row) => [
+                'product_id' => $row->product_id,
+                'name'       => $products[$row->product_id]->name ?? '—',
+                'image'      => $products[$row->product_id]->image ?? null,
+                'qty_sold'   => (int) $row->qty,
+                'revenue'    => (float) $row->revenue,
+            ])
+            ->values();
     }
 
     /**
      * #5 — Gợi ý tạo combo: cặp sản phẩm có độ tương đồng cao nhất,
-     * tái sử dụng bảng product_similarities đã tính sẵn cho recommendation khách hàng.
+     * chỉ gợi ý các sản phẩm đang active (is_active = true).
      */
     public function comboSuggestions(int $limit = 10, float $minScore = 0.3)
     {
-        $rows = ProductSimilarity::with(['product:id,name,image', 'similarProduct:id,name,image'])
+        $rows = ProductSimilarity::whereHas('product', fn ($q) => $q->where('is_active', true))
+            ->whereHas('similarProduct', fn ($q) => $q->where('is_active', true))
+            ->with(['product:id,name,image', 'similarProduct:id,name,image'])
             ->where('score', '>=', $minScore)
             ->orderByDesc('score')
-            ->take($limit * 4) // Lấy ra một lượng dư để bù trừ các cặp trùng
+            ->take($limit * 6)
             ->get();
 
         $seenPairs = [];
@@ -218,66 +227,62 @@ class AdminInsightService
         return $result;
     }
 
+    /**
+     * #7 — Giỏ hàng bị bỏ quên: các sản phẩm còn lưu trong cart_items
+     * không có hoạt động trong $hoursThreshold giờ qua.
+     */
     public function abandonedCarts(int $hoursThreshold = 24, int $limit = 20)
     {
         $cutoff = Carbon::now()->subHours($hoursThreshold);
-        $cutoffLower = Carbon::now()->subDays(14); // Quét 14 ngày
+        $cutoffLower = Carbon::now()->subDays(14); // Quét 14 ngày gần nhất
 
-        // Đếm tổng số cart_items cũ hơn ngưỡng để tính tỷ lệ
-        $totalOldItems = DB::table('cart_items')
-            ->whereBetween('created_at', [$cutoffLower, $cutoff])
-            ->count();
-
-        if ($totalOldItems === 0) {
-            return ['rate' => 0, 'items' => collect()];
-        }
-
-        // Truy vấn thuần SQL để tìm giỏ hàng bị bỏ quên
-        // (Không có order nào của user đó được tạo ra SAU thời điểm thêm vào giỏ)
+        // Lấy danh sách sản phẩm trong giỏ không hoạt động > hoursThreshold
         $abandoned = DB::table('cart_items')
             ->join('users', 'cart_items.user_id', '=', 'users.id')
             ->join('products', 'cart_items.product_id', '=', 'products.id')
-            ->whereBetween('cart_items.created_at', [$cutoffLower, $cutoff])
-            ->leftJoin('orders', function ($join) {
-                $join->on('orders.user_id', '=', 'cart_items.user_id')
-                     ->on('orders.created_at', '>', 'cart_items.created_at');
-            })
-            ->whereNull('orders.id')
+            ->leftJoin('product_variants', 'cart_items.variant_id', '=', 'product_variants.id')
+            ->where('products.is_active', true)
+            ->whereBetween(DB::raw('COALESCE(cart_items.updated_at, cart_items.created_at)'), [$cutoffLower, $cutoff])
             ->select(
+                'cart_items.id as cart_item_id',
                 'users.name as user_name',
                 'users.email as user_email',
                 'products.id as product_id',
                 'products.name as product_name',
+                'product_variants.name as variant_name',
                 'cart_items.quantity',
-                'cart_items.created_at'
+                DB::raw('COALESCE(cart_items.updated_at, cart_items.created_at) as last_active_at')
             )
-            ->orderByDesc('cart_items.created_at')
+            ->orderByDesc('last_active_at')
             ->limit($limit)
             ->get();
 
-        // Ước tính tỷ lệ bỏ giỏ
-        $abandonedCount = DB::table('cart_items')
-            ->whereBetween('cart_items.created_at', [$cutoffLower, $cutoff])
-            ->leftJoin('orders', function ($join) {
-                $join->on('orders.user_id', '=', 'cart_items.user_id')
-                     ->on('orders.created_at', '>', 'cart_items.created_at');
-            })
-            ->whereNull('orders.id')
+        // Tính tỷ lệ bỏ giỏ chuẩn (Số người bỏ giỏ / (Số người bỏ giỏ + Số đơn hàng hoàn tất trong 14 ngày))
+        $abandonedUsersCount = DB::table('cart_items')
+            ->whereBetween(DB::raw('COALESCE(cart_items.updated_at, cart_items.created_at)'), [$cutoffLower, $cutoff])
+            ->distinct('user_id')
+            ->count('user_id');
+
+        $completedOrdersCount = DB::table('orders')
+            ->where('created_at', '>=', $cutoffLower)
+            ->where('status', '!=', 'cancelled')
             ->count();
 
-        $rate = $totalOldItems > 0 ? round($abandonedCount / $totalOldItems * 100, 1) : 0;
+        $totalCartsOrOrders = $abandonedUsersCount + $completedOrdersCount;
+        $rate = $totalCartsOrOrders > 0 ? round(($abandonedUsersCount / $totalCartsOrOrders) * 100, 1) : 0;
 
         return [
             'rate'  => $rate,
             'items' => $abandoned->map(function ($item) {
+                $fullName = $item->product_name . ($item->variant_name ? " ({$item->variant_name})" : '');
                 return [
                     'user_name'    => $item->user_name,
                     'user_email'   => $item->user_email,
                     'product_id'   => $item->product_id,
-                    'product_name' => $item->product_name,
+                    'product_name' => $fullName,
                     'quantity'     => $item->quantity,
-                    'added_at'     => $item->created_at,
-                    'hours_ago'    => (int) Carbon::parse($item->created_at)->diffInHours(Carbon::now()),
+                    'added_at'     => $item->last_active_at,
+                    'hours_ago'    => (int) Carbon::parse($item->last_active_at)->diffInHours(Carbon::now()),
                 ];
             })->values(),
         ];
@@ -318,6 +323,7 @@ class AdminInsightService
         $rows = Review::where('rating', '<', 3)
             ->where('created_at', '>=', $since)
             ->where('is_visible', true)
+            ->whereHas('product', fn ($q) => $q->where('is_active', true))
             ->selectRaw('product_id, COUNT(*) as bad_count, AVG(rating) as avg_rating')
             ->groupBy('product_id')
             ->havingRaw('COUNT(*) >= ?', [$minCount])
@@ -329,15 +335,18 @@ class AdminInsightService
             return collect();
         }
 
-        $products = Product::whereIn('id', $rows->pluck('product_id'))->get()->keyBy('id');
+        $products = Product::where('is_active', true)->whereIn('id', $rows->pluck('product_id'))->get()->keyBy('id');
 
-        return $rows->map(fn ($row) => [
-            'product_id' => $row->product_id,
-            'name'       => $products[$row->product_id]->name ?? '—',
-            'image'      => $products[$row->product_id]->image ?? null,
-            'bad_count'  => (int) $row->bad_count,
-            'avg_rating' => round((float) $row->avg_rating, 1),
-        ]);
+        return $rows
+            ->filter(fn ($row) => isset($products[$row->product_id]))
+            ->map(fn ($row) => [
+                'product_id' => $row->product_id,
+                'name'       => $products[$row->product_id]->name ?? '—',
+                'image'      => $products[$row->product_id]->image ?? null,
+                'bad_count'  => (int) $row->bad_count,
+                'avg_rating' => round((float) $row->avg_rating, 1),
+            ])
+            ->values();
     }
 
     /**

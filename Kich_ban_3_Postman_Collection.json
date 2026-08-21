@@ -1,0 +1,40 @@
+{
+	"info": {
+		"_postman_id": "ab123456-cd78-90ef-1234-56789abcdef0",
+		"name": "Kịch bản 3: API Security & Authorization",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Get Orders Without Token (401 Unauthorized)",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Accept",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:8000/api/admin/orders",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"api",
+						"admin",
+						"orders"
+					]
+				},
+				"description": "Gửi request không có Bearer Token để kiểm tra lỗi 401 Unauthorized. Đảm bảo Headers phải có Accept: application/json."
+			},
+			"response": []
+		}
+	]
+}

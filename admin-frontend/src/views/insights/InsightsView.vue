@@ -346,11 +346,18 @@ onMounted(fetchInsights)
           <div v-for="p in data.negative_reviews" :key="p.product_id" class="flex items-center justify-between py-2 border-b last:border-0">
             <div class="flex items-center min-w-0">
               <img :src="imageUrl(p.image)" class="w-10 h-10 object-cover rounded mr-3 shrink-0" />
-              <p class="font-medium truncate">{{ p.name }}</p>
+              <div class="min-w-0">
+                <p class="font-medium truncate">{{ p.name }}</p>
+                <p class="text-xs text-red-600 font-semibold">{{ p.bad_count }} đánh giá xấu (TB {{ p.avg_rating }}★)</p>
+              </div>
             </div>
-            <span class="text-red-600 text-sm font-semibold whitespace-nowrap ml-2">
-              {{ p.bad_count }} đánh giá xấu ({{ p.avg_rating }}★)
-            </span>
+            <BaseButton
+              size="small"
+              color="danger"
+              label="Xem đánh giá"
+              :to="`/reviews?product_id=${p.product_id}`"
+              class="ml-2 whitespace-nowrap"
+            />
           </div>
         </CardBox>
 

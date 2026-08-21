@@ -23,21 +23,36 @@ class ComboController extends Controller
         $data = $request->validate([
             'product_id'        => 'required|exists:products,id|different:combo_product_id',
             'combo_product_id'  => 'required|exists:products,id',
-            'discount_percent'  => 'nullable|integer|min:1|max:50',
+            'discount_percent'  => 'nullable|integer|min:1|max:99',
             'similarity_score'  => 'nullable|numeric',
         ]);
 
-        $combo = ProductCombo::firstOrCreate(
-            [
-                'product_id'       => $data['product_id'],
-                'combo_product_id' => $data['combo_product_id'],
-            ],
-            [
-                'discount_percent' => $data['discount_percent'] ?? 5,
-                'similarity_score' => $data['similarity_score'] ?? null,
+        // Kiểm tra xem cặp combo này đã tồn tại theo chiều nào chưa (A->B hoặc B->A)
+        $existing = ProductCombo::where(function ($q) use ($data) {
+            $q->where('product_id', $data['product_id'])
+              ->where('combo_product_id', $data['combo_product_id']);
+        })->orWhere(function ($q) use ($data) {
+            $q->where('product_id', $data['combo_product_id'])
+              ->where('combo_product_id', $data['product_id']);
+        })->first();
+
+        if ($existing) {
+            $existing->update([
+                'discount_percent' => $data['discount_percent'] ?? $existing->discount_percent,
+                'similarity_score' => $data['similarity_score'] ?? $existing->similarity_score,
                 'is_active'        => true,
-            ]
-        );
+            ]);
+
+            return response()->json($existing->load(['product:id,name,image', 'comboProduct:id,name,image']), 200);
+        }
+
+        $combo = ProductCombo::create([
+            'product_id'       => $data['product_id'],
+            'combo_product_id' => $data['combo_product_id'],
+            'discount_percent' => $data['discount_percent'] ?? 5,
+            'similarity_score' => $data['similarity_score'] ?? null,
+            'is_active'        => true,
+        ]);
 
         return response()->json($combo->load(['product:id,name,image', 'comboProduct:id,name,image']), 201);
     }
