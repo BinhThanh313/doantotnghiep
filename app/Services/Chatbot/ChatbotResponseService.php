@@ -31,7 +31,7 @@ class ChatbotResponseService
             return [
                 'intent' => 'greeting',
                 'reply'  => 'Xin chào! Mình là trợ lý mua sắm của Electro Shop. Bạn cần tìm sản phẩm gì hôm nay? '
-                          . 'Bạn có thể hỏi mình theo kiểu: "laptop 15-20 triệu core i7 ram 12" hoặc "điện thoại Apple dưới 25 triệu".',
+                          . 'Bạn có thể hỏi mình theo kiểu: "laptop trên 25 triệu core i7 ram 16" hoặc "điện thoại Apple dưới 25 triệu".',
             ];
         }
 

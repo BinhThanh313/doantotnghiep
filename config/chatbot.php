@@ -21,7 +21,7 @@ return [
 
     'groq' => [
         'api_key' => env('GROQ_API_KEY'),
-        'model'   => env('CHATBOT_GROQ_MODEL', 'gpt-oss-20b'),
+        'model'   => env('CHATBOT_GROQ_MODEL', 'qwen/qwen3.8-27b'),
     ],
 
     // Số sản phẩm tối đa trả về trong 1 lần tìm kiếm
