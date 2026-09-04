@@ -875,7 +875,7 @@ onMounted(() => fetchOrders())
       <CardBoxModal
         v-model="isExportModalActive"
         title="Xuất danh sách đơn hàng"
-        button-label="Xuất file"
+        <!-- button-label="Xuất file" -->
         has-cancel
         @confirm="doExport"
       >
